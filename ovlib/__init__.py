@@ -65,6 +65,10 @@ class Object_Context(object):
         self.commands = commands
         self.object_name = object_name
 
+    def fill_parser(self, parser):
+        parser.add_option("-i", "--id", dest="id", help="object ID")
+        parser.add_option("-n", "--name", dest="name", help="object tag 'Name'")
+
     def execute(self, name, method_args=[], method_kwargs={}):
         return getattr(getattr(self.api, self.api_attribute), name)(*method_args, **method_kwargs)
 

@@ -66,11 +66,11 @@ def main():
         if ov_object is None:
             print 'unknonw object: %s' % object_name
             return 253
+
         #The object parser
         parser_object = optparse.OptionParser()
         parser_object.disable_interspersed_args()
-        parser_object.add_option("-i", "--id", dest="id", help="object ID")
-        parser_object.add_option("-n", "--name", dest="name", help="object tag 'Name'")
+        ov_object.fill_parser(parser_object)
         parser_object.set_usage("%s\nverbs are:\n    %s" % (usage_common, "\n    ".join(ov_object.verbs.keys())))
 
         (object_options, object_args) = parser_object.parse_args(args)
