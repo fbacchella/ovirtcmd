@@ -58,3 +58,29 @@ For example, to create a vm, one can use the template ``vm_create.yaml`` with
     ovcmd vm create -T vm_create.yaml -V memory 2G -V cores 4 -V cluster cluster01 -V ostype rhel_7x64
 
 
+Capabilites
+===========
+
+ovcmd can enumerate and search capabilities.
+
+The noun associated is ``capa``
+
+Usage:
+
+    Usage: ovcmd [options] capa [object_args] verb [verbs_args]
+    verbs are:
+        export
+        list
+
+    Options:
+      -h, --help            show this help message and exit
+      -i ID, --id=ID        object ID
+      -v VERSION, --version=VERSION
+                            capabilities version major.minor
+      -c, --current         Get the current capabilities
+
+-c return the current capabilities used, -v expect a oVirt version like 3.0 or 3.6, -i is
+the UUID for the requested version.
+
+```capa list` enumerates all the supported capabilities, returning there version, the UUID and prefixing
+the current one with a 'c'
