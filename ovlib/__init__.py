@@ -46,6 +46,9 @@ all_libs = (
     'disks',
     'cdroms',
     'capabilities',
+    'hosts',
+    'clusters',
+    'storages',
 )
 
 def add_command(destination):
