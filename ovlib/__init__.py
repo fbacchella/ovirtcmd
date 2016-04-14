@@ -98,6 +98,10 @@ class Object_Context(object):
             cmd.contenaire = getattr(self.api, self.api_attribute)
             if cmd.validate():
                 verb_options = vars(verb_options)
+                # removed undeclared arguments
+                for (k, v) in verb_options.items():
+                    if v is None:
+                        del verb_options[k]
                 if cmd.uses_template():
                     template = self.fill_template(verb_options.pop('yamltemplate'), verb_options.pop('yamlvariables'))
                     for (k, v) in template.items():
