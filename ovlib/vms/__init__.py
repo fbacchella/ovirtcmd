@@ -15,13 +15,6 @@ class List(ovlib.verb.List):
 class XmlExport(ovlib.verb.XmlExport):
     verb = "export"
 
-    def execute(self, *args, **kwargs):
-        import sys
-        print self.broker.hostdevices.export_(sys.stdout, 0)
-
-        return super(XmlExport, self).execute(*args, **kwargs)
-
-
 @add_command(class_ref)
 class Start(ovlib.verb.XmlExport):
     verb = "start"
