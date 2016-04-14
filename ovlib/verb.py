@@ -1,6 +1,6 @@
 import optparse
-import sys
-from ovlib.template import VariableOption, load_template
+import time
+from ovlib.template import VariableOption
 
 from ovlib import OVLibError
 
@@ -38,6 +38,14 @@ class Verb(object):
 
         (verb_options, verb_args) = parser.parse_args(args)
         return (verb_options, verb_args)
+
+    def wait_for(self, status, wait=1):
+        while True:
+            self.broker = self.contenaire.get(id=self.broker.id)
+            if self.broker.status.state == status:
+                return
+            else:
+                time.sleep(wait)
 
     def execute(self, *args, **kwargs):
         raise NameError('Not implemented')
