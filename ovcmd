@@ -5,6 +5,7 @@ import sys
 import optparse
 import ovlib
 from ovlib.context import Context, ConfigurationError
+from ovirtsdk.infrastructure.errors import RequestError, ConnectionError
 
 def print_run_phrase(ov_object, verb, object_options={}, object_args=[]):
     (cmd, executed) = ov_object.run_phrase(verb, object_options, object_args)
@@ -94,7 +95,15 @@ def main():
                 status = print_run_phrase(ov_object, verb, object_options, object_args)
                 sys.exit(status)
             except (ovlib.OVLibError) as e:
-                print "The action \"%s %s\" failed with \"%s\"" % (ov_object.object_name, verb, e.error_message)
+                print "The action \"%s %s\" failed with \n    %s" % (ov_object.object_name, verb, e.error_message)
+                return 251
+            except (ConnectionError) as e:
+                print dir(e)
+                print "The action \"%s %s\" failed with \n    %s" % (ov_object.object_name, verb, e)
+                return 252
+            except (RequestError) as e:
+                print "The action \"%s %s\" failed with \n    %s" % (ov_object.object_name, verb, e.detail)
+                return 252
             finally:
                 if context is not None:
                     context.disconnect()
