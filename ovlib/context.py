@@ -2,7 +2,7 @@ from ovirtsdk.api import API
 import ConfigParser
 
 # The api settings that store boolean values
-booleans = frozenset(['debug', 'insecure'])
+booleans = frozenset(['debug', 'insecure', 'kerberos'])
 
 class ConfigurationError(Exception):
     def __init__(self, value):
@@ -13,12 +13,15 @@ class ConfigurationError(Exception):
         return repr(self.value)
 
 class Context(object):
-    url = None
-    username = None
-    password = None
-    debug = False
-    ca_file = '/etc/pki/ovirt-engine/ca.pem'
-    insecure = False
+    api_connect_settings = {
+        'url': None,
+        'username': None,
+        'password': None,
+        'debug': False,
+        'ca_file': '/etc/pki/ovirt-engine/ca.pem',
+        'insecure': False,
+        'kerberos': False,
+    }
 
     connected = False
     api = None
@@ -35,24 +38,18 @@ class Context(object):
         for (k, v) in config.items("api"):
             config_api[k] = v
 
-        for attr_name in ('url', 'username', 'password', 'debug', 'ca_file', 'insecure'):
+        for attr_name in self.api_connect_settings.keys():
             if attr_name in kwargs:
+                self.api_connect_settings[attr_name] = kwargs.pop(attr_name)
                 # given in the command line
-                setattr(self, attr_name, kwargs[attr_name])
             elif attr_name in config_api:
                 # given in the config file
-                value = config_api[attr_name]
+                self.api_connect_settings[attr_name] = config_api[attr_name]
                 if attr_name in booleans:
-                    value = config.getboolean('api', attr_name)
-                setattr(self, attr_name, value)
-            elif getattr(self, attr_name) is None:
-                # was not given at all, and no default value
-                raise ConfigurationError(attr_name)
-
+                    self.api_connect_settings[attr_name] = config.getboolean('api', attr_name)
 
     def connect(self):
-        self.api = API(url=self.url, username = self.username, password=self.password,
-                       debug=self.debug, ca_file=self.ca_file, insecure = self.insecure)
+        self.api = API(**self.api_connect_settings)
         self.connected = True
 
     def disconnect(self):
