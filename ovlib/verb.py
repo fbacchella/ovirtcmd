@@ -60,6 +60,12 @@ class Verb(object):
         """A default status command to run on success"""
         return 0;
 
+    def _export(self, object):
+        output = StringIO()
+        object.export_(output, 0)
+        return output.getvalue()
+
+
 class List(Verb):
 
     def validate(self,  *args, **kwargs):
@@ -72,6 +78,10 @@ class List(Verb):
 class XmlExport(Verb):
 
     def execute(self, *args, **kwargs):
-        output = StringIO()
-        self.broker.export_(output, 0)
-        return output.getvalue()
+        if len(args) > 0:
+            elem =  getattr(self.broker, args[0])
+            if hasattr(elem, 'list'):
+                for i in elem.list():
+                    yield  self._export(i)
+        else:
+            yield self._export(self.broker)
