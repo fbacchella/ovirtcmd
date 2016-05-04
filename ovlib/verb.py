@@ -75,6 +75,7 @@ class List(Verb):
         for i in self.contenaire.list():
             yield "%s %s " %(i.get_name(), i.get_id())
 
+
 class XmlExport(Verb):
 
     def execute(self, *args, **kwargs):

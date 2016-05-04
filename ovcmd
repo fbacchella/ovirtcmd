@@ -6,6 +6,8 @@ import optparse
 import ovlib
 from ovlib.context import Context, ConfigurationError
 from ovirtsdk.infrastructure.errors import RequestError, ConnectionError
+import StringIO
+
 
 def print_run_phrase(ov_object, verb, object_options={}, object_args=[]):
     (cmd, executed) = ov_object.run_phrase(verb, object_options, object_args)
@@ -32,6 +34,25 @@ def print_run_phrase(ov_object, verb, object_options={}, object_args=[]):
         print "'%s %s' failed" % (ov_object.object_name, verb)
     return 255
 
+
+def do_eval(script, context_options={}, variables={}):
+    print context_options
+    with open(script, "r") as script_content:
+        script_content_parsed = StringIO.StringIO()
+        for line in script_content:
+            try:
+                script_content_parsed.write(ovlib.DotTemplate(line).substitute(variables))
+            except KeyError as e:
+                raise ovlib.OVLibError("Unknown variable: %s" % e)
+        code = script_content_parsed.getvalue()
+        context = Context(**context_options)
+        context.connect()
+        try:
+            exec code in globals(), {'context': context}
+        finally:
+            context.disconnect()
+
+
 def main():
 
     context = None
@@ -54,18 +75,20 @@ def main():
         value = getattr(options, option_name, None)
         if value:
             kwargs[option_name] = value
-    if len(args) > 0:
+
+    if len(args) == 2 and args[0] == 'eval':
+        return do_eval(args[1], kwargs)
+    elif len(args) > 0:
         #A object is found try to resolve the verb
 
         object_name = args.pop(0)
-
         if object_name in ovlib.objects:
             ov_object = ovlib.objects[object_name]
         else:
             ov_object = None
 
         if ov_object is None:
-            print 'unknonw object: %s' % object_name
+            print 'unknown object: %s' % object_name
             return 253
 
         #The object parser

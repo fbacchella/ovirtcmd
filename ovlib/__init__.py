@@ -1,5 +1,5 @@
 import re
-from ovlib.template import VariableOption, load_template
+from ovlib.template import VariableOption, load_template, DotTemplate
 
 class OVLibError(Exception):
     def __init__(self, value):
@@ -67,6 +67,7 @@ class Object_Context(object):
         self.api_attribute = api_attribute
         self.commands = commands
         self.object_name = object_name
+        self.api = None
 
     def fill_parser(self, parser):
         parser.add_option("-i", "--id", dest="id", help="object ID")
@@ -94,23 +95,32 @@ class Object_Context(object):
         cmd = self.get_cmd(verb)
         if cmd:
             (verb_options, verb_args) = cmd.parse(object_args)
-            cmd.broker = self.get(**object_options)
-            cmd.contenaire = getattr(self.api, self.api_attribute)
-            if cmd.validate():
-                verb_options = vars(verb_options)
-                # removed undeclared arguments
-                for (k, v) in verb_options.items():
-                    if v is None:
-                        del verb_options[k]
-                if cmd.uses_template():
-                    template = self.fill_template(verb_options.pop('yamltemplate'), verb_options.pop('yamlvariables'))
-                    for (k, v) in template.items():
-                        if k not in verb_options or v is None:
-                            verb_options[k] = v
+            verb_options = vars(verb_options)
+            # removed undeclared arguments
+            for (k, v) in verb_options.items():
+                if v is None:
+                    del verb_options[k]
+            return self.execute_phrase(cmd, object_options, verb_options, verb_args)
+        else:
+            # Nothing done, return nothing
+            return (None, None)
 
-                return (cmd, cmd.execute(*verb_args, **verb_options))
-        # Nothing done, return nothing
-        return (None, None)
+
+    def execute_phrase(self, cmd, object_options={}, verb_options={}, verb_args=[]):
+        cmd.broker = self.get(**object_options)
+        cmd.contenaire = getattr(self.api, self.api_attribute)
+        if cmd.validate():
+            if cmd.uses_template():
+                yamltemplate = verb_options.pop('yamltemplate', None)
+                yamlvariables = verb_options.pop('yamlvariables', {})
+                template = self.fill_template(yamltemplate, yamlvariables)
+                for (k, v) in template.items():
+                    if k not in verb_options or v is None:
+                        verb_options[k] = v
+            return (cmd, cmd.execute(*verb_args, **verb_options))
+        else:
+            # Nothing done, return nothing
+            return (None, None)
 
     def get(self, **kwargs):
         if len(kwargs) >0:

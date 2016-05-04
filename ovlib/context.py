@@ -1,5 +1,6 @@
 from ovirtsdk.api import API
 import ConfigParser
+import ovlib
 
 # The api settings that store boolean values
 booleans = frozenset(['debug', 'insecure', 'kerberos'])
@@ -11,6 +12,26 @@ class ConfigurationError(Exception):
 
     def __str__(self):
         return repr(self.value)
+
+class Command_Executor(object):
+
+    def __init__(self, context, object_ctxt, object_options):
+        super(Command_Executor, self).__init__()
+        self.object_ctxt = object_ctxt
+        self.context = context
+        self.object_options =  object_options
+
+        for (verb_name, verb_class) in self.object_ctxt.verbs.items():
+            setattr(self, verb_name, self._do_runner(verb_class))
+
+    def _do_runner(self, verb_class):
+        def executor(*args, **kwargs):
+            if self.object_ctxt.api is None:
+                self.object_ctxt.api = self.context.api
+            cmd = verb_class(self.context.api)
+            (cmd, executed) = self.object_ctxt.execute_phrase(cmd, object_options=self.object_options, verb_options=kwargs, verb_args=args)
+            return executed
+        return executor
 
 class Context(object):
     api_connect_settings = {
@@ -48,6 +69,10 @@ class Context(object):
                 if attr_name in booleans:
                     self.api_connect_settings[attr_name] = config.getboolean('api', attr_name)
 
+        for (object_name, object_context) in ovlib.objects.items():
+
+            setattr(self, object_name, self._do_getter(object_context))
+
     def connect(self):
         self.api = API(**self.api_connect_settings)
         self.connected = True
@@ -55,3 +80,9 @@ class Context(object):
     def disconnect(self):
         if self.connected:
             self.api.disconnect()
+
+    def _do_getter(self, object_context):
+        def getter(**kwargs):
+            return Command_Executor(self, object_context, kwargs)
+        return getter
+
