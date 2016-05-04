@@ -37,18 +37,6 @@ class Create(ovlib.verb.Verb):
         return True
 
     def execute(self, *args, **kwargs):
-
-        # removed undeclared arguments
-        for (k, v) in kwargs.items():
-            if v is None:
-                del kwargs[k]
-
-        #parse the template and extract add missing values in the arguments
-        template = self.fill_template(kwargs.pop('yamltemplate'), kwargs.pop('yamlvariables'))
-        for (k,v) in template.items():
-            if k not in kwargs:
-                kwargs[k] = v
-
         if 'memory' in kwargs:
             kwargs['memory'] = int(parse_size(kwargs['memory']))
         if 'memory_policy' not in kwargs:

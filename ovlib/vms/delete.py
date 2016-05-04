@@ -10,7 +10,6 @@ class Delete(ovlib.verb.Verb):
 
 
     def execute(self, *args, **kwargs):
-        print kwargs
         if self.broker.status.state != 'down':
             self.broker.stop()
             while self.api.vms.get(id=self.broker.id).status.state != 'down':
