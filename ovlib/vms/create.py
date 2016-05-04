@@ -92,7 +92,10 @@ class Create(ovlib.verb.Verb):
 
         disks = []
         for disk_information in kwargs.pop('disk', []):
-            (disk_size,storage_domain) = disk_information.split(",")
+            if isinstance(disk_information, basestring):
+                (disk_size, storage_domain) = disk_information.split(",")
+            elif isinstance(disk_information, list) or isinstance(disk_information, tuple):
+                (disk_size, storage_domain) = disk_information[0:2]
             if len(disks) == 0:
                 disk_name = "%s_sys" % kwargs['name']
                 disk_bootable = True
