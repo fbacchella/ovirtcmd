@@ -35,7 +35,7 @@ class Create(ovlib.verb.Verb):
         return True
 
     def fill_parser(self, parser):
-        parser.add_option("-n", "--name", dest="name", help="New cluster name", default=None)
+        parser.add_option("-n", "--name", dest="name", help="New datecenter name", default=None)
 
     def validate(self):
         return True

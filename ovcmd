@@ -36,7 +36,6 @@ def print_run_phrase(ov_object, verb, object_options={}, object_args=[]):
 
 
 def do_eval(script, context_options={}, variables={}):
-    print context_options
     with open(script, "r") as script_content:
         script_content_parsed = StringIO.StringIO()
         for line in script_content:
