@@ -47,7 +47,7 @@ def do_eval(script, context_options={}, variables={}):
         context = Context(**context_options)
         context.connect()
         try:
-            exec code in globals(), {'context': context}
+            exec code in globals(), {'context': context, 'parse_size': ovlib.parse_size}
         finally:
             context.disconnect()
 
