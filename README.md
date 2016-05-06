@@ -17,21 +17,51 @@ Howto install venv
 Usage
 =====
 
+CLI
+---
+ovcmd can be used a CLI for oVirt. Each command does a single action. Many of them maps directly to usual
+oVirt command, but some are specific to ovcmd or try to add functionnality to existing one.
+
 The general command line is
 
-    ovcmd [args] object [args] verb [args]
+    ovcmd [args] noun [args] verb [args]
 
-The section 'object' match a generic Ovirt object that can be managed using
+The section 'noun' match a generic Ovirt object that can be managed using
 ovcmd.
 
-For each object, there is a set of verbs that can apply to it. Each args section
+For each noun, there is a set of verbs that can apply to it. Each args section
 apply to the preceding term. So `` ovcmd -c someting vm`` is different from ``ovcmd vm -c someting``.
 
-To get a list of object that can be used, try ``ovcmd -h``. For a list ov verb that
-can be used with an object, try ``ovcmd <object> -h``.
+To get a list of noun that can be used, try ``ovcmd -h``. For a list ov verb that
+can be used with an object, try ``ovcmd <noun> -h``.
 
 The verbs are usually taken from the python sdk, but not all are implemented
 and some are added.
+
+Scripting
+---------
+
+ovcmd can also be used to script oVirt actions, using python. It mimics closely the usual oVirt's API but try
+to hide parts of it's complexity.
+
+In this case, the command line is
+
+    ovcmd eval [-V variable value]* script.py
+
+A sample script then looks like:
+
+    dc = context.datacenter(name="${dc_name}")
+    if dc is not None:
+        dc.delete(force=True)
+    context.datacenter().create(name="${dc_name}", local=False, storage_format="v3", mac_pool_name="MoreMac")
+
+    cluster = context.cluster(name="${cl_name}")
+    if cluster is not None:
+        cluster.delete(force=True)
+    context.cluster().create(name="${cl_name}", cpu_type="Intel Haswell-noTSX Family", dc_name="${dc_name}",
+                             memory_policy={'guaranteed': True, 'overcommit': 100, 'transparent_hugepages': False},
+                             ballooning_enabled=True)
+
 
 Config file
 ===========
@@ -47,7 +77,7 @@ Templates
 Some command that take a import number of arguments like ``ovcmd vm create`` can take a template as an argument.
 
 A template is a yaml file that provides many settings, they usually duplicate
-command line settings, but they can be smarter too. A template can used variabes
+command line settings, but they can be smarter too. A template can used variables
 written as ${variable_name}.
 
 To use a template, give the argument ``-T template_file`` to the file and each variables is declared
@@ -63,11 +93,11 @@ Capabilites
 
 ovcmd can enumerate and search capabilities.
 
-The noun associated is ``capa``
+The noun associated is ``capa``.
 
 Usage:
 
-    Usage: ovcmd [options] capa [object_args] verb [verbs_args]
+    ovcmd [options] capa [object_args] verb [verbs_args]
     verbs are:
         export
         list
@@ -84,3 +114,42 @@ the UUID for the requested version.
 
 ```capa list` enumerates all the supported capabilities, returning there version, the UUID and prefixing
 the current one with a 'c'
+
+
+Virtual machines
+================
+
+The noun associated is ``vm``.
+
+Usage:
+
+    ovcmd [options] object [object_args] verb [verbs_args]
+    verbs are:
+        autoinstall
+        create
+        list
+        start
+        export
+        ticket
+        delete
+
+    Options:
+      -h, --help            show this help message and exit
+      -i ID, --id=ID        object ID
+      -n NAME, --name=NAME  object tag 'Name'
+
+Autoinstall
+-----------
+
+Usage: Automaticaly boot on the specified kernel, using a custom command line, it expected to execute an autoinstallation command
+
+    Options:
+      -h, --help            show this help message and exit
+      -V YAMLVARIABLES, --variable=YAMLVARIABLES
+      -T YAMLTEMPLATE, --template=YAMLTEMPLATE
+      -k KERNEL, --kernel=KERNEL
+                            Kernel path
+      -i INITRD, --initrd=INITRD
+                            Initrd path
+      -c CMDLINE, --cmdline=CMDLINE
+                            Command line for the kernel
