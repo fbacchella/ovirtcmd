@@ -21,7 +21,6 @@ class Verb(object):
     def validate(self):
         """try to validate the object needed by the commande, should be overriden if the no particular object is expected"""
         if self.broker is None:
-            print "needed object not found"
             return False
         else:
             return True
