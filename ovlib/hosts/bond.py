@@ -16,6 +16,7 @@ class Bond(ovlib.verb.Verb):
         parser.add_option("-b", "--bond_name", dest="bond_name", default="bond0")
         parser.add_option("-I", "--ip", dest="ip")
         parser.add_option("-G", "--gateway", dest="gateway")
+        parser.add_option("-D", "--dhcp", dest="dhcp", action="store_true")
 
     def execute(self, *args, **kwargs):
         mtu = int(kwargs.pop('mtu', None))
@@ -52,8 +53,10 @@ class Bond(ovlib.verb.Verb):
                                      netmask=str(ip_net).split('/')[0])
             if gateway is not None:
                 kwargs['ip'].set_gateway(gateway)
-            print self._export(kwargs['ip'])
             kwargs['boot_protocol'] = 'static'
+        elif kwargs.pop('dhcp', False):
+            kwargs['boot_protocol'] = 'dhcp'
+            kwargs['ip'] = params.IP()
 
         bonded_if = params.HostNIC(network=params.Network(name=kwargs['network']),
                                            name=kwargs['bond_name'],
@@ -63,7 +66,6 @@ class Bond(ovlib.verb.Verb):
                                            bonding=bonding)
         if mtu is not None:
             bonded_if.set_mtu(mtu)
-        print self._export(bonded_if)
-        self.broker.setupnetworks(params.Action(force = 0,
+        return self.broker.setupnetworks(params.Action(force = 1,
                                                 check_connectivity = 1,
                                                 host_nics = params.HostNics(host_nic = [bonded_if])))
