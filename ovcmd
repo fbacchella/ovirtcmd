@@ -5,6 +5,7 @@ import sys
 import optparse
 import ovlib
 from ovlib.context import Context, ConfigurationError
+from ovlib.template import VariableOption
 from ovirtsdk.infrastructure.errors import RequestError, ConnectionError
 import StringIO
 
@@ -75,8 +76,16 @@ def main():
         if value:
             kwargs[option_name] = value
 
-    if len(args) == 2 and args[0] == 'eval':
-        return do_eval(args[1], kwargs)
+    if len(args) >= 2 and args[0] == 'eval':
+        parser_eval = optparse.OptionParser(option_class=VariableOption)
+        parser_eval.add_option("-V", "--variable", dest="yamlvariables", action="store_variable", type="string")
+        (eval_options, eval_args) = parser_eval.parse_args(args[1:])
+        if len(eval_args) > 0:
+            return do_eval(eval_args[0], kwargs, eval_options.yamlvariables)
+        else:
+            print 'no script to evaluate'
+            return 253
+
     elif len(args) > 0:
         #A object is found try to resolve the verb
 
