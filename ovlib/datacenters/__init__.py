@@ -48,5 +48,20 @@ class Create(ovlib.verb.Verb):
         self.broker = self.contenaire.add(params.DataCenter(**kwargs))
 
 
+@add_command(class_ref)
+class Delete(ovlib.verb.Verb):
+    verb = "delete"
+
+    def fill_parser(self, parser):
+        parser.add_option("-f", "--force", dest="force", help="Force", default=False, action='store_true')
+
+
+    def execute(self, *args, **kwargs):
+        action_params = params.Action(
+            # force a True/False content
+            force= kwargs == True,
+        )
+        return self.broker.delete(action_params)
+
 
 oc = Object_Context(api_attribute = "datacenters", object_name = "datacenter", commands = class_ref)
