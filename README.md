@@ -87,6 +87,37 @@ For example, to create a vm, one can use the template ``vm_create.yaml`` with
 
     ovcmd vm create -T vm_create.yaml -V memory 2G -V cores 4 -V cluster cluster01 -V ostype rhel_7x64
 
+Exporting
+=========
+
+Many noun support the export verb, to generate an xml dump of it's setting.
+
+To export sub entries, this verb can take an argument being the sub object name to export.
+
+For example if one exports an host, the command will dump:
+
+    $ ./ovcmd host -n host_name export
+    <Host href="/api/hosts/db240f83-9266-4892-a6d2-8ac406cadfb1" id="db240f83-9266-4892-a6d2-8ac406cadfb1">
+        <actions>
+        ...
+        </actions>
+        <name>host_name</name>
+        <comment></comment>
+        <link href="/api/hosts/db240f83-9266-4892-a6d2-8ac406cadfb1/storage" rel="storage"/>
+        <link href="/api/hosts/db240f83-9266-4892-a6d2-8ac406cadfb1/nics" rel="nics"/>
+        <link href="/api/hosts/db240f83-9266-4892-a6d2-8ac406cadfb1/numanodes" rel="numanodes"/>
+        <link href="/api/hosts/db240f83-9266-4892-a6d2-8ac406cadfb1/tags" rel="tags"/>
+        <link href="/api/hosts/db240f83-9266-4892-a6d2-8ac406cadfb1/permissions" rel="permissions"/>
+        ...
+    </Host>
+
+To get the nics sub entrie, the command needs to be
+
+    $ ./ovcmd host -n host_name export nics
+    <HostNIC href="/api/hosts/db240f83-9266-4892-a6d2-8ac406cadfb1/nics/958c40cd-9ddb-4548-8bd8-79f454021c35" id="958c40cd-9ddb-4548-8bd8-79f454021c35">
+        ...
+    </HostNIC>
+    ...
 
 Capabilites
 ===========
