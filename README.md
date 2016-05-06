@@ -30,10 +30,10 @@ The section 'noun' match a generic Ovirt object that can be managed using
 ovcmd.
 
 For each noun, there is a set of verbs that can apply to it. Each args section
-apply to the preceding term. So `` ovcmd -c someting vm`` is different from ``ovcmd vm -c someting``.
+apply to the preceding term. So `ovcmd -c someting vm` is different from `ovcmd vm -c someting`.
 
-To get a list of noun that can be used, try ``ovcmd -h``. For a list ov verb that
-can be used with an object, try ``ovcmd <noun> -h``.
+To get a list of noun that can be used, try `ovcmd -h`. For a list ov verb that
+can be used with an object, try `ovcmd <noun> -h`.
 
 The verbs are usually taken from the python sdk, but not all are implemented
 and some are added.
@@ -66,24 +66,24 @@ A sample script then looks like:
 Config file
 ===========
 
-ovcmd use a ``ini`` file to store settings, a example is given in ``sample_config.ini``/
+ovcmd use a `ini` file to store settings, a example is given in `sample_config.ini`/
 
-It the environnement variable ``OVCONFIG`` is given, it will be used to find the config file.
+It the environnement variable `OVCONFIG` is given, it will be used to find the config file.
 
 
 Templates
 =========
 
-Some command that take a import number of arguments like ``ovcmd vm create`` can take a template as an argument.
+Some command that take a import number of arguments like `ovcmd vm create` can take a template as an argument.
 
 A template is a yaml file that provides many settings, they usually duplicate
 command line settings, but they can be smarter too. A template can used variables
 written as ${variable_name}.
 
-To use a template, give the argument ``-T template_file`` to the file and each variables is declared
-with ``-V variable_name value``.
+To use a template, give the argument `-T template_file` to the file and each variables is declared
+with `-V variable_name value`.
 
-For example, to create a vm, one can use the template ``vm_create.yaml`` with
+For example, to create a vm, one can use the template `vm_create.yaml` with
 
     ovcmd vm create -T vm_create.yaml -V memory 2G -V cores 4 -V cluster cluster01 -V ostype rhel_7x64
 
@@ -124,7 +124,7 @@ Capabilites
 
 ovcmd can enumerate and search capabilities.
 
-The noun associated is ``capa``.
+The noun associated is `capa`.
 
 Usage:
 
@@ -143,26 +143,24 @@ Usage:
 -c return the current capabilities used, -v expect a oVirt version like 3.0 or 3.6, -i is
 the UUID for the requested version.
 
-```capa list` enumerates all the supported capabilities, returning there version, the UUID and prefixing
+`capa list` enumerates all the supported capabilities, returning there version, the UUID and prefixing
 the current one with a 'c'
 
 
 Virtual machines
 ================
 
-The noun associated is ``vm``.
+The noun associated is `vm`.
 
-Usage:
+Know verbs are
 
-    ovcmd [options] object [object_args] verb [verbs_args]
-    verbs are:
-        autoinstall
-        create
-        list
-        start
-        export
-        ticket
-        delete
+ * autoinstall
+ * create
+ * list
+ * start
+ * export
+ * ticket
+ * delete
 
     Options:
       -h, --help            show this help message and exit
@@ -172,7 +170,8 @@ Usage:
 Autoinstall
 -----------
 
-Usage: Automaticaly boot on the specified kernel, using a custom command line, it expected to execute an autoinstallation command
+Automaticaly boot on the specified kernel, using a custom command line, it expect this command line to execute an
+autoinstallation command. It then wait for the installation to finish and restart the server with the old boot settings.
 
     Options:
       -h, --help            show this help message and exit
@@ -184,3 +183,46 @@ Usage: Automaticaly boot on the specified kernel, using a custom command line, i
                             Initrd path
       -c CMDLINE, --cmdline=CMDLINE
                             Command line for the kernel
+
+ticket
+------
+
+It's used to generate a URL to connect to the console of a virtual machine. It resolve the IP and port information and
+also generate a ticket.
+
+Hosts
+=====
+
+The noun associated is `host`.
+
+Know verbs are
+ * create
+ * list
+ * export
+ * bond
+
+bond
+----
+
+It's used to automatically bond the interfaces from an hosts.
+
+Options:
+
+    -h, --help            show this help message and exit
+    -V YAMLVARIABLES, --variable=YAMLVARIABLES
+    -T YAMLTEMPLATE, --template=YAMLTEMPLATE
+    -i INTERFACES, --interface=INTERFACES
+                          Interface to add to bonding
+    -m MTU, --mtu=MTU     MTU for the interface
+    -n NETWORK, --network=NETWORK
+                          Network to bond
+    -o BOND_OPTIONS, --bond_option=BOND_OPTIONS
+    -b BOND_NAME, --bond_name=BOND_NAME
+    -I IP, --ip=IP
+    -G GATEWAY, --gateway=GATEWAY
+    -D, --dhcp
+
+The -IP argument is used to provide both the IP and the netmask, using the CIDR notation : IP/mask length,
+for example 172.16.3.4/12.
+
+
