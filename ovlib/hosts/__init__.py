@@ -4,6 +4,7 @@ from ovlib import Object_Context, add_command
 from ovirtsdk.xml import params
 from ovirtsdk.infrastructure.errors import RequestError
 import create
+import bond
 
 class_ref = []
 
@@ -47,4 +48,6 @@ class Reboot(ovlib.verb.Verb):
         return True
 
 class_ref.append(create.Create)
+class_ref.append(bond.Bond)
+
 content = Object_Context(api_attribute ="hosts", object_name ="host", commands = class_ref)

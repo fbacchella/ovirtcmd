@@ -12,7 +12,7 @@ Howto install venv
     pip install --upgrade pip
     pip uninstall pycurl
     PYCURL_SSL_LIBRARY=openssl easy_install pycurl
-    easy_install ovirt-engine-sdk-python PyYaml
+    easy_install ovirt-engine-sdk-python PyYaml ipaddress
 
 Usage
 =====
