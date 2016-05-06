@@ -16,14 +16,10 @@ class Delete(ovlib.verb.Verb):
                 time.sleep(1)
                 print '.',
 
-        detach_only = kwargs.pop('detach_only')
-        if detach_only:
-            disks_params = params.Disks(detach_only=True)
-        else:
-            disks_params = params.Disks()
+        detach_only = kwargs.pop('detach_only', False)
         action_params = params.Action(
             vm=params.VM(
-                disks=disks_params,
+                disks=params.Disks(detach_only=detach_only == True),
             ),
         )
 

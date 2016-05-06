@@ -6,10 +6,12 @@ from ovirtsdk.xml import params
 
 class Autoinstall(ovlib.verb.List):
     """Automaticaly boot on the specified kernel, using a custom command line, it expected to execute an autoinstallation command"""
-    verb = "pxeinstall"
+    verb = "autoinstall"
 
     def fill_parser(self, parser):
-        pass
+        parser.add_option("-k", "--kernel", dest="kernel", help="Kernel path", default=None)
+        parser.add_option("-i", "--initrd", dest="initrd", help="Initrd path", default=None)
+        parser.add_option("-c", "--cmdline", dest="cmdline", help="Command line for the kernel", default=None)
 
     def validate(self):
         return True
@@ -31,10 +33,15 @@ class Autoinstall(ovlib.verb.List):
                     break
                 time.sleep(1)
 
+
         old_os_params =  self.broker.get_os()
+        old_kernel = old_os_params.get_kernel()
+        old_initrd = old_os_params.get_initrd()
+        old_cmdline = old_os_params.get_cmdline()
         old_os_params.set_kernel(kwargs.get('kernel', None))
         old_os_params.set_initrd(kwargs.get('initrd', None))
         old_os_params.set_cmdline(kwargs.get('cmdline', None))
+
         self.broker.set_os(old_os_params)
         self.broker.update()
         self.broker.start()
@@ -54,9 +61,9 @@ class Autoinstall(ovlib.verb.List):
         os_params =  params.OperatingSystem()
         os_params.set_boot(old_os_params.get_boot())
         os_params.set_type(old_os_params.get_type())
-        os_params.set_kernel(None)
-        os_params.set_initrd(None)
-        os_params.set_cmdline(None)
+        os_params.set_kernel(old_kernel)
+        os_params.set_initrd(old_initrd)
+        os_params.set_cmdline(old_cmdline)
         self.broker.set_os(os_params)
         self.broker.update()
         self.broker.start()
