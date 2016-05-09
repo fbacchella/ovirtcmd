@@ -1,5 +1,6 @@
 import ovlib.verb
 from ovlib import Object_Context, add_command
+from ovirtsdk.infrastructure.brokers import Disk
 
 class_ref = []
 
@@ -19,4 +20,6 @@ class Delete(ovlib.verb.Verb):
         self.broker.delete()
 
         return True
-ce = Object_Context(api_attribute = "disks", object_name = "disk", commands = class_ref)
+
+
+ce = Object_Context(api_attribute = "disks", object_name = "disk", commands = class_ref, broker_class=Disk)

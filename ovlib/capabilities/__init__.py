@@ -1,5 +1,6 @@
 import ovlib.verb
 from ovlib import Object_Context, add_command
+from ovirtsdk.infrastructure.brokers import Capabilities
 
 class_ref = []
 
@@ -22,7 +23,7 @@ class XmlExport(ovlib.verb.XmlExport):
 
 class CapabilitiesContext(Object_Context):
     def __init__(self, object_name, api_attribute, commands):
-        super(CapabilitiesContext, self).__init__(object_name, api_attribute, commands)
+        super(CapabilitiesContext, self).__init__(object_name, api_attribute, commands, Capabilities)
         self.allcapa = None
 
     def fill_parser(self, parser):

@@ -1,6 +1,7 @@
 import ovlib.verb
 from ovlib import Object_Context, add_command
 from ovirtsdk.xml import params
+from ovirtsdk.infrastructure.brokers import StorageDomain
 
 class_ref = []
 
@@ -21,4 +22,4 @@ class Delete(ovlib.verb.Verb):
         self.broker.delete(delete_info)
 
 
-oc = Object_Context(api_attribute = "storagedomains", object_name = "storage", commands = class_ref)
+oc = Object_Context(api_attribute = "storagedomains", object_name = "storage", commands = class_ref, broker_class=StorageDomain)

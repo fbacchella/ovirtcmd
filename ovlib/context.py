@@ -1,6 +1,7 @@
 from ovirtsdk.api import API
 import ConfigParser
 import ovlib
+import types
 
 # The api settings that store boolean values
 booleans = frozenset(['debug', 'insecure', 'kerberos'])
@@ -13,13 +14,14 @@ class ConfigurationError(Exception):
     def __str__(self):
         return repr(self.value)
 
-class Command_Executor(object):
+class Object_Executor(object):
 
-    def __init__(self, context, object_ctxt, object_options):
-        super(Command_Executor, self).__init__()
+    def __init__(self, context, object_ctxt, object_options=None, broker=None):
+        super(Object_Executor, self).__init__()
         self.object_ctxt = object_ctxt
         self.context = context
         self.object_options =  object_options
+        self.broker = broker
 
         for (verb_name, verb_class) in self.object_ctxt.verbs.items():
             setattr(self, verb_name, self._do_runner(verb_class))
@@ -28,9 +30,24 @@ class Command_Executor(object):
         def executor(*args, **kwargs):
             if self.object_ctxt.api is None:
                 self.object_ctxt.api = self.context.api
-            cmd = verb_class(self.context.api)
+            cmd = verb_class(self.context.api, self.broker)
             (cmd, executed) = self.object_ctxt.execute_phrase(cmd, object_options=self.object_options, verb_options=kwargs, verb_args=args)
-            return executed
+            if type(executed) in ovlib.objects_by_class:
+                return Object_Executor(self.context,
+                                       ovlib.objects_by_class[type(executed)],
+                                       None,
+                                       executed)
+            elif isinstance(executed, types.GeneratorType):
+                def iterate():
+                    for i in executed:
+                        yield Object_Executor(self.context,
+                                              ovlib.objects_by_class[type(i)],
+                                              None,
+                                              i)
+                        #yield ovlib.objects_by_class[type(i)]
+                return iterate()
+            else:
+                return executed
         return executor
 
 class Context(object):
@@ -70,7 +87,6 @@ class Context(object):
                     self.api_connect_settings[attr_name] = config.getboolean('api', attr_name)
 
         for (object_name, object_context) in ovlib.objects.items():
-
             setattr(self, object_name, self._do_getter(object_context))
 
     def connect(self):
@@ -83,6 +99,6 @@ class Context(object):
 
     def _do_getter(self, object_context):
         def getter(**kwargs):
-            return Command_Executor(self, object_context, kwargs)
+            return Object_Executor(self, object_context, kwargs)
         return getter
 

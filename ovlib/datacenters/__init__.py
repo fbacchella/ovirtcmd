@@ -1,6 +1,7 @@
 import ovlib.verb
 from ovlib import Object_Context, add_command
 from ovirtsdk.xml import params
+from ovirtsdk.infrastructure.brokers import DataCenter
 
 class_ref = []
 
@@ -64,4 +65,4 @@ class Delete(ovlib.verb.Verb):
         return self.broker.delete(action_params)
 
 
-oc = Object_Context(api_attribute = "datacenters", object_name = "datacenter", commands = class_ref)
+oc = Object_Context(api_attribute = "datacenters", object_name = "datacenter", commands = class_ref, broker_class=DataCenter)

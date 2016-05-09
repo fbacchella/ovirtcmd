@@ -1,6 +1,7 @@
 import ovlib.verb
 from ovlib import Object_Context, add_command
 from ovirtsdk.xml import params
+from ovirtsdk.infrastructure.brokers import Cluster
 
 class_ref = []
 
@@ -67,4 +68,4 @@ class Delete(ovlib.verb.Verb):
         return self.broker.delete()
 
 
-content = Object_Context(api_attribute ="clusters", object_name ="cluster", commands = class_ref)
+content = Object_Context(api_attribute ="clusters", object_name ="cluster", commands = class_ref, broker_class=Cluster)

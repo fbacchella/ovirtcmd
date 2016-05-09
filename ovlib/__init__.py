@@ -1,5 +1,5 @@
 import re
-from ovlib.template import VariableOption, load_template, DotTemplate
+from ovlib.template import load_template, DotTemplate
 
 class OVLibError(Exception):
     def __init__(self, value):
@@ -38,6 +38,7 @@ def parse_size(input_size, out_suffix="", default_suffix=None):
         return value * units[suffix] / units[out_suffix]
 
 objects = { }
+objects_by_class = { }
 
 all_libs = (
     'vms',
@@ -59,7 +60,7 @@ def add_command(destination):
 
 class Object_Context(object):
 
-    def __init__(self, object_name, api_attribute, commands):
+    def __init__(self, object_name, api_attribute, commands, broker_class):
         self.verbs = {}
         for command in commands:
             verb_name = command.verb
@@ -68,6 +69,7 @@ class Object_Context(object):
         self.commands = commands
         self.object_name = object_name
         self.api = None
+        self.broker_class = broker_class
 
     def fill_parser(self, parser):
         parser.add_option("-i", "--id", dest="id", help="object ID")
@@ -107,7 +109,8 @@ class Object_Context(object):
 
 
     def execute_phrase(self, cmd, object_options={}, verb_options={}, verb_args=[]):
-        cmd.broker = self.get(**object_options)
+        if cmd.broker is None:
+            cmd.broker = self.get(**object_options)
         cmd.contenaire = getattr(self.api, self.api_attribute)
         if cmd.validate():
             if cmd.uses_template():
@@ -139,3 +142,4 @@ for lib in all_libs:
                 objects[object_name] = attr
             else:
                 print "dual definition of objects %s" % object_name
+            objects_by_class[attr.broker_class] = attr

@@ -3,6 +3,8 @@ import ovlib.verb
 from ovlib import Object_Context, add_command
 from ovirtsdk.xml import params
 from ovirtsdk.infrastructure.errors import RequestError
+from ovirtsdk.infrastructure.brokers import Host
+
 import create
 import bond
 
@@ -50,4 +52,4 @@ class Reboot(ovlib.verb.Verb):
 class_ref.append(create.Create)
 class_ref.append(bond.Bond)
 
-content = Object_Context(api_attribute ="hosts", object_name ="host", commands = class_ref)
+content = Object_Context(api_attribute ="hosts", object_name ="host", commands = class_ref, broker_class=Host)

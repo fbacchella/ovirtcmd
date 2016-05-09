@@ -12,8 +12,9 @@ except:
 
 class Verb(object):
     """A abstract class, used to implements actual verb"""
-    def __init__(self, api):
+    def __init__(self, api, broker=None):
         self.api = api
+        self.broker = broker
 
     def fill_parser(self, parser):
         pass
