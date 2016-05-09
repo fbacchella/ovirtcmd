@@ -11,6 +11,11 @@ import bond
 class_ref = []
 
 @add_command(class_ref)
+class List(ovlib.verb.Statistics):
+    verb = "statistics"
+
+
+@add_command(class_ref)
 class List(ovlib.verb.List):
     verb = "list"
 

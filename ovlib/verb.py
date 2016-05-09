@@ -91,3 +91,13 @@ class XmlExport(Verb):
                 return sublist()
         else:
             return self._export(self.broker)
+
+
+class Statistics(Verb):
+
+    def execute(self, *args, **kwargs):
+        for s in self.broker.statistics.list():
+            yield s
+
+    def to_str(self, stat):
+        return "%s: %s %s (%s)\n" % (stat.name, stat.values.get_value()[0].get_datum(), stat.unit, stat.get_type())

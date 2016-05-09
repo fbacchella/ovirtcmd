@@ -10,12 +10,19 @@ from ovirtsdk.infrastructure.brokers import VM
 class_ref = []
 
 @add_command(class_ref)
+class List(ovlib.verb.Statistics):
+    verb = "statistics"
+
+
+@add_command(class_ref)
 class List(ovlib.verb.List):
     verb = "list"
+
 
 @add_command(class_ref)
 class XmlExport(ovlib.verb.XmlExport):
     verb = "export"
+
 
 @add_command(class_ref)
 class Start(ovlib.verb.XmlExport):
@@ -23,6 +30,7 @@ class Start(ovlib.verb.XmlExport):
 
     def execute(self, *args, **kwargs):
         self.broker.start()
+
 
 @add_command(class_ref)
 class Start(ovlib.verb.XmlExport):
