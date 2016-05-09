@@ -62,6 +62,15 @@ A sample script then looks like:
                              memory_policy={'guaranteed': True, 'overcommit': 100, 'transparent_hugepages': False},
                              ballooning_enabled=True)
 
+Or to get a dump of some elements:
+
+    for i in context.cluster().list():
+        print i.export()
+
+    for i in context.host().list():
+        for j in i.export("nics"):
+            print j
+
 
 Config file
 ===========
@@ -161,6 +170,7 @@ Know verbs are
  * export
  * ticket
  * delete
+ * statistics
 
     Options:
       -h, --help            show this help message and exit
@@ -200,6 +210,7 @@ Know verbs are
  * list
  * export
  * bond
+ * statistics
 
 bond
 ----
