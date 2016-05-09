@@ -84,7 +84,9 @@ class XmlExport(Verb):
         if len(args) > 0:
             elem =  getattr(self.broker, args[0])
             if hasattr(elem, 'list'):
-                for i in elem.list():
-                    yield  self._export(i)
+                def sublist():
+                    for i in elem.list():
+                        yield self._export(i)
+                return sublist()
         else:
-            yield self._export(self.broker)
+            return self._export(self.broker)
