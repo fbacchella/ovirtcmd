@@ -40,11 +40,13 @@ class Object_Executor(object):
             elif isinstance(executed, types.GeneratorType):
                 def iterate():
                     for i in executed:
-                        yield Object_Executor(self.context,
-                                              ovlib.objects_by_class[type(i)],
-                                              None,
-                                              i)
-                        #yield ovlib.objects_by_class[type(i)]
+                        if type(i) in ovlib.objects_by_class:
+                            yield Object_Executor(self.context,
+                                                  ovlib.objects_by_class[type(i)],
+                                                  None,
+                                                  i)
+                        else:
+                            yield i
                 return iterate()
             else:
                 return executed
