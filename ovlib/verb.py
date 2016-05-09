@@ -72,7 +72,10 @@ class List(Verb):
 
     def execute(self, *args, **kwargs):
         for i in self.contenaire.list():
-            yield "%s %s " %(i.get_name(), i.get_id())
+            yield i
+
+    def to_str(self, status):
+        return "%s %s\n" %(status.get_name(), status.get_id())
 
 
 class XmlExport(Verb):
