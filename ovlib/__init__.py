@@ -9,6 +9,14 @@ class OVLibError(Exception):
     def __str__(self):
         return repr(self.value)
 
+class OVLibErrorNotFound(Exception):
+    def __init__(self, value):
+        self.value = value
+        self.error_message = value
+
+    def __str__(self):
+        return repr(self.value)
+
 class ExecutorWrapper(Exception):
     def __init__(self, executor):
         self.executor = executor

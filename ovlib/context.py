@@ -20,16 +20,23 @@ class Object_Executor(object):
         super(Object_Executor, self).__init__()
         self.object_ctxt = object_ctxt
         self.context = context
-        self.object_options =  object_options
+        self.object_options = object_options
         self.broker = broker
+        if self.object_ctxt.api is None:
+            self.object_ctxt.api = self.context.api
+
+        #print self.broker
+        #print self.object_options
+        if self.broker is None and len(object_options) > 0:
+            self.broker = self.object_ctxt.get(**self.object_options)
+            if self.broker is None:
+                raise ovlib.OVLibErrorNotFound("object not found: %s %s" % (self.object_ctxt.api_attribute, self.object_options) )
 
         for (verb_name, verb_class) in self.object_ctxt.verbs.items():
             setattr(self, verb_name, self._do_runner(verb_class))
 
     def _do_runner(self, verb_class):
         def executor(*args, **kwargs):
-            if self.object_ctxt.api is None:
-                self.object_ctxt.api = self.context.api
             cmd = verb_class(self.context.api, self.broker)
             (cmd, executed) = self.object_ctxt.execute_phrase(cmd, object_options=self.object_options, verb_options=kwargs, verb_args=args)
             if type(executed) in ovlib.objects_by_class:
@@ -101,6 +108,9 @@ class Context(object):
 
     def _do_getter(self, object_context):
         def getter(**kwargs):
-            return Object_Executor(self, object_context, kwargs)
+            try:
+                return Object_Executor(self, object_context, object_options=kwargs)
+            except ovlib.OVLibErrorNotFound:
+                return None
         return getter
 
