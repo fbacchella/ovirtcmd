@@ -1,8 +1,10 @@
 import optparse
 import time
 from ovlib.template import VariableOption
-
-from ovlib import OVLibError
+from ovlib.context import Object_Executor
+from ovirtsdk.infrastructure.common import Base
+from ovlib import OVLibErrorNotFound
+from ovirtsdk.xml import params
 
 # Find the best implementation available on this platform
 try:
@@ -56,6 +58,20 @@ class Verb(object):
         else:
             print value
 
+    def get(self, api_name, name=None, id=None):
+        if isinstance(name, Object_Executor):
+            return name.broker
+        elif isinstance(name, Base):
+            return name
+        if isinstance(id, Object_Executor):
+            return id.broker
+        elif isinstance(id, Base):
+            return id
+        else:
+            found = getattr(self.api, api_name).get(name=name, id=id)
+            if found is None:
+                raise OVLibErrorNotFound("%s(name='%s', id=%s) not found" % (api_name, name, id))
+
     def status(self):
         """A default status command to run on success"""
         return 0;
@@ -67,6 +83,7 @@ class Verb(object):
 
 
 class List(Verb):
+    verb = "list"
 
     def validate(self,  *args, **kwargs):
         return True
@@ -80,6 +97,7 @@ class List(Verb):
 
 
 class XmlExport(Verb):
+    verb = "export"
 
     def execute(self, *args, **kwargs):
         if len(args) > 0:
@@ -101,3 +119,30 @@ class Statistics(Verb):
 
     def to_str(self, stat):
         return "%s: %s %s (%s)\n" % (stat.name, stat.values.get_value()[0].get_datum(), stat.unit, stat.get_type())
+
+class Create(Verb):
+    verb = "create"
+
+    def validate(self):
+        return True
+
+
+class Delete(Verb):
+    verb = "delete"
+
+    def execute(self, *args, **kwargs):
+        return self.broker.delete()
+
+
+class DeleteForce(Delete):
+
+    def fill_parser(self, parser):
+        parser.add_option("-f", "--force", dest="force", help="Force", default=False, action='store_true')
+
+
+    def execute(self, *args, **kwargs):
+        action_params = params.Action(
+            # force a True/False content
+            force=kwargs == True,
+        )
+        return self.broker.delete(action_params)
