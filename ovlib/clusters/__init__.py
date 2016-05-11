@@ -7,18 +7,17 @@ class_ref = []
 
 @add_command(class_ref)
 class List(ovlib.verb.List):
-    verb = "list"
+    pass
+
 
 @add_command(class_ref)
 class XmlExport(ovlib.verb.XmlExport):
-    verb = "export"
+    pass
+
 
 @add_command(class_ref)
-class Delete(ovlib.verb.Verb):
-    verb = "delete"
-
-    def execute(self, *args, **kwargs):
-        self.broker.delete()
+class Delete(ovlib.verb.Delete):
+    pass
 
 
 @add_command(class_ref)
