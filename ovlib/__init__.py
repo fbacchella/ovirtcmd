@@ -59,7 +59,8 @@ all_libs = (
     'clusters',
     'storages',
     'network',
-    'users'
+    'users',
+    'generics',
 )
 
 def add_command(destination):
