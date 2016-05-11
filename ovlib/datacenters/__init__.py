@@ -7,12 +7,16 @@ class_ref = []
 
 @add_command(class_ref)
 class List(ovlib.verb.List):
-    verb = "list"
+    pass
 
 
 @add_command(class_ref)
 class XmlExport(ovlib.verb.XmlExport):
-    verb = "export"
+    pass
+
+@add_command(class_ref)
+class Delete(ovlib.verb.DeleteForce):
+    pass
 
 
 @add_command(class_ref)
@@ -29,40 +33,22 @@ class Attach(ovlib.verb.Verb):
 
 
 @add_command(class_ref)
-class Create(ovlib.verb.Verb):
-    verb = "create"
+class Create(ovlib.verb.Create):
 
     def uses_template(self):
         return True
 
     def fill_parser(self, parser):
         parser.add_option("-n", "--name", dest="name", help="New datecenter name", default=None)
-
-    def validate(self):
-        return True
+        parser.add_option("-m", "--macpool", dest="macpool", help="Mac Pool", default=None)
 
     def execute(self, *args, **kwargs):
-        mac_pool_name = kwargs.pop('mac_pool_name', None)
-        if mac_pool_name is not None:
-            kwargs['mac_pool'] = self.api.macpools.get(name=mac_pool_name)
+        macpool = kwargs.pop('macpool', None)
+        if macpool is not None:
+            kwargs['mac_pool'] = self.get('macpools', macpool)
 
-        self.broker = self.contenaire.add(params.DataCenter(**kwargs))
+        return self.contenaire.add(params.DataCenter(**kwargs))
 
-
-@add_command(class_ref)
-class Delete(ovlib.verb.Verb):
-    verb = "delete"
-
-    def fill_parser(self, parser):
-        parser.add_option("-f", "--force", dest="force", help="Force", default=False, action='store_true')
-
-
-    def execute(self, *args, **kwargs):
-        action_params = params.Action(
-            # force a True/False content
-            force= kwargs == True,
-        )
-        return self.broker.delete(action_params)
 
 
 oc = Object_Context(api_attribute = "datacenters", object_name = "datacenter", commands = class_ref, broker_class=DataCenter)
