@@ -58,6 +58,8 @@ all_libs = (
     'hosts',
     'clusters',
     'storages',
+    'network',
+    'users'
 )
 
 def add_command(destination):
