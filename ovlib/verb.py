@@ -58,7 +58,9 @@ class Verb(object):
         else:
             print value
 
-    def get(self, api_name, name=None, id=None):
+    def get(self, source, name=None, id=None):
+        if isinstance(source, str) or isinstance(source, unicode):
+            source = getattr(self.api, source)
         if isinstance(name, Object_Executor):
             return name.broker
         elif isinstance(name, Base):
@@ -68,9 +70,9 @@ class Verb(object):
         elif isinstance(id, Base):
             return id
         else:
-            found = getattr(self.api, api_name).get(name=name, id=id)
+            found = source.get(name=name, id=id)
             if found is None:
-                raise OVLibErrorNotFound("%s(name='%s', id=%s) not found" % (api_name, name, id))
+                raise OVLibErrorNotFound("%s(name='%s', id=%s) not found" % (source, name, id))
             else:
                 return found
 
@@ -114,6 +116,7 @@ class XmlExport(Verb):
 
 
 class Statistics(Verb):
+    verb = "statistics"
 
     def execute(self, *args, **kwargs):
         for s in self.broker.statistics.list():
