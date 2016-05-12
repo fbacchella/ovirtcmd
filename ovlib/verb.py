@@ -71,6 +71,8 @@ class Verb(object):
             found = getattr(self.api, api_name).get(name=name, id=id)
             if found is None:
                 raise OVLibErrorNotFound("%s(name='%s', id=%s) not found" % (api_name, name, id))
+            else:
+                return found
 
     def status(self):
         """A default status command to run on success"""
