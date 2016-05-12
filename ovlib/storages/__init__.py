@@ -120,5 +120,23 @@ class Import(ovlib.verb.Verb):
     def to_str(self, value):
         return self._export(value.storage_domains)
 
+@add_command(class_ref)
+class AddProfile(ovlib.verb.Verb):
+    verb = "addprofile"
+
+    def execute(self, *args, **kwargs):
+        qoss = None
+        dc = kwargs.pop('datacenter', None)
+        if dc is not None:
+            dc = self.get(self.api.datacenters, dc)
+            qoss = dc.qoss
+        qos = kwargs.pop('qos', None)
+        if qos is not None:
+            qos = self.get(qoss, qos)
+        if qos is not None:
+            kwargs['qos'] = params.QoS(id=qos.id)
+        if kwargs.get('name', None) is None:
+            kwargs['name'] = qos.name
+        return self.broker.diskprofiles.add(params.DiskProfile(**kwargs), )
 
 oc = Object_Context(api_attribute = "storagedomains", object_name = "storage", commands = class_ref, broker_class=StorageDomain)
