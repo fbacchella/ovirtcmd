@@ -50,5 +50,13 @@ class Create(ovlib.verb.Create):
         return self.contenaire.add(params.DataCenter(**kwargs))
 
 
+@add_command(class_ref)
+class Create(ovlib.verb.Verb):
+    verb = "addqos"
+
+    def execute(self, *args, **kwargs):
+        kwargs['type_'] = kwargs.pop('type', None)
+        return self.broker.qoss.add(params.QoS(**kwargs))
+
 
 oc = Object_Context(api_attribute = "datacenters", object_name = "datacenter", commands = class_ref, broker_class=DataCenter)
