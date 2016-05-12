@@ -21,8 +21,7 @@ class Delete(ovlib.verb.Delete):
 
 
 @add_command(class_ref)
-class Create(ovlib.verb.Verb):
-    verb = "create"
+class Create(ovlib.verb.Create):
 
     def uses_template(self):
         return True
@@ -30,17 +29,14 @@ class Create(ovlib.verb.Verb):
     def fill_parser(self, parser):
         parser.add_option("-n", "--name", dest="name", help="New cluster name", default=None)
 
-    def validate(self):
-        return True
-
     def execute(self, *args, **kwargs):
         cpu_type = kwargs.pop('cpu_type', None)
         if cpu_type is not None:
             kwargs['cpu'] = params.CPU(id=cpu_type)
 
-        dc_name = kwargs.pop('dc_name', None)
-        if dc_name is not None:
-            kwargs['data_center'] = self.api.datacenters.get(dc_name)
+        datacenter = kwargs.pop('datacenter', None)
+        if datacenter is not None:
+            kwargs['data_center'] = self.get('datacenters', datacenter)
 
         memory_policy = kwargs.pop('memory_policy', None)
         if isinstance(memory_policy, dict):
@@ -60,11 +56,20 @@ class Create(ovlib.verb.Verb):
 
 
 @add_command(class_ref)
-class Delete(ovlib.verb.Verb):
-    verb = "delete"
+class Delete(ovlib.verb.Delete):
+    pass
+
+
+@add_command(class_ref)
+class AddNetwork(ovlib.verb.Verb):
+    verb = "addnet"
+
+    def fill_parser(self, parser):
+        parser.add_option("-i", "--netid", dest="netid", help="Network id")
+        parser.add_option("-r", "--required", dest="required", help="Is required", default=False, action='store_true')
 
     def execute(self, *args, **kwargs):
-        return self.broker.delete()
+        return self.broker.add()
 
 
 content = Object_Context(api_attribute ="clusters", object_name ="cluster", commands = class_ref, broker_class=Cluster)
