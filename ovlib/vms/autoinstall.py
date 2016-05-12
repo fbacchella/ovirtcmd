@@ -4,7 +4,7 @@ import ovlib.verb
 from ovlib import parse_size
 from ovirtsdk.xml import params
 
-class Autoinstall(ovlib.verb.List):
+class Autoinstall(ovlib.verb.Verb):
     """Automaticaly boot on the specified kernel, using a custom command line, it expected to execute an autoinstallation command"""
     verb = "autoinstall"
 
@@ -13,18 +13,10 @@ class Autoinstall(ovlib.verb.List):
         parser.add_option("-i", "--initrd", dest="initrd", help="Initrd path", default=None)
         parser.add_option("-c", "--cmdline", dest="cmdline", help="Command line for the kernel", default=None)
 
-    def validate(self):
-        return True
-
     def uses_template(self):
         return True
 
     def execute(self, *args, **kwargs):
-        # removed undeclared arguments
-        for (k, v) in kwargs.items():
-            if v is None:
-                del kwargs[k]
-
         if self.broker.status.state != 'down':
             self.broker.stop()
             while True:
@@ -33,11 +25,16 @@ class Autoinstall(ovlib.verb.List):
                     break
                 time.sleep(1)
 
-
         old_os_params =  self.broker.get_os()
         old_kernel = old_os_params.get_kernel()
+        if old_kernel is None:
+            old_kernel = ''
         old_initrd = old_os_params.get_initrd()
+        if old_initrd is None:
+            old_initrd = ''
         old_cmdline = old_os_params.get_cmdline()
+        if old_cmdline is None:
+            old_cmdline = ''
         old_os_params.set_kernel(kwargs.get('kernel', None))
         old_os_params.set_initrd(kwargs.get('initrd', None))
         old_os_params.set_cmdline(kwargs.get('cmdline', None))
