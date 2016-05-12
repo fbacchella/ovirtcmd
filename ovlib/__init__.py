@@ -53,7 +53,6 @@ all_libs = (
     'datacenters',
     'templates',
     'disks',
-    'cdroms',
     'capabilities',
     'hosts',
     'clusters',
@@ -87,7 +86,10 @@ class Object_Context(object):
         parser.add_option("-n", "--name", dest="name", help="object tag 'Name'")
 
     def execute(self, name, method_args=[], method_kwargs={}):
-        return getattr(getattr(self.api, self.api_attribute), name)(*method_args, **method_kwargs)
+        if self.api_attribute is not None:
+            return getattr(getattr(self.api, self.api_attribute), name)(*method_args, **method_kwargs)
+        else:
+            NameError('Not implemented')
 
     def get_cmd(self, verb):
         if verb in self.verbs:
@@ -122,7 +124,10 @@ class Object_Context(object):
     def execute_phrase(self, cmd, object_options={}, verb_options={}, verb_args=[]):
         if cmd.broker is None:
             cmd.broker = self.get(**object_options)
-        cmd.contenaire = getattr(self.api, self.api_attribute)
+        if self.api_attribute is not None:
+            cmd.contenaire = getattr(self.api, self.api_attribute)
+        else:
+            cmd.contenaire = None
         if cmd.validate():
             if cmd.uses_template():
                 yamltemplate = verb_options.pop('yamltemplate', None)
@@ -149,8 +154,8 @@ for lib in all_libs:
         attr = getattr(cmd_module, attr_name)
         if isinstance(attr, Object_Context):
             object_name = attr.object_name
-            if not object_name in objects:
+            if not object_name in objects and object_name is not None:
                 objects[object_name] = attr
-            else:
+            elif object_name is not None:
                 print "dual definition of objects %s" % object_name
             objects_by_class[attr.broker_class] = attr

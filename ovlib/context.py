@@ -2,6 +2,7 @@ from ovirtsdk.api import API
 import ConfigParser
 import ovlib
 import types
+from ovirtsdk.infrastructure.common import Base
 
 # The api settings that store boolean values
 booleans = frozenset(['debug', 'insecure', 'kerberos'])
@@ -25,8 +26,6 @@ class Object_Executor(object):
         if self.object_ctxt.api is None:
             self.object_ctxt.api = self.context.api
 
-        #print self.broker
-        #print self.object_options
         if self.broker is None and len(object_options) > 0:
             self.broker = self.object_ctxt.get(**self.object_options)
             if self.broker is None:
@@ -58,6 +57,28 @@ class Object_Executor(object):
             else:
                 return executed
         return executor
+
+    def get(self, source, name=None, id=None):
+        if isinstance(source, str) or isinstance(source, unicode):
+            source = getattr(self.broker, source)
+
+        if isinstance(name, Object_Executor):
+            found = name.broker
+        elif isinstance(name, Base):
+            found = name
+        elif isinstance(id, Object_Executor):
+            found = id.broker
+        elif isinstance(id, Base):
+            found = id
+        else:
+            found = source.get(name=name, id=id)
+        if found is None:
+            return None
+        else:
+            if type(found) in ovlib.objects_by_class:
+                return Object_Executor(self.context, ovlib.objects_by_class[type(found)], broker=found)
+            else:
+                raise ovlib.OVLibError("unsupported ressource: %s" % found.__class__)
 
 class Context(object):
     api_connect_settings = {
