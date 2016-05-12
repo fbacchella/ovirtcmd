@@ -3,8 +3,7 @@ import time
 import ovlib.verb
 from ovirtsdk.xml import params
 
-class Create(ovlib.verb.Verb):
-    verb = "create"
+class Create(ovlib.verb.Create):
 
     def uses_template(self):
         return True
@@ -12,11 +11,8 @@ class Create(ovlib.verb.Verb):
     def fill_parser(self, parser):
         parser.add_option("-c", "--cluster", dest="cluster", help="VM name", default=None)
 
-    def validate(self):
-        return True
-
     def execute(self, *args, **kwargs):
-        kwargs['cluster'] = self.api.clusters.get(name=kwargs.pop('cluster', 'Default'))
+        kwargs['cluster'] = self.get('clusters', kwargs.pop('cluster', None))
 
         kwargs['ssh'] = params.SSH(authentication_method='publickey')
 
@@ -33,5 +29,5 @@ class Create(ovlib.verb.Verb):
             power_management_info['agents'] = params.Agents()
             power_management_info['agents'].add_agent(params.Agent(**agent_info))
             kwargs['power_management'] = params.PowerManagement(**power_management_info)
-        self.broker = self.contenaire.add(params.Host(**kwargs))
+        return self.contenaire.add(params.Host(**kwargs))
 
