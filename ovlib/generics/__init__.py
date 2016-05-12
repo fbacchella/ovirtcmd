@@ -1,8 +1,10 @@
 class_ref_mac_pool = []
+class_ref_mac_qos = []
+
 import ovlib.verb
 from ovlib import Object_Context, add_command
 from ovirtsdk.xml import params
-from ovirtsdk.infrastructure.brokers import MacPool
+from ovirtsdk.infrastructure.brokers import MacPool, DataCenterQoS, StorageDomainDiskProfile, VMCdRoms
 
 
 @add_command(class_ref_mac_pool)
@@ -54,4 +56,55 @@ class Create(ovlib.verb.Create):
         return self.contenaire.add(new_mac_pool)
 
 
-macpool = Object_Context(api_attribute ="macpools", object_name ="macpool", commands = class_ref_mac_pool, broker_class=MacPool)
+macpool = Object_Context(api_attribute ="macpools", object_name="macpool", commands=class_ref_mac_pool, broker_class=MacPool)
+
+class_ref_mac_qos = []
+@add_command(class_ref_mac_qos)
+class List(ovlib.verb.List):
+    pass
+
+
+@add_command(class_ref_mac_qos)
+class XmlExport(ovlib.verb.XmlExport):
+    pass
+
+
+@add_command(class_ref_mac_qos)
+class Delete(ovlib.verb.Delete):
+    pass
+
+
+qos = Object_Context(api_attribute="qoss", object_name=None, commands=class_ref_mac_qos, broker_class=DataCenterQoS)
+
+
+class_ref_mac_diskprofile = []
+@add_command(class_ref_mac_diskprofile)
+class List(ovlib.verb.List):
+    pass
+
+
+@add_command(class_ref_mac_diskprofile)
+class XmlExport(ovlib.verb.XmlExport):
+    pass
+
+
+@add_command(class_ref_mac_diskprofile)
+class Delete(ovlib.verb.Delete):
+    pass
+
+
+diskprofile = Object_Context(api_attribute="diskprofiles", object_name='diskprofile', commands=class_ref_mac_diskprofile, broker_class=StorageDomainDiskProfile)
+
+class_ref_cdroms = []
+
+@add_command(class_ref_cdroms)
+class List(ovlib.verb.List):
+    pass
+
+
+@add_command(class_ref_cdroms)
+class XmlExport(ovlib.verb.XmlExport):
+    pass
+
+
+oc = Object_Context(api_attribute = "cdroms", object_name = None, commands = class_ref_cdroms, broker_class=VMCdRoms)
