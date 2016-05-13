@@ -93,14 +93,16 @@ class Create(ovlib.verb.Verb):
         kwargs['os'] = params.OperatingSystem(**os_info)
 
         disks = []
+        disk_interface = kwargs.pop('disk_interface', settings.get('disk_interface', None))
         for disk_information in kwargs.pop('disks', []):
             disk_args = {
-                'status': None,
-                'interface': settings['disk_interface'],
+                'interface': disk_interface,
                 'format': 'raw',
                 'sparse': False,
             }
-            if isinstance(disk_information, basestring):
+            if ovlib.is_id(disk_information):
+                disk_args = { 'id': disk_information, 'active': True}
+            elif isinstance(disk_information, basestring):
                 (disk_size, storage_domain) = disk_information.split(",")
             elif isinstance(disk_information, list) or isinstance(disk_information, tuple):
                 (disk_size, storage_domain) = disk_information[0:2]
@@ -147,7 +149,6 @@ class Create(ovlib.verb.Verb):
                 net_args['network'] = params.Network(id=self.get(dc.networks, net_name).id)
             nics.append(params.NIC(**net_args))
 
-        print kwargs
         newvm = self.api.vms.add(params.VM(**kwargs))
 
         osi = self.api.operatingsysteminfos.get(name=ostype)
@@ -162,6 +163,11 @@ class Create(ovlib.verb.Verb):
         while still_locked:
             still_locked = False
             for i in self.api.vms.get(id=newvm.id).disks.list():
-                still_locked |= (i.status.state == "locked")
+                if i.active == False:
+                    i.set_active(True)
+                    i.update()
+                    continue
+                # lun disks don't have status, skeep them
+                still_locked |= (i.status is not None and i.status.state == "locked")
             time.sleep(1)
         return newvm

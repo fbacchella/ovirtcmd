@@ -48,6 +48,17 @@ def parse_size(input_size, out_suffix="", default_suffix=None):
     else:
         return input_size
 
+def create_re():
+    re_elements = []
+    for count in (8, 4, 4, 4, 12):
+        re_elements.append('([0-9]|[a-z]){%d}' % count)
+    return re.compile('^' + '-'.join(re_elements) + '$')
+
+id_re = create_re()
+
+def is_id(try_id):
+    return isinstance(try_id, basestring) and id_re.match(try_id) is not None
+
 objects = { }
 objects_by_class = { }
 
