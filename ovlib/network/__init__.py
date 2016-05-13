@@ -29,6 +29,7 @@ class Create(ovlib.verb.Verb):
     def fill_parser(self, parser):
         parser.add_option("-n", "--name", dest="name", help="Network name")
         parser.add_option("-d", "--datacenter", dest="datacenter", help="Datacenter destination")
+        parser.add_option("-c", "--cluster", dest="clusters", help="cluster to be attached", default=[], action='append')
         parser.add_option("-m", "--mtu", dest="mtu", help="MTU for the network", type=int)
         parser.add_option("-v", "--vlan", dest="vlan", help="VLAN number for the network", type=int)
         parser.add_option("-s", "--stp", dest="stp", help="Activate STP", default=False, action='store_true')
@@ -38,7 +39,13 @@ class Create(ovlib.verb.Verb):
         return True
 
     def execute(self, *args, **kwargs):
-        kwargs['data_center'] = self.get('datacenters', kwargs.pop('datacenter', 'Default'))
+        kwargs['data_center'] = self.get('datacenters', kwargs.pop('datacenter', None))
+        required = kwargs.pop('required', False)
+
+        clusters = []
+        for cluster in kwargs.pop('clusters', []):
+            clusters.append(self.get(kwargs['data_center'].clusters, cluster))
+
         vlan = kwargs.pop('vlan', None)
         if vlan is not None:
             kwargs['vlan'] = params.VLAN(id=vlan)
@@ -46,8 +53,10 @@ class Create(ovlib.verb.Verb):
             kwargs['usages'] = params.Usages(kwargs.pop('usages', ['vm']))
         else:
             kwargs['usages'] = params.Usages(kwargs.pop('usages', []))
-        new_network = params.Network(**kwargs)
-        return self.contenaire.add(new_network)
+        new_network = self.contenaire.add(params.Network(**kwargs))
+
+        for cluster in clusters:
+            cluster.networks.add(params.Network(id=new_network.id, required=required))
 
 
 @add_command(class_ref)
