@@ -37,13 +37,16 @@ units = {
 size_re = re.compile('(\\d+)([TGMKk]?)');
 
 def parse_size(input_size, out_suffix="", default_suffix=None):
-    matcher = size_re.match("%s" % input_size)
-    if matcher is not None:
-        value = float(matcher.group(1))
-        suffix = matcher.group(2)
-        if suffix == '' and default_suffix is not None:
-            suffix = default_suffix
-        return value * units[suffix] / units[out_suffix]
+    if isinstance(input_size, basestring):
+        matcher = size_re.match("%s" % input_size)
+        if matcher is not None:
+            value = float(matcher.group(1))
+            suffix = matcher.group(2)
+            if suffix == '' and default_suffix is not None:
+                suffix = default_suffix
+            return int(value * units[suffix] / units[out_suffix])
+    else:
+        return input_size
 
 objects = { }
 objects_by_class = { }
@@ -114,6 +117,8 @@ class Object_Context(object):
             # removed undeclared arguments
             for (k, v) in verb_options.items():
                 if v is None:
+                    del verb_options[k]
+                elif type(v) in [list, tuple, buffer, xrange, dict] and len(v) == 0:
                     del verb_options[k]
             return self.execute_phrase(cmd, object_options, verb_options, verb_args)
         else:
