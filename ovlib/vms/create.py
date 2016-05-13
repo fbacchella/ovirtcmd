@@ -30,21 +30,23 @@ class Create(ovlib.verb.Verb):
         parser.add_option("--pxe", dest="boot_pxe", help="Can boot pxe", default=True, action="store_false")
         parser.add_option("--cpu", dest="cpu", help="Number of cpu", default=None)
         parser.add_option("--ostype", dest="ostype", help="Server type", default=None)
-        parser.add_option("--network", dest="network", help="network", default=[], action='append')
-        parser.add_option("--disk", dest="disk", help="disk", default=[], action='append')
+        parser.add_option("--network", dest="network", help="networks", default=[], action='append')
+        parser.add_option("--disk", dest="disks", help="disk", default=[], action='append')
 
     def validate(self):
         return True
 
     def execute(self, *args, **kwargs):
+        cluster = None
         if 'memory' in kwargs:
-            kwargs['memory'] = int(parse_size(kwargs['memory']))
+            kwargs['memory'] = parse_size(kwargs['memory'])
         if 'memory_policy' not in kwargs:
             kwargs['memory_policy'] = params.MemoryPolicy(guaranteed=kwargs['memory'], ballooning=False)
         if 'cluster' in kwargs:
-            kwargs['cluster'] = self.api.clusters.get(name=kwargs['cluster'])
+            cluster = self.get(self.api.clusters, kwargs.pop('cluster'))
+            kwargs['cluster'] = params.Cluster(id=cluster.id)
         if 'template' in kwargs:
-            kwargs['template'] = self.api.templates.get(name=kwargs.pop('template'))
+            kwargs['template'] = params.Template(id=self.get(self.api.templates, kwargs.pop('template')).id)
         if 'bios' in kwargs:
             bios_params = {}
             if 'boot_menu' in kwargs['bios']:
@@ -91,30 +93,61 @@ class Create(ovlib.verb.Verb):
         kwargs['os'] = params.OperatingSystem(**os_info)
 
         disks = []
-        for disk_information in kwargs.pop('disk', []):
+        for disk_information in kwargs.pop('disks', []):
+            disk_args = {
+                'status': None,
+                'interface': settings['disk_interface'],
+                'format': 'raw',
+                'sparse': False,
+            }
             if isinstance(disk_information, basestring):
                 (disk_size, storage_domain) = disk_information.split(",")
             elif isinstance(disk_information, list) or isinstance(disk_information, tuple):
                 (disk_size, storage_domain) = disk_information[0:2]
+            elif isinstance(disk_information, dict):
+                disk_args.update(disk_information)
+                disk_size = disk_args.pop('size', None)
+                storage_domain = disk_args.pop('storage_domains', None)
+
+            if disk_size is not None:
+                disk_args['size'] = parse_size(disk_size)
+
+            if storage_domain is not None:
+                storage_domain = self.get(self.api.storagedomains, storage_domain)
+                disk_args['storage_domains'] = params.StorageDomains(storage_domain=[params.StorageDomain(id=storage_domain.id)])
+
+            # first disk is the boot and system disk
             if len(disks) == 0:
                 disk_name = "%s_sys" % kwargs['name']
-                disk_bootable = True
+                disk_args['bootable'] = True
             else:
                 disk_name = "%s_%d" % (kwargs['name'], len(disks))
-                disk_bootable = False
-            disks.append(params.Disk(name=disk_name,
-                                     storage_domains=params.StorageDomains(storage_domain=[self.api.storagedomains.get(storage_domain)]),
-                                     size=int(parse_size(disk_size)),
-                                     status=None,
-                                     interface=settings['disk_interface'],
-                                     format='raw',
-                                     sparse=False,
-                                     bootable=disk_bootable))
+                disk_args['bootable'] = False
+
+            if disk_args.get('name', None) is None:
+                disk_args['name'] = disk_name
+            disks.append(params.Disk(**disk_args))
 
         nics = []
-        for network_name in kwargs.pop('network', []):
-            nics.append(params.NIC(name=settings['network_name'] % len(nics), network=params.Network(name=network_name), interface=settings['network_interface']))
+        if_name = kwargs.pop('network_name', settings['network_name'])
+        if_type = kwargs.pop('network_interface', settings['network_interface'])
+        dc = self.get(self.api.datacenters, id=cluster.data_center.id)
+        for net_info in kwargs.pop('networks', []):
+            net_args = {
+                'name': if_name % len(nics),
+                'interface': if_type,
+            }
+            if isinstance(net_info, basestring):
+                net_args['network'] = net_info
+            elif isinstance(net_info, dict):
+                net_args.update(net_info)
 
+            net_name = net_args.pop('network', None)
+            if net_name is not None:
+                net_args['network'] = params.Network(id=self.get(dc.networks, net_name).id)
+            nics.append(params.NIC(**net_args))
+
+        print kwargs
         newvm = self.api.vms.add(params.VM(**kwargs))
 
         osi = self.api.operatingsysteminfos.get(name=ostype)
