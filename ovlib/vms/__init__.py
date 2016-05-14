@@ -11,25 +11,33 @@ class_ref = []
 
 @add_command(class_ref)
 class List(ovlib.verb.Statistics):
-    verb = "statistics"
+    pass
 
 
 @add_command(class_ref)
 class List(ovlib.verb.List):
-    verb = "list"
+    pass
 
 
 @add_command(class_ref)
 class XmlExport(ovlib.verb.XmlExport):
-    verb = "export"
+    pass
 
 
 @add_command(class_ref)
-class Start(ovlib.verb.XmlExport):
+class Start(ovlib.verb.Verb):
     verb = "start"
 
     def execute(self, *args, **kwargs):
         self.broker.start()
+
+
+@add_command(class_ref)
+class Start(ovlib.verb.Verb):
+    verb = "stop"
+
+    def execute(self, *args, **kwargs):
+        self.broker.stop()
 
 
 @add_command(class_ref)
