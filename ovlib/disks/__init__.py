@@ -6,16 +6,20 @@ from ovlib import parse_size
 
 class_ref = []
 
+
+@add_command(class_ref)
+class List(ovlib.verb.Statistics):
+    pass
+
+
 @add_command(class_ref)
 class List(ovlib.verb.List):
     pass
 
+
 @add_command(class_ref)
 class XmlExport(ovlib.verb.XmlExport):
-    def execute(self, *args, **kwargs):
-        print self.broker.get_type()
-        print self.broker.get_storage_type()
-        return super(XmlExport, self).execute(*args, **kwargs)
+    pass
 
 
 @add_command(class_ref)
@@ -44,8 +48,12 @@ class Create(ovlib.verb.Create):
         if lun_storage is not None:
             for lu in lun_storage:
                 units.append(params.LogicalUnit(**lu))
-            kwargs['lun_storage'] = params.Storage(logical_unit=units)
-            kwargs['storage_type'] = 'lun'
+            if len(units) > 0:
+                if units[0].address is not None:
+                    storage_type = 'iscsi'
+                else:
+                    storage_type = 'fcp'
+                kwargs['lun_storage'] = params.Storage(logical_unit=units, type_=storage_type)
         kwargs['type_'] = 'system'
 
         return self.contenaire.add(params.Disk(**kwargs))
