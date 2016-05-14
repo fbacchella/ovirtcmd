@@ -50,15 +50,18 @@ In this case, the command line is
 
 A sample script then looks like:
 
+    mac_pool = context.macpool(name="${pool_name}")
+    if mac_pool is None:
+        mac_pool = context.macpool().create(name="${pool_name}", range=('00:1A:4A:16:02:01', '00:1A:4A:16:02:FE'))
+
     dc = context.datacenter(name="${dc_name}")
-    if dc is not None:
-        dc.delete(force=True)
-    context.datacenter().create(name="${dc_name}", local=False, storage_format="v3", mac_pool_name="MoreMac")
+    if dc is None:
+        dc = context.datacenter().create(name="${dc_name}", local=False, storage_format="v3", macpool=mac_pool)
+
 
     cluster = context.cluster(name="${cl_name}")
-    if cluster is not None:
-        cluster.delete(force=True)
-    context.cluster().create(name="${cl_name}", cpu_type="Intel Haswell-noTSX Family", dc_name="${dc_name}",
+    if cluster is None:
+        cluster = context.cluster().create(name="${cl_name}", cpu_type="Intel Haswell-noTSX Family", datacenter=dc,
                              memory_policy={'guaranteed': True, 'overcommit': 100, 'transparent_hugepages': False},
                              ballooning_enabled=True)
 
@@ -71,6 +74,42 @@ Or to get a dump of some elements:
         for j in i.export("nics"):
             print j
 
+A sample that create a bunch of VM:
+
+    cluster = context.cluster(name="${cl_name}")
+
+    vms = {}
+    for (name, memory, cores, lun_id) in [
+                ('vm1', '24G', 12, '1e57ecea-1afd-49b9-9e44-99c119938acc'),
+                ('vm2', '24G', 12, '1fe74758-c521-40ed-b8e5-d02d80188088'),
+                ('vm3', '64G', 16, '7ea2c97c-251d-434f-b5aa-2efb224b5b8e'),
+                ('vm4', '16G',  2, 'f7f7f659-3a41-47c1-bce0-fc0b881562d2'),
+                ('vm5', '16G',  8, '966640fd-813b-4ebf-b943-ba7fc1fbafc1'),
+                ('vm6', '16G',  8, 'df7b3089-fc9a-46c9-ab95-7820e8ccbfc2'),
+        ]:
+        new_vm = context.vm(name=name)
+        if new_vm is None:
+            context.vm().create(name=name,
+                                memory=memory,
+                                cpu={'architecture': 'X86_64',
+                                     'topology': {'cores': cores},
+                                     },
+                                soundcard_enabled=False,
+                                cluster=cluster,
+                                timezone='Etc/GMT',
+                                bios={'boot_menu': True},
+                                type='server',
+                                boot_pxe=True,
+                                ostype='rhel_7x64',
+                                networks=['ovirtmgmt'],
+                                disks=[
+                                    ['16G', 'vmsys01'],
+                                    lun_id,
+                                ],
+                                template='Blank',
+                                disk_interface='virtio_scsi',
+                                )
+        vms[name] = new_vm
 
 Config file
 ===========
