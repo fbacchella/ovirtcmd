@@ -1,13 +1,14 @@
 import string
 import yaml
 import sys
-import traceback
 import optparse
+
 
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
 except ImportError:
     from yaml import Loader, Dumper
+
 
 # a template that allows . in variables name
 class DotTemplate(string.Template):
@@ -19,6 +20,7 @@ class DotTemplate(string.Template):
       (?P<invalid>^$)                          # Other ill-formed delimiter exprs
     )
     """
+
 
 # A dictionary that resolve string using a template and variables
 class TemplateDict(dict):
@@ -52,6 +54,7 @@ class TemplateDict(dict):
     def getraw(self, key):
         return super(TemplateDict, self).__getitem__(key)
 
+
 class VariableOption(optparse.Option):
     ACTIONS = optparse.Option.ACTIONS + ("store_first", "store_variable", )
     STORE_ACTIONS = optparse.Option.STORE_ACTIONS + ("store_first", "store_variable", )
@@ -79,8 +82,6 @@ class VariableOption(optparse.Option):
                 self.seen.add(dest)
                 action = "store"
             optparse.Option.take_action(self, action, dest, opt, value, values, parser)
-
-
 
 
 def load_template(template, variables):

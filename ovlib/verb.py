@@ -1,7 +1,7 @@
 import optparse
 import time
 from ovlib.template import VariableOption
-from ovlib.context import Object_Executor
+from ovlib.context import ObjectExecutor
 from ovirtsdk.infrastructure.common import Base
 from ovlib import OVLibErrorNotFound
 from ovirtsdk.xml import params
@@ -53,7 +53,7 @@ class Verb(object):
         raise NameError('Not implemented')
 
     def to_str(self, value):
-        if value == True:
+        if value is True:
             print "success"
         else:
             print value
@@ -61,11 +61,11 @@ class Verb(object):
     def get(self, source, name=None, id=None):
         if isinstance(source, str) or isinstance(source, unicode):
             source = getattr(self.api, source)
-        if isinstance(name, Object_Executor):
+        if isinstance(name, ObjectExecutor):
             return name.broker
         elif isinstance(name, Base):
             return name
-        if isinstance(id, Object_Executor):
+        if isinstance(id, ObjectExecutor):
             return id.broker
         elif isinstance(id, Base):
             return id
@@ -148,6 +148,6 @@ class DeleteForce(Delete):
     def execute(self, *args, **kwargs):
         action_params = params.Action(
             # force a True/False content
-            force=kwargs == True,
+            force=kwargs is True,
         )
         return self.broker.delete(action_params)

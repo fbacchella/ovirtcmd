@@ -1,5 +1,5 @@
 import ovlib.verb
-from ovlib import Object_Context, add_command
+from ovlib import ObjectContext, add_command
 from ovirtsdk.xml import params
 from ovirtsdk.infrastructure.brokers import DataCenter
 
@@ -59,4 +59,4 @@ class Create(ovlib.verb.Verb):
         return self.broker.qoss.add(params.QoS(**kwargs))
 
 
-oc = Object_Context(api_attribute = "datacenters", object_name = "datacenter", commands = class_ref, broker_class=DataCenter)
+oc = ObjectContext(api_attribute="datacenters", object_name="datacenter", commands=class_ref, broker_class=DataCenter)

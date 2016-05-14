@@ -49,14 +49,14 @@ class Bond(ovlib.verb.Verb):
             if gateway is not None:
                 ip_conf.set_gateway(gateway)
             ip_assignment = params.IpAddressAssignments([params.IpAddressAssignment(assignment_method="static", ip=ip_conf)])
-        elif dhcp == True:
+        elif dhcp is True:
             ip_assignment = params.IpAddressAssignments([params.IpAddressAssignment(assignment_method="dhcp", ip=params.IP())])
 
         bonded_network = params.NetworkAttachment(network=params.Network(name=kwargs['network']),
                                                   host_nic=params.HostNIC(name=bond_name),
                                                   ip_address_assignments=ip_assignment)
 
-        return self.broker.setupnetworks(params.Action(modified_bonds = params.HostNics(host_nic = [bonded_if]),
-                                                       modified_network_attachments = params.NetworkAttachments(network_attachment=[bonded_network]),
+        return self.broker.setupnetworks(params.Action(modified_bonds=params.HostNics(host_nic = [bonded_if]),
+                                                       modified_network_attachments=params.NetworkAttachments(network_attachment=[bonded_network]),
                                                        )
                                          )

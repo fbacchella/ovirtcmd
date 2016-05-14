@@ -15,10 +15,10 @@ class ConfigurationError(Exception):
     def __str__(self):
         return repr(self.value)
 
-class Object_Executor(object):
+class ObjectExecutor(object):
 
     def __init__(self, context, object_ctxt, object_options=None, broker=None):
-        super(Object_Executor, self).__init__()
+        super(ObjectExecutor, self).__init__()
         self.object_ctxt = object_ctxt
         self.context = context
         self.object_options = object_options
@@ -39,18 +39,18 @@ class Object_Executor(object):
             cmd = verb_class(self.context.api, self.broker)
             (cmd, executed) = self.object_ctxt.execute_phrase(cmd, object_options=self.object_options, verb_options=kwargs, verb_args=args)
             if type(executed) in ovlib.objects_by_class:
-                return Object_Executor(self.context,
-                                       ovlib.objects_by_class[type(executed)],
-                                       None,
-                                       executed)
+                return ObjectExecutor(self.context,
+                                      ovlib.objects_by_class[type(executed)],
+                                      None,
+                                      executed)
             elif isinstance(executed, types.GeneratorType):
                 def iterate():
                     for i in executed:
                         if type(i) in ovlib.objects_by_class:
-                            yield Object_Executor(self.context,
-                                                  ovlib.objects_by_class[type(i)],
-                                                  None,
-                                                  i)
+                            yield ObjectExecutor(self.context,
+                                                 ovlib.objects_by_class[type(i)],
+                                                 None,
+                                                 i)
                         else:
                             yield i
                 return iterate()
@@ -62,11 +62,11 @@ class Object_Executor(object):
         if isinstance(source, str) or isinstance(source, unicode):
             source = getattr(self.broker, source)
 
-        if isinstance(name, Object_Executor):
+        if isinstance(name, ObjectExecutor):
             found = name.broker
         elif isinstance(name, Base):
             found = name
-        elif isinstance(id, Object_Executor):
+        elif isinstance(id, ObjectExecutor):
             found = id.broker
         elif isinstance(id, Base):
             found = id
@@ -76,7 +76,7 @@ class Object_Executor(object):
             return None
         else:
             if type(found) in ovlib.objects_by_class:
-                return Object_Executor(self.context, ovlib.objects_by_class[type(found)], broker=found)
+                return ObjectExecutor(self.context, ovlib.objects_by_class[type(found)], broker=found)
             else:
                 raise ovlib.OVLibError("unsupported ressource: %s" % found.__class__)
 
@@ -130,7 +130,7 @@ class Context(object):
     def _do_getter(self, object_context):
         def getter(**kwargs):
             try:
-                return Object_Executor(self, object_context, object_options=kwargs)
+                return ObjectExecutor(self, object_context, object_options=kwargs)
             except ovlib.OVLibErrorNotFound:
                 return None
         return getter

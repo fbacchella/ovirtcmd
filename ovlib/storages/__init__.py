@@ -1,5 +1,5 @@
 import ovlib.verb
-from ovlib import Object_Context, add_command
+from ovlib import ObjectContext, add_command
 from ovirtsdk.xml import params
 from ovirtsdk.infrastructure.brokers import StorageDomain
 from ovirtsdk.infrastructure.common import Base
@@ -67,7 +67,6 @@ class Discover(ovlib.verb.Verb):
             return self._export(value)
         else:
             return value.__str__()
-
 
 
 @add_command(class_ref)
@@ -139,4 +138,4 @@ class AddProfile(ovlib.verb.Verb):
             kwargs['name'] = qos.name
         return self.broker.diskprofiles.add(params.DiskProfile(**kwargs), )
 
-oc = Object_Context(api_attribute = "storagedomains", object_name = "storage", commands = class_ref, broker_class=StorageDomain)
+oc = ObjectContext(api_attribute="storagedomains", object_name="storage", commands=class_ref, broker_class=StorageDomain)

@@ -3,11 +3,12 @@ import create
 import delete
 import autoinstall
 import urllib
-from ovlib import Object_Context, add_command
+from ovlib import ObjectContext, add_command
 from ovirtsdk.infrastructure.brokers import VM
 
 
 class_ref = []
+
 
 @add_command(class_ref)
 class List(ovlib.verb.Statistics):
@@ -68,4 +69,4 @@ class_ref.append(create.Create)
 class_ref.append(delete.Delete)
 class_ref.append(autoinstall.Autoinstall)
 
-content = Object_Context(api_attribute ="vms", object_name ="vm", commands = class_ref, broker_class=VM)
+content = ObjectContext(api_attribute="vms", object_name="vm", commands=class_ref, broker_class=VM)

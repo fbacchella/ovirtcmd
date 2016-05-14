@@ -1,12 +1,13 @@
 import ovlib.verb
-from ovlib import Object_Context, add_command
+from ovlib import ObjectContext, add_command
 from ovirtsdk.infrastructure.brokers import Capabilities
+
 
 class_ref = []
 
+
 @add_command(class_ref)
 class List(ovlib.verb.List):
-    verb = "list"
 
     def execute(self, *args, **kwargs):
         for i in self.contenaire.list():
@@ -18,10 +19,10 @@ class List(ovlib.verb.List):
 
 @add_command(class_ref)
 class XmlExport(ovlib.verb.XmlExport):
-    verb = "export"
+    pass
 
 
-class CapabilitiesContext(Object_Context):
+class CapabilitiesContext(ObjectContext):
     def __init__(self, object_name, api_attribute, commands):
         super(CapabilitiesContext, self).__init__(object_name, api_attribute, commands, Capabilities)
         self.allcapa = None

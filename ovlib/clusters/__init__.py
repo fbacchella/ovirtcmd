@@ -1,5 +1,5 @@
 import ovlib.verb
-from ovlib import Object_Context, add_command
+from ovlib import ObjectContext, add_command
 from ovirtsdk.xml import params
 from ovirtsdk.infrastructure.brokers import Cluster
 
@@ -43,14 +43,8 @@ class Create(ovlib.verb.Create):
             if 'overcommit' in memory_policy:
                 memory_policy['overcommit'] = params.MemoryOverCommit(percent=memory_policy['overcommit'])
             if 'transparent_hugepages' in memory_policy:
-                memory_policy['transparent_hugepages'] = params.TransparentHugePages(enabled=memory_policy['transparent_hugepages']==True)
+                memory_policy['transparent_hugepages'] = params.TransparentHugePages(enabled=memory_policy['transparent_hugepages'] is True)
             kwargs['memory_policy'] = params.MemoryPolicy(**memory_policy)
-        else:
-            overcommit = kwargs.pop('overcommit', None)
-            ballooning  = kwargs.pop('ballooning', None)
-            transparent_hugepages = kwargs.pop('transparent_hugepages', None)
-            if overcommit  is not None:
-                pass
 
         self.broker = self.contenaire.add(params.Cluster(**kwargs))
 
@@ -72,4 +66,4 @@ class AddNetwork(ovlib.verb.Verb):
         return self.broker.add()
 
 
-content = Object_Context(api_attribute ="clusters", object_name ="cluster", commands = class_ref, broker_class=Cluster)
+oc = ObjectContext(api_attribute="clusters", object_name="cluster", commands=class_ref, broker_class=Cluster)

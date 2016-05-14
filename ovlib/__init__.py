@@ -1,6 +1,7 @@
 import re
 from ovlib.template import load_template, DotTemplate
 
+
 class OVLibError(Exception):
     def __init__(self, value):
         self.value = value
@@ -8,6 +9,7 @@ class OVLibError(Exception):
 
     def __str__(self):
         return repr(self.value)
+
 
 class OVLibErrorNotFound(Exception):
     def __init__(self, value):
@@ -17,9 +19,11 @@ class OVLibErrorNotFound(Exception):
     def __str__(self):
         return repr(self.value)
 
+
 class ExecutorWrapper(Exception):
     def __init__(self, executor):
         self.executor = executor
+
 
 def join_default(val, default):
     for key in default:
@@ -36,6 +40,7 @@ units = {
 }
 size_re = re.compile('(\\d+)([TGMKk]?)');
 
+
 def parse_size(input_size, out_suffix="", default_suffix=None):
     if isinstance(input_size, basestring):
         matcher = size_re.match("%s" % input_size)
@@ -48,16 +53,19 @@ def parse_size(input_size, out_suffix="", default_suffix=None):
     else:
         return input_size
 
+
 def create_re():
     re_elements = []
     for count in (8, 4, 4, 4, 12):
         re_elements.append('([0-9]|[a-z]){%d}' % count)
     return re.compile('^' + '-'.join(re_elements) + '$')
 
+
 id_re = create_re()
 
 def is_id(try_id):
     return isinstance(try_id, basestring) and id_re.match(try_id) is not None
+
 
 objects = { }
 objects_by_class = { }
@@ -76,13 +84,15 @@ all_libs = (
     'generics',
 )
 
+
 def add_command(destination):
     def decorator(func):
         destination.append(func)
         return func
     return decorator
 
-class Object_Context(object):
+
+class ObjectContext(object):
 
     def __init__(self, object_name, api_attribute, commands, broker_class):
         self.verbs = {}
@@ -124,13 +134,10 @@ class Object_Context(object):
         cmd = self.get_cmd(verb)
         if cmd:
             (verb_options, verb_args) = cmd.parse(object_args)
-            verb_options = vars(verb_options)
-            # removed undeclared arguments
-            for (k, v) in verb_options.items():
-                if v is None:
-                    del verb_options[k]
-                elif type(v) in [list, tuple, buffer, xrange, dict] and len(v) == 0:
-                    del verb_options[k]
+
+            # transform options to a dict and removed undeclared arguments
+            verb_options = {k: v for k, v in vars(verb_options).iteritems()
+                            if v is not None and type(v) not in [list, tuple, buffer, xrange, dict] and len(v) != 0 }
             return self.execute_phrase(cmd, object_options, verb_options, verb_args)
         else:
             # Nothing done, return nothing
@@ -150,7 +157,7 @@ class Object_Context(object):
                 yamlvariables = verb_options.pop('yamlvariables', {})
                 template = self.fill_template(yamltemplate, yamlvariables)
                 for (k, v) in template.items():
-                    if k not in verb_options or v is None:
+                    if k not in verb_options and v is not None:
                         verb_options[k] = v
             return (cmd, cmd.execute(*verb_args, **verb_options))
         else:
@@ -158,7 +165,7 @@ class Object_Context(object):
             return (None, None)
 
     def get(self, **kwargs):
-        if len(kwargs) >0:
+        if len(kwargs) > 0:
             return self.execute("get", method_kwargs=kwargs)
         else:
             return None
@@ -168,7 +175,7 @@ for lib in all_libs:
     cmd_module = __import__(lib, globals(), locals(), [], -1)
     for attr_name in dir(cmd_module):
         attr = getattr(cmd_module, attr_name)
-        if isinstance(attr, Object_Context):
+        if isinstance(attr, ObjectContext):
             object_name = attr.object_name
             if not object_name in objects and object_name is not None:
                 objects[object_name] = attr

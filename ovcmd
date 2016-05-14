@@ -65,23 +65,19 @@ def main():
     parser = optparse.OptionParser(usage="%s\nobjects are:\n    %s" % (usage_common, "\n    ".join(ovlib.objects.keys())))
     parser.disable_interspersed_args()
     parser.add_option("-c", "--config", dest="config_file", help="an alternative config file", default=default_config)
-    parser.add_option("-d", "--debug", dest="debug", help="The debug level", default=False, action="store_true")
+    parser.add_option("-d", "--debug", dest="debug", help="The debug level", action="store_true")
 
     (options, args) = parser.parse_args()
 
-    #Extract the context from the first level arguments
-    kwargs = {}
-    for option_name in ('config_file', 'debug'):
-        value = getattr(options, option_name, None)
-        if value:
-            kwargs[option_name] = value
+    #Extract the context options from the first level arguments
+    context_args = {k: v for k, v in vars(options).iteritems() if v is not None}
 
     if len(args) >= 2 and args[0] == 'eval':
         parser_eval = optparse.OptionParser(option_class=VariableOption)
         parser_eval.add_option("-V", "--variable", dest="yamlvariables", action="store_variable", type="string")
         (eval_options, eval_args) = parser_eval.parse_args(args[1:])
         if len(eval_args) > 0:
-            return do_eval(eval_args[0], kwargs, eval_options.yamlvariables)
+            return do_eval(eval_args[0], context_args, eval_options.yamlvariables)
         else:
             print 'no script to evaluate'
             return 253
@@ -110,7 +106,7 @@ def main():
         if len(object_args) > 0:
             verb = object_args.pop(0)
             try:
-                context = Context(**kwargs)
+                context = Context(**context_args)
             except (ConfigurationError) as e:
                 print e.error_message
                 return 253

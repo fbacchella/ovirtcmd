@@ -1,30 +1,27 @@
 class_ref = []
 import ovlib.verb
-from ovlib import Object_Context, add_command
+from ovlib import ObjectContext, add_command
 from ovirtsdk.xml import params
 from ovirtsdk.infrastructure.brokers import Network
 
+
 @add_command(class_ref)
 class List(ovlib.verb.List):
-    verb = "list"
+    pass
 
 
 @add_command(class_ref)
 class XmlExport(ovlib.verb.XmlExport):
-    verb = "export"
+    pass
 
 
 @add_command(class_ref)
-class Delete(ovlib.verb.Verb):
-    verb = "delete"
-
-    def execute(self, *args, **kwargs):
-        self.broker.delete()
+class Delete(ovlib.verb.Delete):
+    pass
 
 
 @add_command(class_ref)
-class Create(ovlib.verb.Verb):
-    verb = "create"
+class Create(ovlib.verb.Create):
 
     def fill_parser(self, parser):
         parser.add_option("-n", "--name", dest="name", help="Network name")
@@ -34,9 +31,6 @@ class Create(ovlib.verb.Verb):
         parser.add_option("-v", "--vlan", dest="vlan", help="VLAN number for the network", type=int)
         parser.add_option("-s", "--stp", dest="stp", help="Activate STP", default=False, action='store_true')
         parser.add_option("-V", "--VM", dest="canVM", help="is a VM network", default=True)
-
-    def validate(self):
-        return True
 
     def execute(self, *args, **kwargs):
         kwargs['data_center'] = self.get('datacenters', kwargs.pop('datacenter', None))
@@ -49,7 +43,7 @@ class Create(ovlib.verb.Verb):
         vlan = kwargs.pop('vlan', None)
         if vlan is not None:
             kwargs['vlan'] = params.VLAN(id=vlan)
-        if kwargs.pop('canVM', True) == True:
+        if kwargs.pop('canVM', True) is True:
             kwargs['usages'] = params.Usages(kwargs.pop('usages', ['vm']))
         else:
             kwargs['usages'] = params.Usages(kwargs.pop('usages', []))
@@ -67,4 +61,5 @@ class Assign(ovlib.verb.Verb):
         parser.add_option("-c", "--cluster", dest="cluster", help="Destination cluster")
         parser.add_option("-r", "--required", dest="required", help="Is required", default=False, action='store_true')
 
-content = Object_Context(api_attribute ="networks", object_name ="network", commands = class_ref, broker_class=Network)
+
+oc = ObjectContext(api_attribute="networks", object_name="network", commands=class_ref, broker_class=Network)

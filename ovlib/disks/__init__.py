@@ -1,5 +1,5 @@
 import ovlib.verb
-from ovlib import Object_Context, add_command
+from ovlib import ObjectContext, add_command
 from ovirtsdk.infrastructure.brokers import Disk
 from ovirtsdk.xml import params
 from ovlib import parse_size
@@ -59,4 +59,4 @@ class Create(ovlib.verb.Create):
         return self.contenaire.add(params.Disk(**kwargs))
 
 
-disk = Object_Context(api_attribute = "disks", object_name = "disk", commands = class_ref, broker_class=Disk)
+oc = ObjectContext(api_attribute="disks", object_name="disk", commands=class_ref, broker_class=Disk)
