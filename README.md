@@ -48,20 +48,22 @@ In this case, the command line is
 
     ovcmd eval [-V variable value]* script.py
 
+Scripting is explained with more details at [Scripting in ovirtcmd](https://github.com/fbacchella/ovirtcmd/wiki/Scripting-in-ovirtcmd).
+
 A sample script then looks like:
 
-    mac_pool = context.macpool(name="${pool_name}")
+    mac_pool = context.macpool(name="pool_name")
     if mac_pool is None:
-        mac_pool = context.macpool().create(name="${pool_name}", range=('00:1A:4A:16:02:01', '00:1A:4A:16:02:FE'))
+        mac_pool = context.macpool().create(name="pool_name", range=('00:1A:4A:16:02:01', '00:1A:4A:16:02:FE'))
 
-    dc = context.datacenter(name="${dc_name}")
+    dc = context.datacenter(name="dc_name")
     if dc is None:
-        dc = context.datacenter().create(name="${dc_name}", local=False, storage_format="v3", macpool=mac_pool)
+        dc = context.datacenter().create(name="dc_name", local=False, storage_format="v3", macpool=mac_pool)
 
 
-    cluster = context.cluster(name="${cl_name}")
+    cluster = context.cluster(name="cl_name")
     if cluster is None:
-        cluster = context.cluster().create(name="${cl_name}", cpu_type="Intel Haswell-noTSX Family", datacenter=dc,
+        cluster = context.cluster().create(name="cl_name}", cpu_type="Intel Haswell-noTSX Family", datacenter=dc,
                              memory_policy={'guaranteed': True, 'overcommit': 100, 'transparent_hugepages': False},
                              ballooning_enabled=True)
 
@@ -76,7 +78,7 @@ Or to get a dump of some elements:
 
 A sample that create a bunch of VM:
 
-    cluster = context.cluster(name="${cl_name}")
+    cluster = context.cluster(name="cl_name")
 
     vms = {}
     for (name, memory, cores, lun_id) in [
