@@ -33,12 +33,16 @@ class TemplateDict(dict):
         value = super(TemplateDict, self).__getitem__(*args, **kwargs)
         return self.resolve(value)
 
-    def items(self, *args, **kwargs):
-        for (key, value) in super(TemplateDict, self).items(*args, **kwargs):
+    def items(self):
+        for (key, value) in super(TemplateDict, self).items():
             yield (key, self.resolve(value))
 
-    def pop(self, *args, **kwargs):
-        value = super(TemplateDict, self).pop(*args, **kwargs)
+    def iteritems(self):
+        for (key, value) in super(TemplateDict, self).iteritems():
+            yield (key, self.resolve(value))
+
+    def pop(self, key, default=None):
+        value = super(TemplateDict, self).pop(key, default)
         return self.resolve(value)
 
     def resolve(self, value):
@@ -47,7 +51,7 @@ class TemplateDict(dict):
         elif isinstance(value, (list, tuple)):
             return map(lambda x: self.resolve(x), value)
         elif isinstance(value, dict):
-            return dict(map(lambda (x, y): (x, self.resolve(y)), value.items()))
+            return {k: self.resolve(v) for k, v in value.iteritems()}
         else:
             return value
 
