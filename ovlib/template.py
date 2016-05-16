@@ -2,6 +2,7 @@ import string
 import yaml
 import sys
 import optparse
+import ovlib
 
 
 try:
@@ -47,7 +48,10 @@ class TemplateDict(dict):
 
     def resolve(self, value):
         if isinstance(value, str):
-            return DotTemplate(value).substitute(self.variables)
+            try:
+                return DotTemplate(value).substitute(self.variables)
+            except KeyError as e:
+                raise ovlib.OVLibError("unknwon variable '%s' in template' %s'"% (e.message, value), {'variable': e.message, 'template':value}, e)
         elif isinstance(value, (list, tuple)):
             return map(lambda x: self.resolve(x), value)
         elif isinstance(value, dict):
