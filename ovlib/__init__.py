@@ -3,21 +3,21 @@ from ovlib.template import load_template, DotTemplate
 
 
 class OVLibError(Exception):
-    def __init__(self, value):
+    def __init__(self, error_message, value={}, exception=None):
         self.value = value
-        self.error_message = value
+        if error_message is None:
+            self.error_message = value
+        else:
+            self.error_message = error_message
+        if exception is not None:
+            self.exception = exception
 
     def __str__(self):
-        return repr(self.value)
+        return repr(self.message)
 
 
-class OVLibErrorNotFound(Exception):
-    def __init__(self, value):
-        self.value = value
-        self.error_message = value
-
-    def __str__(self):
-        return repr(self.value)
+class OVLibErrorNotFound(OVLibError):
+    pass
 
 
 class ExecutorWrapper(Exception):
