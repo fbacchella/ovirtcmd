@@ -137,7 +137,7 @@ class ObjectContext(object):
 
             # transform options to a dict and removed undeclared arguments
             verb_options = {k: v for k, v in vars(verb_options).iteritems()
-                            if v is not None and type(v) not in [list, tuple, buffer, xrange, dict] and len(v) != 0 }
+                            if v is not None and (not isinstance(v, (list, tuple, buffer, xrange, dict)) or len(v) != 0)}
             return self.execute_phrase(cmd, object_options, verb_options, verb_args)
         else:
             # Nothing done, return nothing
