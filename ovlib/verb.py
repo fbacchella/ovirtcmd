@@ -3,7 +3,7 @@ import time
 from ovlib.template import VariableOption
 from ovlib.context import ObjectExecutor
 from ovirtsdk.infrastructure.common import Base
-from ovlib import OVLibErrorNotFound
+from ovlib import OVLibErrorNotFound, is_id
 from ovirtsdk.xml import params
 
 # Find the best implementation available on this platform
@@ -58,23 +58,27 @@ class Verb(object):
         else:
             print value
 
-    def get(self, source, name=None, id=None):
-        if isinstance(source, str) or isinstance(source, unicode):
-            source = getattr(self.api, source)
-        if isinstance(name, ObjectExecutor):
-            return name.broker
+    def get(self, source, common=None, name=None, id=None):
+        # if common is set, get was called with a single positionnal argument
+        # try to be smart and detect it's type
+        if isinstance(common, ObjectExecutor):
+            return common.broker
         elif isinstance(name, Base):
-            return name
-        if isinstance(id, ObjectExecutor):
-            return id.broker
-        elif isinstance(id, Base):
-            return id
+            return common
+        elif common is not None and is_id(common):
+            id = common
+            name = None
+        elif common is not None and isinstance(common, basestring):
+            id = None
+            name = common
+
+        # reach this point, so still needs resolution
+        # but name and id contains expect type
+        found = source.get(name=name, id=id)
+        if found is None:
+            raise OVLibErrorNotFound("%s(name='%s', id=%s) not found" % (source, name, id))
         else:
-            found = source.get(name=name, id=id)
-            if found is None:
-                raise OVLibErrorNotFound("%s(name='%s', id=%s) not found" % (source, name, id))
-            else:
-                return found
+            return found
 
     def status(self):
         """A default status command to run on success"""
