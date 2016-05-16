@@ -256,25 +256,29 @@ Know verbs are
 bond
 ----
 
-It's used to automatically bond the interfaces from an hosts.
+It's used to automatically bond some interfaces from an hosts.
 
 Options:
 
-    -h, --help            show this help message and exit
     -V YAMLVARIABLES, --variable=YAMLVARIABLES
     -T YAMLTEMPLATE, --template=YAMLTEMPLATE
     -i INTERFACES, --interface=INTERFACES
                           Interface to add to bonding
     -m MTU, --mtu=MTU     MTU for the interface
     -n NETWORK, --network=NETWORK
-                          Network to bond
+                          Networks to bond
     -o BOND_OPTIONS, --bond_option=BOND_OPTIONS
+                          Used as '-o name value'
     -b BOND_NAME, --bond_name=BOND_NAME
-    -I IP, --ip=IP
-    -G GATEWAY, --gateway=GATEWAY
-    -D, --dhcp
 
-The -IP argument is used to provide both the IP and the netmask, using the CIDR notation : IP/mask length,
-for example 172.16.3.4/12.
+This verb encapsulated the given networks on a bonding. If no networks where given, it defaults to 'ovirtmgmt'. The
+default bond name is `bond0`, but can be changed if bonded interfaces already exists.
+
+The argument -o is used to specify custom bonding options. They are given as `-o name value` for example `-o xmit_hash_policy "layer2+3"`.
+
+So the full bonding command, for a newly created hosts, and with one additionnal network called `VLAN100` and setting an MTU of 9000 for this new bond0
+is:
+
+    ovcmd host -n newhost bond -i eth0 -i eth1 -o miimon 100 -o mode 4 -o xmit_hash_policy "layer2+3" -m 9000 -n ovirtmgmt -n VLAN100
 
 

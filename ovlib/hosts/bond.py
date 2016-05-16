@@ -12,7 +12,7 @@ class Bond(ovlib.verb.Verb):
         parser.add_option("-i", "--interface", dest="interfaces", help="Interface to add to bonding", default=[], action="append")
         parser.add_option("-m", "--mtu", dest="mtu", help="MTU for the interface", type=int)
         parser.add_option("-n", "--network", dest="networks", help="Network to bond", default=[], action="append")
-        parser.add_option("-o", "--bond_option", dest="bond_options", action="store_variable", type="string", help="used as '-o name value'")
+        parser.add_option("-o", "--bond_option", dest="bond_options", action="store_variable", type="string", help="Used as '-o name value'")
         parser.add_option("-b", "--bond_name", dest="bond_name", default="bond0")
 
     def execute(self, *args, **kwargs):
