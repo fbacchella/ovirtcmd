@@ -101,6 +101,8 @@ class Create(ovlib.verb.Verb):
                 'sparse': False,
             }
             if ovlib.is_id(disk_information):
+                disk_size = None
+                storage_domain = None
                 disk_args = { 'id': disk_information, 'active': True}
             elif isinstance(disk_information, basestring):
                 (disk_size, storage_domain) = disk_information.split(",")
