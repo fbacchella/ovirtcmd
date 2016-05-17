@@ -63,7 +63,7 @@ class Verb(object):
         # try to be smart and detect it's type
         if isinstance(common, ObjectExecutor):
             return common.broker
-        elif isinstance(name, Base):
+        elif isinstance(common, Base):
             return common
         elif common is not None and is_id(common):
             id = common
