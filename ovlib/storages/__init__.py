@@ -20,7 +20,7 @@ class XmlExport(ovlib.verb.XmlExport):
 class Delete(ovlib.verb.Delete):
 
     def fill_parser(self, parser):
-        parser.add_option("-h", "--host", dest="host", help="Host used to delete domain", default=None)
+        parser.add_option("-H", "--host", dest="host", help="Host used to delete domain", default=None)
         parser.add_option("-f", "--format", dest="format", help="Format domain", default=False, action='store_true')
 
     def execute(self, *args, **kwargs):
