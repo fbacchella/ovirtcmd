@@ -92,16 +92,25 @@ class Verb(object):
 
 class List(Verb):
     verb = "list"
+    template = "%(name)s %(id)s\n"
 
     def validate(self,  *args, **kwargs):
         return True
 
+    def fill_parser(self, parser):
+        super(List, self).fill_parser(parser)
+        parser.add_option("-t", "--template", dest="template", help="template for output formatting")
+
     def execute(self, *args, **kwargs):
+        self.template = kwargs.pop('template', self.template)
         for i in self.contenaire.list():
             yield i
 
     def to_str(self, status):
-        return "%s %s\n" %(status.get_name(), status.get_id())
+        values = {}
+        values.update(vars(status.superclass))
+        values.update(vars(status))
+        return (self.template + "\n") % (values)
 
 
 class XmlExport(Verb):
