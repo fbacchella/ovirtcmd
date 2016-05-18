@@ -120,6 +120,34 @@ class Import(ovlib.verb.Verb):
         return self._export(value.storage_domains)
 
 @add_command(class_ref)
+class Create(ovlib.verb.Create):
+    def execute(self, *args, **kwargs):
+        sd_type = kwargs.pop('domain_type', None)
+        name = kwargs.pop('name', None)
+        datacenter = kwargs.pop('datacenter', None)
+        cluster=kwargs.pop('datacenter', None)
+        host = kwargs.pop('host', None)
+        if host is not None:
+            host = self.get('hosts', host)
+        if cluster is None and host is not None:
+            cluster = host.cluster
+        elif cluster is not None:
+            cluster = self.get('clusters')
+        if datacenter is None and cluster is not None:
+            datacenter = cluster.data_center
+        elif datacenter is not None:
+            datacenter = self.get('datacenters', datacenter)
+
+        type = kwargs.pop('type', None)
+        if type is not None:
+            kwargs['type_'] = type
+        new_storage = params.Storage(**kwargs)
+        sd_params = params.StorageDomain(name=name,
+                                         data_center=datacenter, host=host, type_=sd_type, storage_format="v3",
+                                         storage=new_storage)
+        return self.contenaire.add(sd_params)
+
+@add_command(class_ref)
 class AddProfile(ovlib.verb.Verb):
     verb = "addprofile"
 
