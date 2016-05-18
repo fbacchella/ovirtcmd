@@ -46,7 +46,7 @@ class Create(ovlib.verb.Create):
                 memory_policy['transparent_hugepages'] = params.TransparentHugePages(enabled=memory_policy['transparent_hugepages'] is True)
             kwargs['memory_policy'] = params.MemoryPolicy(**memory_policy)
 
-        self.broker = self.contenaire.add(params.Cluster(**kwargs))
+        return self.contenaire.add(params.Cluster(**kwargs))
 
 
 @add_command(class_ref)

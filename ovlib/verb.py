@@ -72,6 +72,9 @@ class Verb(object):
             id = None
             name = common
 
+        if isinstance(source, basestring):
+            source = getattr(self.api, source)
+
         # reach this point, so still needs resolution
         # but name and id contains expect type
         found = source.get(name=name, id=id)
