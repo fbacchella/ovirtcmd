@@ -8,7 +8,7 @@ class_ref = []
 
 @add_command(class_ref)
 class List(ovlib.verb.List):
-    pass
+    template = "'%(name)s %(last_name)s' %(id)s"
 
 
 @add_command(class_ref)

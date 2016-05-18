@@ -1,6 +1,6 @@
 import re
 from ovlib.template import load_template, DotTemplate
-
+import ovirtsdk.infrastructure.errors
 
 class OVLibError(Exception):
     def __init__(self, error_message, value={}, exception=None):
@@ -146,7 +146,10 @@ class ObjectContext(object):
 
     def execute_phrase(self, cmd, object_options={}, verb_options={}, verb_args=[]):
         if cmd.broker is None:
-            cmd.broker = self.get(**object_options)
+            try:
+                cmd.broker = self.get(**object_options)
+            except ovirtsdk.infrastructure.errors.AmbiguousQueryError as e:
+                raise OVLibError(e.message)
         if self.api_attribute is not None:
             cmd.contenaire = getattr(self.api, self.api_attribute)
         else:
