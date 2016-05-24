@@ -30,13 +30,13 @@ class Create(ovlib.verb.Verb):
         parser.add_option("--pxe", dest="boot_pxe", help="Can boot pxe", default=True, action="store_false")
         parser.add_option("--cpu", dest="cpu", help="Number of cpu", default=None)
         parser.add_option("--ostype", dest="ostype", help="Server type", default=None)
-        parser.add_option("--network", dest="network", help="networks", default=[], action='append')
+        parser.add_option("--network", dest="networks", help="networks", default=[], action='append')
         parser.add_option("--disk", dest="disks", help="disk", default=[], action='append')
 
     def validate(self):
         return True
 
-    def execute(self, *args, **kwargs):
+    def execute(self, **kwargs):
         cluster = None
         if 'memory' in kwargs:
             kwargs['memory'] = parse_size(kwargs['memory'])
@@ -63,7 +63,7 @@ class Create(ovlib.verb.Verb):
             settings = os_settings[ostype]
             if not 'timezone' in kwargs:
                 kwargs['timezone'] = settings['timezone']
-            architecture = settings['architecture']
+
             if not 'soundcard_enabled' in kwargs:
                 kwargs['soundcard_enabled'] = settings['soundcard_enabled']
             if not 'type' in kwargs:
@@ -71,20 +71,29 @@ class Create(ovlib.verb.Verb):
         if 'type' in kwargs:
             kwargs['type_'] = kwargs.pop('type')
 
-        if not 'cpu' in kwargs:
-            kwargs['cpu'] = {'topology': {'cores': 1, 'threads': 1, 'sockets': 1}, 'architecture': architecture}
+        cpu = kwargs.pop('cpu', None)
+        architecture = kwargs.pop('architecture', None)
+
+        if architecture is None:
+            architecture = settings['architecture']
+
+        if cpu is None:
+            cpu_topology = {'cores': 1, 'threads': 1, 'sockets': 1}
         # if plain cpu argument was given, it's a number of socket, single core, single thread
-        elif 'cpu' in kwargs and not isinstance(kwargs['cpu'], dict):
-            num_cpu = int(kwargs.pop('cpu'))
-            kwargs['cpu'] = {'topology': {}, 'architecture': architecture}
-            kwargs['cpu']['topology']['cores'] = 1
-            kwargs['cpu']['topology']['threads'] = 1
-            kwargs['cpu']['topology']['sockets'] = num_cpu
-        if not 'architecture' in kwargs['cpu']:
-            kwargs['cpu']['architecture'] = architecture
-        cpu_topology_params = kwargs['cpu'].pop('topology')
-        topology = params.CpuTopology(**cpu_topology_params)
-        kwargs['cpu'] = params.CPU(architecture=kwargs['cpu']['architecture'], topology=topology)
+        elif isinstance(cpu, (int, basestring)):
+            cpu_topology = {}
+            cpu_topology['cores'] = 1
+            cpu_topology['threads'] = 1
+            cpu_topology['sockets'] = int(cpu)
+        elif isinstance(cpu, dict):
+            if 'architecture' in cpu:
+                architecture = cpu.pop('architecture')
+            if 'topology' in cpu:
+                cpu_topology = cpu.pop('topology')
+            else:
+                cpu_topology = cpu
+
+        kwargs['cpu'] = params.CPU(architecture=architecture, topology=params.CpuTopology(**cpu_topology))
 
         os_info = kwargs.pop('os', {})
         if len(boot_devices) > 0:
@@ -92,44 +101,58 @@ class Create(ovlib.verb.Verb):
         os_info['type_'] = ostype
         kwargs['os'] = params.OperatingSystem(**os_info)
 
+
+        osi = self.api.operatingsysteminfos.get(name=ostype)
+        if  not 'large_icon' in kwargs:
+            kwargs['large_icon'] = osi.get_large_icon()
+        if not 'small_icon' in kwargs:
+            kwargs['small_icon'] = osi.get_small_icon()
+
         disks = []
+        storage_domain_common = kwargs.pop('storage_domains', None)
         disk_interface = kwargs.pop('disk_interface', settings.get('disk_interface', None))
         for disk_information in kwargs.pop('disks', []):
             disk_args = {
+                'size': 0,
                 'interface': disk_interface,
                 'format': 'raw',
                 'sparse': False,
+                'storage_domain': storage_domain_common,
+                'suffix': 'sys' if len(disks) == 0 else len(disks),
+                # first disk is the boot and system disk
+                'bootable': True if len(disks) == 0 else False,
             }
             if ovlib.is_id(disk_information):
-                disk_size = None
-                storage_domain = None
                 disk_args = { 'id': disk_information, 'active': True}
-            elif isinstance(disk_information, basestring):
-                (disk_size, storage_domain) = disk_information.split(",")
-            elif isinstance(disk_information, list) or isinstance(disk_information, tuple):
-                (disk_size, storage_domain) = disk_information[0:2]
+
+            if isinstance(disk_information, (basestring, list, tuple)):
+                if isinstance(disk_information, basestring):
+                    disk_information_array = disk_information.split(",")
+                else:
+                    disk_information_array = disk_information
+
+                if len(disk_information_array) > 0:
+                    disk_args['size'] = disk_information_array[0]
+                if len(disk_information_array) > 1 and len(disk_information_array[1]) > 0:
+                    disk_args['storage_domain'] = disk_information_array[1]
+                if len(disk_information_array) > 2  and len(disk_information_array[2]) > 0:
+                    disk_args['suffix'] = disk_information_array[2]
             elif isinstance(disk_information, dict):
                 disk_args.update(disk_information)
-                disk_size = disk_args.pop('size', None)
-                storage_domain = disk_args.pop('storage_domains', None)
 
+            disk_size = disk_args.pop('size', None)
             if disk_size is not None:
                 disk_args['size'] = parse_size(disk_size)
 
-            if storage_domain is not None:
+            storage_domain = disk_args.pop('storage_domain', None)
+            if storage_domain is not None and not 'storage_domains' in disk_args:
                 storage_domain = self.get(self.api.storagedomains, storage_domain)
                 disk_args['storage_domains'] = params.StorageDomains(storage_domain=[params.StorageDomain(id=storage_domain.id)])
 
-            # first disk is the boot and system disk
-            if len(disks) == 0:
-                disk_name = "%s_sys" % kwargs['name']
-                disk_args['bootable'] = True
-            else:
-                disk_name = "%s_%d" % (kwargs['name'], len(disks))
-                disk_args['bootable'] = False
+            disk_name_suffix = disk_args.pop('suffix', None)
+            if disk_name_suffix is not None and not 'name' in disk_args:
+                disk_args['name'] = "%s_%s" % (kwargs['name'], disk_name_suffix)
 
-            if disk_args.get('name', None) is None:
-                disk_args['name'] = disk_name
             disks.append(params.Disk(**disk_args))
 
         nics = []
@@ -153,9 +176,6 @@ class Create(ovlib.verb.Verb):
 
         newvm = self.api.vms.add(params.VM(**kwargs))
 
-        osi = self.api.operatingsysteminfos.get(name=ostype)
-        newvm.set_large_icon(osi.get_large_icon())
-        newvm.set_small_icon(osi.get_small_icon())
         newvm.update()
 
         map(lambda x: newvm.nics.add(x), nics)
