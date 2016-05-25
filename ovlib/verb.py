@@ -165,6 +165,6 @@ class DeleteForce(Delete):
     def execute(self, *args, **kwargs):
         action_params = params.Action(
             # force a True/False content
-            force=kwargs is True,
+            force=kwargs['force'] is True,
         )
         return self.broker.delete(action_params)
