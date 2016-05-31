@@ -80,7 +80,7 @@ all_libs = (
     'clusters',
     'storages',
     'network',
-    'users',
+    'permissions',
     'generics',
 )
 
