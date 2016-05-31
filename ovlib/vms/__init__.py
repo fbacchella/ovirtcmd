@@ -11,7 +11,7 @@ class_ref = []
 
 
 @add_command(class_ref)
-class List(ovlib.verb.Statistics):
+class Statistics(ovlib.verb.Statistics):
     pass
 
 
