@@ -23,6 +23,11 @@ if cluster is None:
                          memory_policy={'guaranteed': True, 'overcommit': 100, 'transparent_hugepages': False},
                          ballooning_enabled=True)
 
+network = dc.get('networks', 'ovirtmgmt')
+if network.broker.mtu != 9000:
+    network.broker.mtu = 9000
+    network.update()
+
 host = context.host(name=name)
 if host is None:
     print "creating host"
@@ -33,6 +38,7 @@ if host is None:
                           power_management=power_management)
 
 else:
+
     sd = dc.broker.storagedomains.get(name)
     if sd is None:
         print "creating storage domain"
@@ -54,7 +60,7 @@ else:
     if not bonded:
         print "bonding interfaces"
         host.bond(bond_name='bond0',
-            mtu=1500,
+            mtu=9000,
             bond_options={
                           'mode': '4',
                           'xmit_hash_policy': 'layer2+3',
