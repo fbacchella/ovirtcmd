@@ -3,7 +3,7 @@ import time
 from ovlib.template import VariableOption
 from ovlib.context import ObjectExecutor
 from ovirtsdk.infrastructure.common import Base
-from ovlib import OVLibErrorNotFound, is_id
+from ovlib import OVLibErrorNotFound, is_id, OVLibError
 from ovirtsdk.xml import params
 
 # Find the best implementation available on this platform
@@ -168,3 +168,14 @@ class DeleteForce(Delete):
             force=kwargs['force'] is True,
         )
         return self.broker.delete(action_params)
+
+class Update(Verb):
+    verb = "update"
+
+    def validate(self):
+        if getattr(self, 'param_name') is None:
+            raise OVLibError("invalid verb definition, missing param_name")
+        return super(Update, self).validate()
+
+    def execute(self, *args, **kwargs):
+        return self.broker.update()
