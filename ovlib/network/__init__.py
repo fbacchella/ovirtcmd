@@ -2,7 +2,7 @@ class_ref = []
 import ovlib.verb
 from ovlib import ObjectContext, add_command
 from ovirtsdk.xml import params
-from ovirtsdk.infrastructure.brokers import Network
+from ovirtsdk.infrastructure.brokers import Network, DataCenterNetwork
 
 
 @add_command(class_ref)
@@ -18,6 +18,11 @@ class XmlExport(ovlib.verb.XmlExport):
 @add_command(class_ref)
 class Delete(ovlib.verb.Delete):
     pass
+
+
+@add_command(class_ref)
+class Update(ovlib.verb.Update):
+    param_name = 'Network'
 
 
 @add_command(class_ref)
@@ -62,4 +67,4 @@ class Assign(ovlib.verb.Verb):
         parser.add_option("-r", "--required", dest="required", help="Is required", default=False, action='store_true')
 
 
-oc = ObjectContext(api_attribute="networks", object_name="network", commands=class_ref, broker_class=Network)
+oc = ObjectContext(api_attribute="networks", object_name="network", commands=class_ref, broker_class=[Network, DataCenterNetwork])
