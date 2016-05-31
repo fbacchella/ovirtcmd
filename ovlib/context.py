@@ -61,7 +61,6 @@ class ObjectExecutor(object):
     def get(self, source, name=None, id=None):
         if isinstance(source, str) or isinstance(source, unicode):
             source = getattr(self.broker, source)
-
         if isinstance(name, ObjectExecutor):
             found = name.broker
         elif isinstance(name, Base):

@@ -140,8 +140,7 @@ class ObjectContext(object):
                             if v is not None and (not isinstance(v, (list, tuple, buffer, xrange, dict)) or len(v) != 0)}
             return self.execute_phrase(cmd, object_options, verb_options, verb_args)
         else:
-            # Nothing done, return nothing
-            return (None, None)
+            raise OVLibError("unknown verb %s" % verb)
 
 
     def execute_phrase(self, cmd, object_options={}, verb_options={}, verb_args=[]):
@@ -164,8 +163,7 @@ class ObjectContext(object):
                         verb_options[k] = v
             return (cmd, cmd.execute(*verb_args, **verb_options))
         else:
-            # Nothing done, return nothing
-            return (None, None)
+            raise OVLibError("validation failed")
 
     def get(self, **kwargs):
         if len(kwargs) > 0:
@@ -184,4 +182,9 @@ for lib in all_libs:
                 objects[object_name] = attr
             elif object_name is not None:
                 print "dual definition of objects %s" % object_name
-            objects_by_class[attr.broker_class] = attr
+            # Can accept many class type because of duck typing
+            if isinstance(attr.broker_class, (tuple, list)):
+                for i in attr.broker_class:
+                    objects_by_class[i] = attr
+            else:
+                objects_by_class[attr.broker_class] = attr
