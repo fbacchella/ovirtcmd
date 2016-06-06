@@ -42,7 +42,7 @@ class Start(ovlib.verb.Verb):
 
 
 @add_command(class_ref)
-class Start(ovlib.verb.XmlExport):
+class Ticket(ovlib.verb.Verb):
     verb = "ticket"
 
     def execute(self, *args, **kwargs):
