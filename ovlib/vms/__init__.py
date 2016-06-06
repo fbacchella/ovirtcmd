@@ -34,7 +34,7 @@ class Start(ovlib.verb.Verb):
 
 
 @add_command(class_ref)
-class Start(ovlib.verb.Verb):
+class Stop(ovlib.verb.Verb):
     verb = "stop"
 
     def execute(self, *args, **kwargs):
