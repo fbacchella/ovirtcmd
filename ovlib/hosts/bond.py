@@ -48,9 +48,11 @@ class Bond(ovlib.verb.Verb):
         for i in bonded_networks_list:
             attachement_kwargs = {'host_nic':  bond_nic }
             if i in networks_by_name:
-                attachement_kwargs['network'] = params.Network(id=networks_by_name[i])
+                net_id = networks_by_name[i]
             else:
-                attachement_kwargs['network'] = params.Network(id=self.get(self.api.networks, i).id)
+                host_cluster = self.get(self.api.clusters, self.broker.cluster.id)
+                net_id = self.get(host_cluster.networks, i).id
+            attachement_kwargs['network'] = params.Network(id=net_id)
             if i in old_net_attachement:
                 attachement_kwargs['id'] = old_net_attachement[i]['id']
                 attachement_kwargs['ip_address_assignments'] = old_net_attachement[i]['ips']
