@@ -121,7 +121,7 @@ class Context(object):
 
         if self.api_connect_settings['url'] == None:
             raise ConfigurationError('incomplete configuration, oVirt url not found')
-        if self.api_connect_settings['username'] == None or self.api_connect_settings['kerberos'] == None:
+        if self.api_connect_settings['username'] == None and self.api_connect_settings['kerberos'] == None:
             raise ConfigurationError('not enought authentication informations')
 
 
