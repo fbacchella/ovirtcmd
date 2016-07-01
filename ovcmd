@@ -112,7 +112,7 @@ def main():
             verb = object_args.pop(0)
             try:
                 context = Context(**context_args)
-            except (ConfigurationError) as e:
+            except ConfigurationError as e:
                 print e.error_message
                 return 253
             try:

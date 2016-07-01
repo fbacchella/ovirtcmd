@@ -88,22 +88,23 @@ class Context(object):
         'ca_file': '/etc/pki/ovirt-engine/ca.pem',
         'insecure': False,
         'kerberos': False,
+        'persistent_auth': True,
+        'filter': False,
     }
 
     connected = False
     api = None
 
-    def __init__(self, **kwargs):
+    def __init__(self, config_file=None, **kwargs):
         super(Context, self).__init__()
-
         config = ConfigParser.SafeConfigParser()
-        config_path = kwargs.pop("config_file", None)
-        if config_path is not None:
-            config.readfp(open(config_path))
+        if config_file is not None:
+            config.readfp(open(config_file))
 
         config_api = {}
-        for (k, v) in config.items("api"):
-            config_api[k] = v
+        if len(config.sections()) != 0:
+            for (k, v) in config.items("api"):
+                config_api[k] = v
 
         for attr_name in self.api_connect_settings.keys():
             if attr_name in kwargs:
@@ -117,6 +118,12 @@ class Context(object):
 
         for (object_name, object_context) in ovlib.objects.items():
             setattr(self, object_name, self._do_getter(object_context))
+
+        if self.api_connect_settings['url'] == None:
+            raise ConfigurationError('incomplete configuration, oVirt url not found')
+        if self.api_connect_settings['username'] == None or self.api_connect_settings['kerberos'] == None:
+            raise ConfigurationError('not enought authentication informations')
+
 
     def connect(self):
         self.api = API(**self.api_connect_settings)
