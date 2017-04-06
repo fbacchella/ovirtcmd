@@ -126,6 +126,8 @@ class ObjectContext(object):
 
     def fill_template(self, template, variables):
         if template is None:
+            if len(variables) > 0:
+                raise OVLibError("YAML template not found")
             return {}
         else:
             return load_template(template, variables)

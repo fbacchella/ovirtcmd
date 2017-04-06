@@ -64,6 +64,15 @@ class Ticket(ovlib.verb.Verb):
 
         return url
 
+@add_command(class_ref)
+class Console(ovlib.verb.Verb):
+    verb = "console"
+
+    def fill_parser(self, parser):
+        parser.add_option("-c", "--c", dest="console", help="Console number", default=1, type=int)
+
+    def execute(self, *args, **kwargs):
+        return self._export(self.broker.graphicsconsoles.list()[kwargs['console'] - 1])
 
 class_ref.append(create.Create)
 class_ref.append(delete.Delete)

@@ -49,6 +49,14 @@ class Verb(object):
             else:
                 time.sleep(wait)
 
+    def wait_finished(self, status, wait=1):
+        while True:
+            self.broker = self.contenaire.get(id=self.broker.id)
+            if self.broker.status.state == status:
+                return
+            else:
+                time.sleep(wait)
+
     def execute(self, *args, **kwargs):
         raise NameError('Not implemented')
 
