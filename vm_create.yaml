@@ -1,12 +1,12 @@
-memory: ${memory}
 cpu:
   architecture: 'X86_64'
   topology:
     cores: ${cores}
 soundcard_enabled: False
-cluster: ${cluster}
 timezone: 'Etc/GMT'
 bios:
   boot_menu: True
 type: server
-ostype: ${ostype}
+template: Blank
+disk_interface: virtio_scsi
+cluster: st01

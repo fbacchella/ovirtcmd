@@ -1,6 +1,6 @@
 import time
 import ovlib.verb
-from ovirtsdk.xml import params
+from ovirtsdk4 import types
 
 class Delete(ovlib.verb.Verb):
     verb = "delete"
@@ -17,9 +17,9 @@ class Delete(ovlib.verb.Verb):
                 print '.',
 
         detach_only = kwargs.pop('detach_only', False)
-        action_params = params.Action(
-            vm=params.VM(
-                disks=params.Disks(detach_only=detach_only is True),
+        action_params = types.Action(
+            vm=types.VM(
+                disks=types.Disks(detach_only=detach_only is True),
             ),
         )
 

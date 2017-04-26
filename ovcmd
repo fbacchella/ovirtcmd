@@ -6,7 +6,7 @@ import optparse
 import ovlib
 from ovlib.context import Context, ConfigurationError
 from ovlib.template import VariableOption, load_template
-from ovirtsdk.infrastructure.errors import RequestError, ConnectionError
+import ovirtsdk4
 
 
 def print_run_phrase(ov_object, verb, object_options={}, object_args=[]):
@@ -94,9 +94,6 @@ def main():
         if object_name in ovlib.objects:
             ov_object = ovlib.objects[object_name]
         else:
-            ov_object = None
-
-        if ov_object is None:
             print 'unknown object: %s' % object_name
             return 253
 
@@ -129,11 +126,8 @@ def main():
             except (ovlib.OVLibError) as e:
                 print "The action \"%s %s\" failed with \n    %s" % (ov_object.object_name, verb, e.error_message)
                 return 251
-            except (ConnectionError) as e:
-                print dir(e)
-                print "The action \"%s %s\" failed with \n    %s" % (ov_object.object_name, verb, e)
-                return 252
-            except (RequestError) as e:
+            except (ovirtsdk4.Error) as e:
+                print e
                 print "The action \"%s %s\" failed with \n    %s" % (ov_object.object_name, verb, e.detail)
                 return 252
             finally:

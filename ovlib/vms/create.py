@@ -2,7 +2,7 @@ import time
 
 import ovlib.verb
 from ovlib import parse_size
-from ovirtsdk.xml import params
+from ovirtsdk4 import types
 
 os_settings = {
     'rhel_7x64': {
@@ -41,22 +41,22 @@ class Create(ovlib.verb.Verb):
         if 'memory' in kwargs:
             kwargs['memory'] = parse_size(kwargs['memory'])
         if 'memory_policy' not in kwargs:
-            kwargs['memory_policy'] = params.MemoryPolicy(guaranteed=kwargs['memory'], ballooning=False)
+            kwargs['memory_policy'] = types.MemoryPolicy(guaranteed=kwargs['memory'], ballooning=False)
         if 'cluster' in kwargs:
             cluster = self.get(self.api.clusters, kwargs.pop('cluster'))
-            kwargs['cluster'] = params.Cluster(id=cluster.id)
+            kwargs['cluster'] = types.Cluster(id=cluster.id)
         if 'template' in kwargs:
-            kwargs['template'] = params.Template(id=self.get(self.api.templates, kwargs.pop('template')).id)
+            kwargs['template'] = types.Template(id=self.get(self.api.templates, kwargs.pop('template')).id)
         if 'bios' in kwargs:
             bios_params = {}
             if 'boot_menu' in kwargs['bios']:
-                bios_params['boot_menu'] = params.BootMenu(enabled = kwargs['bios']['boot_menu'])
-            kwargs['bios'] = params.Bios(**bios_params)
-        boot_devices = [params.Boot(dev='hd')]
+                bios_params['boot_menu'] = types.BootMenu(enabled = kwargs['bios']['boot_menu'])
+            kwargs['bios'] = types.Bios(**bios_params)
+        boot_devices = [types.Boot(dev='hd')]
 
         boot_pxe = kwargs.pop('boot_pxe', False)
         if boot_pxe:
-            boot_devices.append(params.Boot(dev='network'))
+            boot_devices.append(types.Boot(dev='network'))
 
         ostype = kwargs.pop('ostype')
         if ostype in os_settings:
@@ -93,13 +93,13 @@ class Create(ovlib.verb.Verb):
             else:
                 cpu_topology = cpu
 
-        kwargs['cpu'] = params.CPU(architecture=architecture, topology=params.CpuTopology(**cpu_topology))
+        kwargs['cpu'] = types.CPU(architecture=architecture, topology=types.CpuTopology(**cpu_topology))
 
         os_info = kwargs.pop('os', {})
         if len(boot_devices) > 0:
             os_info['boot'] = boot_devices
         os_info['type_'] = ostype
-        kwargs['os'] = params.OperatingSystem(**os_info)
+        kwargs['os'] = types.OperatingSystem(**os_info)
 
 
         osi = self.api.operatingsysteminfos.get(name=ostype)
@@ -147,13 +147,13 @@ class Create(ovlib.verb.Verb):
             storage_domain = disk_args.pop('storage_domain', None)
             if storage_domain is not None and not 'storage_domains' in disk_args:
                 storage_domain = self.get(self.api.storagedomains, storage_domain)
-                disk_args['storage_domains'] = params.StorageDomains(storage_domain=[params.StorageDomain(id=storage_domain.id)])
+                disk_args['storage_domains'] = types.StorageDomains(storage_domain=[types.StorageDomain(id=storage_domain.id)])
 
             disk_name_suffix = disk_args.pop('suffix', None)
             if disk_name_suffix is not None and not 'name' in disk_args:
                 disk_args['name'] = "%s_%s" % (kwargs['name'], disk_name_suffix)
 
-            disks.append(params.Disk(**disk_args))
+            disks.append(types.Disk(**disk_args))
 
         nics = []
         if_name = kwargs.pop('network_name', settings['network_name'])
@@ -171,10 +171,10 @@ class Create(ovlib.verb.Verb):
 
             net_name = net_args.pop('network', None)
             if net_name is not None:
-                net_args['network'] = params.Network(id=self.get(dc.networks, net_name).id)
-            nics.append(params.NIC(**net_args))
+                net_args['network'] = types.Network(id=self.get(dc.networks, net_name).id)
+            nics.append(types.NIC(**net_args))
 
-        newvm = self.api.vms.add(params.VM(**kwargs))
+        newvm = self.api.vms.add(types.VM(**kwargs))
 
         newvm.update()
 

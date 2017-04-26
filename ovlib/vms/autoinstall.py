@@ -1,8 +1,7 @@
 import time
 
 import ovlib.verb
-from ovlib import parse_size
-from ovirtsdk.xml import params
+from ovirtsdk4 import types
 
 class Autoinstall(ovlib.verb.Verb):
     """Automaticaly boot on the specified kernel, using a custom command line, it expected to execute an autoinstallation command"""
@@ -17,51 +16,46 @@ class Autoinstall(ovlib.verb.Verb):
         return True
 
     def execute(self, *args, **kwargs):
-        if self.broker.status.state != 'down':
-            self.broker.stop()
-            while True:
-                self.broker = self.api.vms.get(id=self.broker.id)
-                if self.broker.status.state == 'down':
-                    break
-                time.sleep(1)
+        if self.type.status != types.VmStatus.DOWN:
+            self.service.stop()
+            self.wait_for(types.VmStatus.DOWN)
 
-        old_os_params =  self.broker.get_os()
-        old_kernel = old_os_params.get_kernel()
+        old_os_params =  self.type.os
+        old_kernel = old_os_params.kernel
         if old_kernel is None:
             old_kernel = ''
-        old_initrd = old_os_params.get_initrd()
+        old_initrd = old_os_params.initrd
         if old_initrd is None:
             old_initrd = ''
-        old_cmdline = old_os_params.get_cmdline()
+        old_cmdline = old_os_params.cmdline
         if old_cmdline is None:
             old_cmdline = ''
-        old_os_params.set_kernel(kwargs.get('kernel', None))
-        old_os_params.set_initrd(kwargs.get('initrd', None))
-        old_os_params.set_cmdline(kwargs.get('cmdline', None))
+        old_os_params.kernel = kwargs.get('kernel', None)
+        old_os_params.initrd = kwargs.get('initrd', None)
+        old_os_params.cmdline = kwargs.get('cmdline', None)
 
-        self.broker.set_os(old_os_params)
-        self.broker.update()
-        self.broker.start()
-        while True:
-            self.broker = self.api.vms.get(id=self.broker.id)
-            if self.broker.status.state == 'up':
-                break
-            yield "."
-            time.sleep(1)
+        self.service.update(
+            types.Vm(
+                os=types.OperatingSystem(
+                    kernel=kwargs.get('kernel', None),
+                    initrd = kwargs.get('initrd', None),
+                    cmdline=kwargs.get('cmdline', None)
+            )
+        ))
+
+        self.service.start()
+        self.wait_for(types.VmStatus.UP)
         yield "booted, run installing\n"
-        while True:
-            self.broker = self.api.vms.get(id=self.broker.id)
-            if self.broker.status.state == 'down':
-                break
-            yield "."
-            time.sleep(1)
-        os_params =  params.OperatingSystem()
-        os_params.set_boot(old_os_params.get_boot())
-        os_params.set_type(old_os_params.get_type())
-        os_params.set_kernel(old_kernel)
-        os_params.set_initrd(old_initrd)
-        os_params.set_cmdline(old_cmdline)
-        self.broker.set_os(os_params)
-        self.broker.update()
-        self.broker.start()
+        self.wait_for(types.VmStatus.DOWN)
+
+        self.service.update(
+            types.Vm(
+                os=types.OperatingSystem(
+                    kernel=old_kernel,
+                    initrd=old_initrd,
+                    cmdline=old_cmdline
+                )
+            ))
+
+        self.service.start()
         yield "done\n"

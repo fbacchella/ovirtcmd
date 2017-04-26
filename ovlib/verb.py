@@ -1,10 +1,14 @@
 import optparse
 import time
+import string
+import io
+
 from ovlib.template import VariableOption
 from ovlib.context import ObjectExecutor
-from ovirtsdk.infrastructure.common import Base
 from ovlib import OVLibErrorNotFound, is_id, OVLibError
-from ovirtsdk.xml import params
+from ovirtsdk4 import types, Struct
+from ovirtsdk4.writer import Writer
+from ovirtsdk4 import xml
 
 # Find the best implementation available on this platform
 try:
@@ -14,16 +18,17 @@ except:
 
 class Verb(object):
     """A abstract class, used to implements actual verb"""
-    def __init__(self, api, broker=None):
-        self.api = api
-        self.broker = broker
+    def __init__(self, object):
+        self.api = object.api
+        self.object = object
+        self.type = None
 
     def fill_parser(self, parser):
         pass
 
     def validate(self):
         """try to validate the object needed by the commande, should be overriden if the no particular object is expected"""
-        if self.broker is None:
+        if self.type is None or self.service is None:
             return False
         else:
             return True
@@ -43,16 +48,16 @@ class Verb(object):
 
     def wait_for(self, status, wait=1):
         while True:
-            self.broker = self.contenaire.get(id=self.broker.id)
-            if self.broker.status.state == status:
+            self.type = self.api.follow_link(self.type)
+            if self.type.status == status:
                 return
             else:
                 time.sleep(wait)
 
     def wait_finished(self, status, wait=1):
         while True:
-            self.broker = self.contenaire.get(id=self.broker.id)
-            if self.broker.status.state == status:
+            self.type = self.contenaire.get(id=self.type.id)
+            if self.type.status == status:
                 return
             else:
                 time.sleep(wait)
@@ -69,41 +74,55 @@ class Verb(object):
     def get(self, source, common=None, name=None, id=None):
         # if common is set, get was called with a single positionnal argument
         # try to be smart and detect it's type
+        search=None
         if isinstance(common, ObjectExecutor):
-            return common.broker
-        elif isinstance(common, Base):
+            return common.type
+        elif isinstance(common, Struct):
             return common
         elif common is not None and is_id(common):
             id = common
             name = None
+            search ="id=%s" % id
         elif common is not None and isinstance(common, basestring):
             id = None
             name = common
+            search ="name=%s" % name
 
         if isinstance(source, basestring):
-            source = getattr(self.api, source)
+            source = getattr(self.system_service(), source)
 
         # reach this point, so still needs resolution
         # but name and id contains expect type
-        found = source.get(name=name, id=id)
-        if found is None:
+        founds = source.list(search=search, case_sensitive=True)
+        if len(founds) == 0:
             raise OVLibErrorNotFound("%s(name='%s', id=%s) not found" % (source, name, id))
         else:
-            return found
+            return founds[0]
 
     def status(self):
         """A default status command to run on success"""
         return 0;
 
-    def _export(self, object):
-        output = StringIO()
-        object.export_(output, 0)
-        return output.getvalue()
+    def _export(self, writerClass, type):
+        buf = None
+        writer = None
+        try:
+            buf = io.BytesIO()
+            writer = xml.XmlWriter(buf, indent=True)
+            writerClass.write_one(type, writer)
+            writer.flush()
+            return buf.getvalue()
+
+        finally:
+            if writer is not None:
+                writer.close()
+            if buf is not None:
+                buf.close()
 
 
 class List(Verb):
     verb = "list"
-    template = "%(name)s %(id)s"
+    template = "{name!s} {id!s}"
 
     def validate(self,  *args, **kwargs):
         return True
@@ -111,44 +130,40 @@ class List(Verb):
     def fill_parser(self, parser):
         super(List, self).fill_parser(parser)
         parser.add_option("-q", "--query", dest="query")
-        parser.add_option("-t", "--template", dest="template", help="template for output formatting")
+        parser.add_option("-t", "--template", dest="template", help="template for output formatting, default to %s" % self.template)
 
     def execute(self, *args, **kwargs):
         self.template = kwargs.pop('template', self.template)
-        for i in self.contenaire.list(**kwargs):
+
+        for i in self.service.list(**kwargs):
             yield i
 
-    def to_str(self, status):
-        values = {}
-        values.update(vars(status.superclass))
-        values.update(vars(status))
-        return (self.template + "\n") % (values)
+    def get_service_path(self, *args, **kwargs):
+        return self.object.service_root
 
+    def to_str(self, status):
+        formatter = string.Formatter()
+        values = {}
+        for i in formatter.parse(self.template):
+            values[i[1]] = getattr(status, i[1])
+        return  "%s\n" %(formatter.format(self.template, **values))
 
 class XmlExport(Verb):
     verb = "export"
 
     def execute(self, *args, **kwargs):
-        if len(args) > 0:
-            elem =  getattr(self.broker, args[0])
-            if hasattr(elem, 'list'):
-                def sublist():
-                    for i in elem.list():
-                        yield self._export(i)
-                return sublist()
-        else:
-            return self._export(self.broker)
+        return self._export(self.type.writer, self.type)
 
 
 class Statistics(Verb):
     verb = "statistics"
 
     def execute(self, *args, **kwargs):
-        for s in self.broker.statistics.list():
+        for s in self.service.statistics_service().list():
             yield s
 
     def to_str(self, stat):
-        return "%s: %s %s (%s)\n" % (stat.name, stat.values.get_value()[0].get_datum(), stat.unit, stat.get_type())
+        return "%s: %s %s (%s)\n" % (stat.name, stat.values[0].datum, stat.unit, stat.type)
 
 class Create(Verb):
     verb = "create"
@@ -161,7 +176,7 @@ class Delete(Verb):
     verb = "delete"
 
     def execute(self, *args, **kwargs):
-        return self.broker.delete()
+        return self.service.delete()
 
 
 class DeleteForce(Delete):
@@ -171,7 +186,7 @@ class DeleteForce(Delete):
 
 
     def execute(self, *args, **kwargs):
-        action_params = params.Action(
+        action_params = types.Action(
             # force a True/False content
             force=kwargs['force'] is True,
         )

@@ -1,6 +1,7 @@
 import re
 from ovlib.template import load_template, DotTemplate
-import ovirtsdk.infrastructure.errors
+import ovirtsdk4
+import inspect
 
 class OVLibError(Exception):
     def __init__(self, error_message, value={}, exception=None):
@@ -72,16 +73,16 @@ objects_by_class = { }
 
 all_libs = (
     'vms',
-    'datacenters',
-    'templates',
-    'disks',
-    'capabilities',
-    'hosts',
-    'clusters',
-    'storages',
-    'network',
-    'permissions',
-    'generics',
+#    'datacenters',
+#    'templates',
+#    'disks',
+#    'capabilities',
+#    'hosts',
+#    'clusters',
+#    'storages',
+#    'network',
+#    'permissions',
+#    'generics',
 )
 
 
@@ -94,31 +95,27 @@ def add_command(destination):
 
 class ObjectContext(object):
 
-    def __init__(self, object_name, api_attribute, commands, broker_class):
+    def __init__(self, object_name, commands, service_root):
         self.verbs = {}
         for command in commands:
             verb_name = command.verb
             self.verbs[verb_name] = command
-        self.api_attribute = api_attribute
         self.commands = commands
         self.object_name = object_name
-        self.api = None
-        self.broker_class = broker_class
+        self.service_root = service_root
+        self._api = None
 
     def fill_parser(self, parser):
         parser.add_option("-i", "--id", dest="id", help="object ID")
         parser.add_option("-n", "--name", dest="name", help="object tag 'Name'")
 
     def execute(self, name, method_args=[], method_kwargs={}):
-        if self.api_attribute is not None:
-            return getattr(getattr(self.api, self.api_attribute), name)(*method_args, **method_kwargs)
-        else:
-            NameError('Not implemented')
+        NameError('Not implemented')
 
     def get_cmd(self, verb):
         if verb in self.verbs:
             cmd_class = self.verbs[verb]
-            cmd = cmd_class(self.api)
+            cmd = cmd_class(self)
             return cmd
         else:
             # Everything failed so return false
@@ -146,15 +143,15 @@ class ObjectContext(object):
 
 
     def execute_phrase(self, cmd, object_options={}, verb_options={}, verb_args=[]):
-        if cmd.broker is None:
+        if cmd.type is None and len(object_options) > 0:
             try:
-                cmd.broker = self.get(**object_options)
-            except ovirtsdk.infrastructure.errors.AmbiguousQueryError as e:
+                cmd.type = self.get(**object_options)
+            except ovirtsdk4.Error as e:
                 raise OVLibError(e.message)
-        if self.api_attribute is not None:
-            cmd.contenaire = getattr(self.api, self.api_attribute)
+        if cmd.type is not None:
+                cmd.service = self.api.service("%s/%s" % (self.service_root, cmd.type.id))
         else:
-            cmd.contenaire = None
+            cmd.service = self.service
         if cmd.validate():
             if cmd.uses_template():
                 yamltemplate = verb_options.pop('yamltemplate', None)
@@ -168,10 +165,34 @@ class ObjectContext(object):
             raise OVLibError("validation failed")
 
     def get(self, **kwargs):
-        if len(kwargs) > 0:
-            return self.execute("get", method_kwargs=kwargs)
+        """
+        Search for the entity by attributes. Nested entities don't support search
+        via REST, so in case using search for nested entity we return all entities
+        and filter them by specified attributes.
+        """
+        # Check if 'list' method support search(look for search parameter):
+        if 'search' in inspect.getargspec(self.service.list)[0]:
+            res = self.service.list(
+                search=' and '.join('{}={}'.format(k, v) for k, v in kwargs.items())
+            )
         else:
-            return None
+            res = [
+                e for e in self.service.list() if len([
+                    k for k, v in kwargs.items() if getattr(e, k, None) == v
+                ]) == len(kwargs)
+            ]
+
+        res = res or [None]
+        return res[0]
+
+    @property
+    def api(self):
+        return self._api
+
+    @api.setter
+    def api(self, api):
+        self._api = api
+        self.service = api.service(self.service_root)
 
 
 for lib in all_libs:
@@ -185,8 +206,8 @@ for lib in all_libs:
             elif object_name is not None:
                 print "dual definition of objects %s" % object_name
             # Can accept many class type because of duck typing
-            if isinstance(attr.broker_class, (tuple, list)):
-                for i in attr.broker_class:
+            if isinstance(attr.object_name, (tuple, list)):
+                for i in attr.object_name:
                     objects_by_class[i] = attr
             else:
-                objects_by_class[attr.broker_class] = attr
+                objects_by_class[attr.object_name] = attr

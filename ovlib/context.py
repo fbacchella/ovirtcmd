@@ -1,8 +1,7 @@
-from ovirtsdk.api import API
+import ovirtsdk4
 import ConfigParser
 import ovlib
 import types
-from ovirtsdk.infrastructure.common import Base
 
 # The api settings that store boolean values
 booleans = frozenset(['debug', 'insecure', 'kerberos'])
@@ -63,12 +62,12 @@ class ObjectExecutor(object):
             source = getattr(self.broker, source)
         if isinstance(name, ObjectExecutor):
             found = name.broker
-        elif isinstance(name, Base):
-            found = name
-        elif isinstance(id, ObjectExecutor):
-            found = id.broker
-        elif isinstance(id, Base):
-            found = id
+        #elif isinstance(name, Base):
+        #    found = name
+        #elif isinstance(id, ObjectExecutor):
+        #    found = id.broker
+        #elif isinstance(id, Base):
+        #    found = id
         else:
             found = source.get(name=name, id=id)
         if found is None:
@@ -79,17 +78,19 @@ class ObjectExecutor(object):
             else:
                 raise ovlib.OVLibError("unsupported ressource: %s" % found.__class__)
 
+import logging
+logging.basicConfig(level=logging.DEBUG, filename='example.log')
+
 class Context(object):
     api_connect_settings = {
         'url': None,
         'username': None,
         'password': None,
-        'debug': False,
+        'debug': True,
         'ca_file': '/etc/pki/ovirt-engine/ca.pem',
         'insecure': False,
         'kerberos': False,
-        'persistent_auth': True,
-        'filter': False,
+        'log': logging.getLogger(),
     }
 
     connected = False
@@ -126,12 +127,12 @@ class Context(object):
 
 
     def connect(self):
-        self.api = API(**self.api_connect_settings)
+        self.api = ovirtsdk4.Connection(**self.api_connect_settings)
         self.connected = True
 
     def disconnect(self):
         if self.connected:
-            self.api.disconnect()
+            self.api.close()
 
     def _do_getter(self, object_context):
         def getter(**kwargs):
