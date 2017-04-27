@@ -1,31 +1,35 @@
 import time
 import ovlib.verb
-from ovlib import ObjectContext, add_command
-from ovirtsdk.xml import params
-from ovirtsdk.infrastructure.errors import RequestError
-from ovirtsdk.infrastructure.brokers import Host
+from ovlib import Dispatcher, command
+from ovirtsdk4.types import Host, GraphicsType, HostStatus
+from ovirtsdk4.services import HostService
+from ovlib import wrapper, ObjectWrapper, Dispatcher, dispatcher
+from ovirtsdk4.writers import HostWriter
 
-import create
-import bond
+@wrapper(writerClass=HostWriter, type_class=Host, service_class=HostService)
+class HostWrapper(ObjectWrapper):
+    pass
 
-class_ref = []
+@dispatcher(service_root = "hosts", object_name = "host", wrapper=HostWrapper)
+class HostDispatcher(Dispatcher):
+    pass
 
-@add_command(class_ref)
+@command(HostDispatcher)
 class Statistics(ovlib.verb.Statistics):
     pass
 
 
-@add_command(class_ref)
+@command(HostDispatcher)
 class List(ovlib.verb.List):
     pass
 
 
-@add_command(class_ref)
+@command(HostDispatcher)
 class XmlExport(ovlib.verb.XmlExport):
     pass
 
 
-@add_command(class_ref)
+@command(HostDispatcher)
 class Delete(ovlib.verb.Delete):
 
     def execute(self, *args, **kwargs):
@@ -35,37 +39,36 @@ class Delete(ovlib.verb.Delete):
         self.broker.delete()
 
 
-@add_command(class_ref)
+@command(HostDispatcher, verb='maintenance')
 class Maintenance(ovlib.verb.Verb):
-    verb = "maintenance"
 
     def fill_parser(self, parser):
         parser.add_option("-r", "--reason", dest="reason", help="Reason for maintenance", default=None)
+        parser.add_option("-a", "--async", dest="async", help="Don't wait for maintenance state", default=False, action='store_true')
 
-    def execute(self, *args, **kwargs):
-        if self.broker.status.state != "maintenance":
-            action = params.Action()
-            if kwargs.get('reason', None) is not None:
-                action.reason = kwargs.pop('reason')
-            self.broker.deactivate(action)
-            self.wait_for("maintenance")
+    def execute(self, reason=None, async=False, *args, **kwargs):
+        if self.type.status != HostStatus.MAINTENANCE:
+            self.service.deactivate(reason=reason, async=async)
+            if not async:
+                self.wait_for(HostStatus.MAINTENANCE)
         return True
 
 
-@add_command(class_ref)
+@command(HostDispatcher, verb='activate')
 class Activate(ovlib.verb.Verb):
-    verb = "activate"
+
+    def fill_parser(self, parser):
+        parser.add_option("-a", "--async", dest="async", help="Don't wait for maintenance state", default=False, action='store_true')
 
     def execute(self, *args, **kwargs):
-        if self.broker.status.state == "maintenance":
-            self.broker.activate()
-            self.wait_for("up")
+        if self.type.status == HostStatus.MAINTENANCE:
+            self.service.activate()
+            self.wait_for(HostStatus.UP)
         return True
 
 
-@add_command(class_ref)
+@command(HostDispatcher, verb='discoverdomain')
 class DiscoverDomain(ovlib.verb.Verb):
-    verb = "discoverdomain"
 
     def execute(self, *args, **kwargs):
         return self.broker.unregisteredstoragedomainsdiscover()
@@ -78,10 +81,9 @@ def get_uptime(host):
     return uptime_stat.values.get_value()[0].get_datum()
 
 
-@add_command(class_ref)
+@command(HostDispatcher, verb='reinstall')
 class ReInstall(ovlib.verb.Verb):
     """Broken, do not use"""
-    verb = "reinstall"
 
     def fill_parser(self, parser):
         parser.add_option("-i", "--dont_override_iptables", dest="override_iptables", help="Automatically configure host firewall", default=True, action="store_false")
@@ -103,10 +105,10 @@ class ReInstall(ovlib.verb.Verb):
         self.broker.install(action)
 
 
-@add_command(class_ref)
+@command(HostDispatcher, verb='reboot')
 class Reboot(ovlib.verb.Verb):
     """Broken, do not use"""
-    verb = "reboot"
+    verb = ""
 
     def execute(self, *args, **kwargs):
         last_boot = get_uptime(self.broker)
@@ -130,9 +132,8 @@ class Reboot(ovlib.verb.Verb):
         return True
 
 
-@add_command(class_ref)
-class Upgrade(ovlib.verb.Delete):
-    verb = "upgrade"
+@command(HostDispatcher, verb='upgrade')
+class Upgrade(ovlib.verb.Verb):
 
     def fill_parser(self, parser):
         parser.add_option("-i", "--image", dest="image", help="Not documented")
@@ -149,8 +150,5 @@ class Upgrade(ovlib.verb.Delete):
             else:
                 raise e
 
-
-class_ref.append(create.Create)
-class_ref.append(bond.Bond)
-
-oc = ObjectContext(api_attribute ="hosts", object_name ="host", commands = class_ref, broker_class=Host)
+import create
+import bond

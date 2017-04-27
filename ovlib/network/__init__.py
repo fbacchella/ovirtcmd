@@ -1,31 +1,41 @@
-class_ref = []
 import ovlib.verb
-from ovlib import ObjectContext, add_command
-from ovirtsdk.xml import params
-from ovirtsdk.infrastructure.brokers import Network, DataCenterNetwork
+
+from ovlib import Dispatcher, ObjectWrapper, command, dispatcher, wrapper
+
+from ovirtsdk4.types import Network
+from ovirtsdk4.services import NetworkService
+from ovirtsdk4.writers import NetworkWriter
+
+@wrapper(writerClass=NetworkWriter, type_class=Network, service_class=NetworkService)
+class NicWrapper(ObjectWrapper):
+    pass
+
+@dispatcher(object_name="network", service_root="nics", wrapper=NicWrapper)
+class NicDispatcher(Dispatcher):
+    pass
 
 
-@add_command(class_ref)
+@command(NicDispatcher)
 class List(ovlib.verb.List):
     pass
 
 
-@add_command(class_ref)
+@command(NicDispatcher)
 class XmlExport(ovlib.verb.XmlExport):
     pass
 
 
-@add_command(class_ref)
+@command(NicDispatcher)
 class Delete(ovlib.verb.Delete):
     pass
 
 
-@add_command(class_ref)
+@command(NicDispatcher)
 class Update(ovlib.verb.Update):
     param_name = 'Network'
 
 
-@add_command(class_ref)
+@command(NicDispatcher)
 class Create(ovlib.verb.Create):
 
     def fill_parser(self, parser):
@@ -58,13 +68,11 @@ class Create(ovlib.verb.Create):
             cluster.networks.add(params.Network(id=new_network.id, required=required))
 
 
-@add_command(class_ref)
+@command(NicDispatcher, verb='assign')
 class Assign(ovlib.verb.Verb):
-    verb = "assign"
 
     def fill_parser(self, parser):
         parser.add_option("-c", "--cluster", dest="cluster", help="Destination cluster")
         parser.add_option("-r", "--required", dest="required", help="Is required", default=False, action='store_true')
 
 
-oc = ObjectContext(api_attribute="networks", object_name="network", commands=class_ref, broker_class=[Network, DataCenterNetwork])

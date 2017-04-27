@@ -1,5 +1,5 @@
 import ovlib.verb
-from ovlib import ObjectContext, add_command
+from ovlib import Dispatcher, command
 from ovirtsdk.infrastructure.brokers import Disk
 from ovirtsdk.xml import params
 from ovlib import parse_size
@@ -7,26 +7,26 @@ from ovlib import parse_size
 class_ref = []
 
 
-@add_command(class_ref)
+@command(class_ref)
 class List(ovlib.verb.Statistics):
     pass
 
 
-@add_command(class_ref)
+@command(class_ref)
 class List(ovlib.verb.List):
     pass
 
 
-@add_command(class_ref)
+@command(class_ref)
 class XmlExport(ovlib.verb.XmlExport):
     pass
 
 
-@add_command(class_ref)
+@command(class_ref)
 class Delete(ovlib.verb.Delete):
     pass
 
-@add_command(class_ref)
+@command(class_ref)
 class Create(ovlib.verb.Create):
 
     def uses_template(self):
@@ -59,4 +59,4 @@ class Create(ovlib.verb.Create):
         return self.contenaire.add(params.Disk(**kwargs))
 
 
-oc = ObjectContext(api_attribute="disks", object_name="disk", commands=class_ref, broker_class=Disk)
+oc = Dispatcher(api_attribute="disks", object_name="disk", commands=class_ref, broker_class=Disk)

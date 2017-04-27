@@ -2,6 +2,15 @@ import re
 from ovlib.template import load_template, DotTemplate
 import ovirtsdk4
 import inspect
+import io
+import time
+
+from urlparse import urljoin
+
+import ovirtsdk4.writers
+import ovirtsdk4.types
+
+from ovirtsdk4 import xml
 
 class OVLibError(Exception):
     def __init__(self, error_message, value={}, exception=None):
@@ -68,42 +77,49 @@ def is_id(try_id):
     return isinstance(try_id, basestring) and id_re.match(try_id) is not None
 
 
-objects = { }
-objects_by_class = { }
+dispatchers = { }
 
 all_libs = (
     'vms',
 #    'datacenters',
 #    'templates',
 #    'disks',
-#    'capabilities',
-#    'hosts',
+    'capabilities',
+    'hosts',
 #    'clusters',
 #    'storages',
-#    'network',
+    'network',
 #    'permissions',
 #    'generics',
 )
 
 
-def add_command(destination):
-    def decorator(func):
-        destination.append(func)
-        return func
+def command(dispatcher_class, verb=None):
+    def decorator(command_class):
+        if verb is not None:
+            command_class.verb = verb
+        dispatchers[dispatcher_class.object_name].add_command(command_class)
+        return command_class
+    return decorator
+
+def dispatcher(object_name, service_root, wrapper):
+    def decorator(dispatcher_class):
+        dispatcher_class.object_name = object_name
+        dispatcher_class.service_root = service_root
+        dispatcher_class.wrapper = wrapper
+        dispatchers[object_name] = dispatcher_class()
+        return dispatcher_class
     return decorator
 
 
-class ObjectContext(object):
+class Dispatcher(object):
 
-    def __init__(self, object_name, commands, service_root):
+    def __init__(self):
         self.verbs = {}
-        for command in commands:
-            verb_name = command.verb
-            self.verbs[verb_name] = command
-        self.commands = commands
-        self.object_name = object_name
-        self.service_root = service_root
         self._api = None
+
+    def add_command(self, new_command):
+        self.verbs[new_command.verb] = new_command
 
     def fill_parser(self, parser):
         parser.add_option("-i", "--id", dest="id", help="object ID")
@@ -143,15 +159,14 @@ class ObjectContext(object):
 
 
     def execute_phrase(self, cmd, object_options={}, verb_options={}, verb_args=[]):
-        if cmd.type is None and len(object_options) > 0:
+        if cmd.object is None and len(object_options) > 0:
             try:
-                cmd.type = self.get(**object_options)
+                cmd.object = self.get(**object_options)
             except ovirtsdk4.Error as e:
                 raise OVLibError(e.message)
-        if cmd.type is not None:
-                cmd.service = self.api.service("%s/%s" % (self.service_root, cmd.type.id))
         else:
-            cmd.service = self.service
+            cmd.object = ObjectWrapper(self._api, None, self.service)
+
         if cmd.validate():
             if cmd.uses_template():
                 yamltemplate = verb_options.pop('yamltemplate', None)
@@ -183,7 +198,12 @@ class ObjectContext(object):
             ]
 
         res = res or [None]
-        return res[0]
+        type = res[0]
+        if type is not None:
+            service = self.api.service("%s/%s" % (self.service_root, type.id))
+            return self.wrapper(self._api, type, service)
+        else:
+            return self.wrapper(self._api, None, self.service)
 
     @property
     def api(self):
@@ -195,19 +215,124 @@ class ObjectContext(object):
         self.service = api.service(self.service_root)
 
 
+type_wrappers={}
+service_wrappers={}
+writers={}
+
+def wrapper(writerClass=None, type_class=None, service_class=None):
+    def decorator(func):
+        func.writerClass = writerClass
+        func.typeClass = type_class
+        func.service_class = service_class
+        if type_class is not None:
+            type_wrappers[type_class] = func
+        if service_class is not None:
+            service_wrappers[service_class] = func
+        if writerClass is not None:
+            if type_class is not None:
+                writers[type_class] = writerClass
+            if service_class is not None:
+                writers[service_class] = writerClass
+        return func
+    return decorator
+
+
+def resolve_service_href(api, href):
+    absolute_href = urljoin(api.url, href)
+    # the second replace is to remove the first / in the path
+    service_path = absolute_href.replace(api.url, "").replace("/", "", 1)
+    new_service = api.service(service_path)
+    return new_service
+
+def instanciate_service(api, href):
+    service = resolve_service_href(api, href)
+    service_class = type(service)
+    if service_wrappers.has_key(service_class):
+        return service_wrappers[service_class](api=api, service=service)
+    else:
+        return None
+
+class ObjectWrapper(object):
+
+    def __init__(self, api, type=None, service=None):
+        self.api = api
+        self.service = service
+        if hasattr(self.service, "list"):
+            self._is_enumerator = True
+        else:
+            self._is_enumerator = False
+        if type is None and not self._is_enumerator:
+            self.type = self.service.get()
+        else:
+            self.type = type
+        for method in ('delete', 'list', 'start', 'stop', 'statistics_service'):
+            if hasattr(self.service, method):
+                setattr(self, method, getattr(self.service, method))
+
+    def export(self, path):
+        buf = None
+        writer = None
+        if self.is_enumerator:
+            buf = ""
+            for i in self.list():
+                next_wrapper = instanciate_service(self.api, i.href)
+                buf += next_wrapper.export(path)
+            return buf
+        elif len(path) == 0:
+            try:
+                buf = io.BytesIO()
+                writer = xml.XmlWriter(buf, indent=True)
+                self.writerClass.write_one(self.type, writer)
+                writer.flush()
+                return buf.getvalue()
+            finally:
+                if writer is not None:
+                    writer.close()
+                if buf is not None:
+                    buf.close()
+        else:
+            next=path[0]
+            if hasattr(self.type, next):
+                next_type = getattr(self.type, next)
+                if not hasattr(next_type, 'href'):
+                    return next_type
+                else:
+                    next_href = next_type.href
+                    if next_href is not None:
+                        print next_type.__dict__
+                        print "%s %s" % (next_type.href, next_type.id)
+                        next_service = resolve_service_href(self.api, next_type.href)
+                        next_service_class = type(next_service)
+                        if service_wrappers.has_key(next_service_class):
+                            next_wrapper = service_wrappers[next_service_class](api=self.api, service=next_service)
+                            return next_wrapper.export(path[1:])
+                        else:
+                            print next_type
+                            print next_type.href
+                            print next_service
+                            print "missing %s" % next_service_class
+                            return ""
+                    else:
+                        next_type_class = type(next_type)
+                        if type_wrappers.has_key(next_type_class):
+                            next_wrapper = type_wrappers[next_type_class](api=self.api, type=next_type)
+                            return next_wrapper.export(path[1:])
+                        else:
+                            print "no way to export %s" % next_type
+
+    def wait_for(self, status, wait=1):
+        while True:
+            self.type = self.api.follow_link(self.type)
+            if self.type.status == status:
+                return
+            else:
+                time.sleep(wait)
+
+    @property
+    def is_enumerator(self):
+        return self._is_enumerator
+
+
 for lib in all_libs:
     cmd_module = __import__(lib, globals(), locals(), [], -1)
-    for attr_name in dir(cmd_module):
-        attr = getattr(cmd_module, attr_name)
-        if isinstance(attr, ObjectContext):
-            object_name = attr.object_name
-            if not object_name in objects and object_name is not None:
-                objects[object_name] = attr
-            elif object_name is not None:
-                print "dual definition of objects %s" % object_name
-            # Can accept many class type because of duck typing
-            if isinstance(attr.object_name, (tuple, list)):
-                for i in attr.object_name:
-                    objects_by_class[i] = attr
-            else:
-                objects_by_class[attr.object_name] = attr
+

@@ -2,27 +2,27 @@ class_ref_mac_pool = []
 class_ref_mac_qos = []
 
 import ovlib.verb
-from ovlib import ObjectContext, add_command
+from ovlib import Dispatcher, command
 from ovirtsdk.xml import params
 from ovirtsdk.infrastructure.brokers import MacPool, DataCenterQoS, StorageDomainDiskProfile, VMCdRoms
 
 
-@add_command(class_ref_mac_pool)
+@command(class_ref_mac_pool)
 class List(ovlib.verb.List):
     pass
 
 
-@add_command(class_ref_mac_pool)
+@command(class_ref_mac_pool)
 class XmlExport(ovlib.verb.XmlExport):
     pass
 
 
-@add_command(class_ref_mac_pool)
+@command(class_ref_mac_pool)
 class Delete(ovlib.verb.Delete):
     pass
 
 
-@add_command(class_ref_mac_pool)
+@command(class_ref_mac_pool)
 class Create(ovlib.verb.Create):
 
     def fill_parser(self, parser):
@@ -56,55 +56,55 @@ class Create(ovlib.verb.Create):
         return self.contenaire.add(new_mac_pool)
 
 
-macpool = ObjectContext(api_attribute ="macpools", object_name="macpool", commands=class_ref_mac_pool, broker_class=MacPool)
+macpool = Dispatcher(api_attribute ="macpools", object_name="macpool", commands=class_ref_mac_pool, broker_class=MacPool)
 
 class_ref_mac_qos = []
-@add_command(class_ref_mac_qos)
+@command(class_ref_mac_qos)
 class List(ovlib.verb.List):
     pass
 
 
-@add_command(class_ref_mac_qos)
+@command(class_ref_mac_qos)
 class XmlExport(ovlib.verb.XmlExport):
     pass
 
 
-@add_command(class_ref_mac_qos)
+@command(class_ref_mac_qos)
 class Delete(ovlib.verb.Delete):
     pass
 
 
-qos = ObjectContext(api_attribute="qoss", object_name=None, commands=class_ref_mac_qos, broker_class=DataCenterQoS)
+qos = Dispatcher(api_attribute="qoss", object_name=None, commands=class_ref_mac_qos, broker_class=DataCenterQoS)
 
 
 class_ref_mac_diskprofile = []
-@add_command(class_ref_mac_diskprofile)
+@command(class_ref_mac_diskprofile)
 class List(ovlib.verb.List):
     pass
 
 
-@add_command(class_ref_mac_diskprofile)
+@command(class_ref_mac_diskprofile)
 class XmlExport(ovlib.verb.XmlExport):
     pass
 
 
-@add_command(class_ref_mac_diskprofile)
+@command(class_ref_mac_diskprofile)
 class Delete(ovlib.verb.Delete):
     pass
 
 
-diskprofile = ObjectContext(api_attribute="diskprofiles", object_name='diskprofile', commands=class_ref_mac_diskprofile, broker_class=StorageDomainDiskProfile)
+diskprofile = Dispatcher(api_attribute="diskprofiles", object_name='diskprofile', commands=class_ref_mac_diskprofile, broker_class=StorageDomainDiskProfile)
 
 class_ref_cdroms = []
 
-@add_command(class_ref_cdroms)
+@command(class_ref_cdroms)
 class List(ovlib.verb.List):
     pass
 
 
-@add_command(class_ref_cdroms)
+@command(class_ref_cdroms)
 class XmlExport(ovlib.verb.XmlExport):
     pass
 
 
-cdroms = ObjectContext(api_attribute="cdroms", object_name=None, commands=class_ref_cdroms, broker_class=VMCdRoms)
+cdroms = Dispatcher(api_attribute="cdroms", object_name=None, commands=class_ref_cdroms, broker_class=VMCdRoms)

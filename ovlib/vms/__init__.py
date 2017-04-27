@@ -1,72 +1,98 @@
 import ovlib.verb
-import create
-import delete
-import autoinstall
 import urllib
 import tempfile
 import os
-from ovlib import ObjectContext, add_command
 
-from ovirtsdk4.types import Vm, GraphicsType, VmStatus
-from ovirtsdk4.writers import VmWriter, GraphicsConsoleWriter
+from ovlib import Dispatcher, ObjectWrapper, command, dispatcher, wrapper
 
-Vm.writer = VmWriter
-
-class_ref = []
+from ovirtsdk4.types import Vm, GraphicsType, VmStatus, GraphicsConsole, Nic, OperatingSystem
+from ovirtsdk4.services import VmsService, VmNicsService, VmNicService, OperatingSystemService
+from ovirtsdk4.writers import VmWriter, GraphicsConsoleWriter, NicWriter, OperatingSystemWriter
 
 
-@add_command(class_ref)
+@wrapper(writerClass=VmWriter, type_class=Vm, service_class=VmsService)
+class VmWrapper(ObjectWrapper):
+
+    def get_graphic_console(self, console):
+        graphics_consoles_service = self.service.graphics_consoles_service()
+        graphics_console = graphics_consoles_service.list()[console]
+        return graphics_consoles_service.console_service(graphics_console.id)
+
+    def get_vv_file(self, console, vvfile_path=None):
+        graphics_console_service = self.get_graphic_console(console)
+        if vvfile_path is None:
+            (vvfile, vvfile_path) = tempfile.mkstemp(suffix='.vv')
+            vvfile = os.fdopen(vvfile, 'w')
+        else:
+            vvfile = open(vvfile_path, 'w')
+        vvfile.write(graphics_console_service.remote_viewer_connection_file())
+        vvfile.close()
+        return vvfile_path
+
+
+@wrapper(service_class=VmNicsService)
+class VmNicsWrapper(ObjectWrapper):
+    pass
+
+
+@wrapper(service_class=VmNicService, type_class=Nic, writerClass=NicWriter)
+class VmNicWrapper(ObjectWrapper):
+    pass
+
+
+@wrapper(service_class=OperatingSystemService, type_class=OperatingSystem, writerClass=OperatingSystemWriter)
+class OperatingSystemWrapper(ObjectWrapper):
+    pass
+
+
+@dispatcher(object_name="vm", service_root="vms", wrapper=VmWrapper)
+class VmDispatcher(Dispatcher):
+    pass
+
+
+@command(VmDispatcher)
 class Statistics(ovlib.verb.Statistics):
     pass
 
 
-@add_command(class_ref)
+@command(VmDispatcher)
 class List(ovlib.verb.List):
     pass
 
 
-@add_command(class_ref)
+@command(VmDispatcher)
 class XmlExport(ovlib.verb.XmlExport):
     pass
 
 
-@add_command(class_ref)
+@command(VmDispatcher, verb='start')
 class Start(ovlib.verb.Verb):
-    verb = "start"
 
     def fill_parser(self, parser):
         parser.add_option("-c", "--console", dest="console", help="Launch a console", default=False, action="store_true")
         parser.add_option("-C", "--console_device", dest="console_device", help="Console number", default=0, type=int)
 
-    def execute(self, *args, **kwargs):
-        self.service.start()
-        if kwargs['console']:
+    def execute(self, console=False, console_device=0):
+        self.object.start()
+        if console:
+            return self.object.get_vv_file(console_device)
             self.wait_for(VmStatus.POWERING_UP)
-            graphics_consoles_service = self.service.graphics_consoles_service()
-            graphics_console = graphics_consoles_service.list()[kwargs['console_device']]
-            console_service = graphics_consoles_service.console_service(graphics_console.id)
-            (vvfile, vvfile_path) = tempfile.mkstemp(suffix='.vv')
-            with os.fdopen(vvfile, 'w') as vvfile:
-                vvfile.write(console_service.remote_viewer_connection_file())
-            return vvfile_path
         else:
             return None
 
 
-@add_command(class_ref)
+@command(VmDispatcher, verb='stop')
 class Stop(ovlib.verb.Verb):
-    verb = "stop"
 
     def execute(self, *args, **kwargs):
-        return self.service.stop()
+        return self.object.stop()
 
 
-@add_command(class_ref)
+@command(VmDispatcher, verb='ticket')
 class Ticket(ovlib.verb.Verb):
-    verb = "ticket"
 
     def execute(self, *args, **kwargs):
-        self.wait_for(VmStatus.UP)
+        self.object.wait_for(VmStatus.UP)
         consoles_service = self.service.graphics_consoles_service()
         consoles = consoles_service.list(current=True)
         console = next(
@@ -93,27 +119,22 @@ class Ticket(ovlib.verb.Verb):
 
         return url
 
-@add_command(class_ref)
+
+@command(VmDispatcher, verb='console')
 class Console(ovlib.verb.Verb):
-    verb = "console"
 
     def fill_parser(self, parser):
-        parser.add_option("-c", "--c", dest="console", help="Console number", default=1, type=int)
+        parser.add_option("-c", "--c", dest="console", help="Console number", default=0, type=int)
 
-    def execute(self, *args, **kwargs):
-        print self.type.status
-        graphics_consoles_service = self.service.graphics_consoles_service()
-        graphics_console = graphics_consoles_service.list()[kwargs['console'] - 1]
-        console_service = graphics_consoles_service.console_service(graphics_console.id)
-        (vvfile, vvfile_path) = tempfile.mkstemp(suffix='.vv')
-        vvfile = os.fdopen(vvfile, 'w')
-        vvfile.write(console_service.remote_viewer_connection_file())
-        vvfile.close()
-        return vvfile_path
+    def execute(self, console=0):
+        return self.object.get_vv_file(console)
 
 
-class_ref.append(create.Create)
-class_ref.append(delete.Delete)
-class_ref.append(autoinstall.Autoinstall)
+@wrapper(writerClass=GraphicsConsoleWriter, type_class=GraphicsConsole)
+class GraphicsConsoleWrapper(ObjectWrapper):
+    pass
 
-content = ObjectContext(object_name="vm", commands=class_ref, service_root="vms")
+
+import autoinstall
+import create
+import delete

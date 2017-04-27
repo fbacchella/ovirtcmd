@@ -3,8 +3,11 @@ import ConfigParser
 import ovlib
 import types
 
+from urlparse import urljoin
+
 # The api settings that store boolean values
 booleans = frozenset(['debug', 'insecure', 'kerberos'])
+
 
 class ConfigurationError(Exception):
     def __init__(self, value):
@@ -13,6 +16,7 @@ class ConfigurationError(Exception):
 
     def __str__(self):
         return repr(self.value)
+
 
 class ObjectExecutor(object):
 
@@ -37,17 +41,17 @@ class ObjectExecutor(object):
         def executor(*args, **kwargs):
             cmd = verb_class(self.context.api, self.broker)
             (cmd, executed) = self.object_ctxt.execute_phrase(cmd, object_options=self.object_options, verb_options=kwargs, verb_args=args)
-            if type(executed) in ovlib.objects_by_class:
+            if type(executed) in ovlib.dispatchers_by_class:
                 return ObjectExecutor(self.context,
-                                      ovlib.objects_by_class[type(executed)],
+                                      ovlib.dispatchers_by_class[type(executed)],
                                       None,
                                       executed)
             elif isinstance(executed, types.GeneratorType):
                 def iterate():
                     for i in executed:
-                        if type(i) in ovlib.objects_by_class:
+                        if type(i) in ovlib.dispatchers_by_class:
                             yield ObjectExecutor(self.context,
-                                                 ovlib.objects_by_class[type(i)],
+                                                 ovlib.dispatchers_by_class[type(i)],
                                                  None,
                                                  i)
                         else:
@@ -73,8 +77,8 @@ class ObjectExecutor(object):
         if found is None:
             return None
         else:
-            if type(found) in ovlib.objects_by_class:
-                return ObjectExecutor(self.context, ovlib.objects_by_class[type(found)], broker=found)
+            if type(found) in ovlib.dispatchers_by_class:
+                return ObjectExecutor(self.context, ovlib.dispatchers_by_class[type(found)], broker=found)
             else:
                 raise ovlib.OVLibError("unsupported ressource: %s" % found.__class__)
 
@@ -117,7 +121,7 @@ class Context(object):
                 if attr_name in booleans:
                     self.api_connect_settings[attr_name] = config.getboolean('api', attr_name)
 
-        for (object_name, object_context) in ovlib.objects.items():
+        for (object_name, object_context) in ovlib.dispatchers.items():
             setattr(self, object_name, self._do_getter(object_context))
 
         if self.api_connect_settings['url'] == None:
@@ -141,4 +145,13 @@ class Context(object):
             except ovlib.OVLibErrorNotFound:
                 return None
         return getter
+
+    def resolve_service_href(self, href):
+        absolute_href = urljoin(self.api.url, href)
+        # the second replace is to remove the first / in the path
+        service_path = absolute_href.replace(self.api.url, "").replace("/", "", 1)
+        new_service = self.api.service(service_path)
+
+        return new_service
+
 

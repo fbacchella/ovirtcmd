@@ -1,5 +1,4 @@
 import ovlib.verb
-from ovirtsdk.xml import params
 import ipaddress
 
 class Bond(ovlib.verb.Verb):

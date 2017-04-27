@@ -1,8 +1,10 @@
 import time
 
-import ovlib.verb
-from ovlib import parse_size
 from ovirtsdk4 import types
+
+from ovlib.vms import VmDispatcher
+from ovlib import command, parse_size, is_id
+from ovlib.verb import Verb
 
 os_settings = {
     'rhel_7x64': {
@@ -16,8 +18,8 @@ os_settings = {
     }
 }
 
-class Create(ovlib.verb.Verb):
-    verb = "create"
+@command(VmDispatcher, verb='create')
+class Create(Verb):
 
     def uses_template(self):
         return True
@@ -122,7 +124,7 @@ class Create(ovlib.verb.Verb):
                 # first disk is the boot and system disk
                 'bootable': True if len(disks) == 0 else False,
             }
-            if ovlib.is_id(disk_information):
+            if is_id(disk_information):
                 disk_args = { 'id': disk_information, 'active': True}
 
             if isinstance(disk_information, (basestring, list, tuple)):

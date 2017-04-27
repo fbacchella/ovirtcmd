@@ -1,7 +1,6 @@
 import time
 
 import ovlib.verb
-from ovirtsdk.xml import params
 
 class Create(ovlib.verb.Create):
 

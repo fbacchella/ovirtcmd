@@ -1,22 +1,22 @@
 import ovlib.verb
-from ovlib import ObjectContext, add_command
+from ovlib import Dispatcher, command
 from ovirtsdk.xml import params
 from ovirtsdk.infrastructure.brokers import StorageDomain
 from ovirtsdk.infrastructure.common import Base
 
 class_ref = []
 
-@add_command(class_ref)
+@command(class_ref)
 class List(ovlib.verb.List):
     pass
 
 
-@add_command(class_ref)
+@command(class_ref)
 class XmlExport(ovlib.verb.XmlExport):
     pass
 
 
-@add_command(class_ref)
+@command(class_ref)
 class Delete(ovlib.verb.Delete):
 
     def fill_parser(self, parser):
@@ -32,7 +32,7 @@ class Delete(ovlib.verb.Delete):
         self.broker.delete(delete_info)
 
 
-@add_command(class_ref)
+@command(class_ref)
 class Discover(ovlib.verb.Verb):
     verb = "discover"
 
@@ -85,7 +85,7 @@ def extract_storage_infos(host, source):
 
     return storage
 
-@add_command(class_ref)
+@command(class_ref)
 class Import(ovlib.verb.Verb):
     verb = "import"
 
@@ -132,7 +132,7 @@ class Import(ovlib.verb.Verb):
     def to_str(self, value):
         return self._export(value.storage_domains)
 
-@add_command(class_ref)
+@command(class_ref)
 class Create(ovlib.verb.Create):
     def fill_parser(self, parser):
         parser.add_option("-n", "--name", dest="name")
@@ -169,7 +169,7 @@ class Create(ovlib.verb.Create):
                                          storage=new_storage)
         return self.contenaire.add(sd_params)
 
-@add_command(class_ref)
+@command(class_ref)
 class AddProfile(ovlib.verb.Verb):
     verb = "addprofile"
 
@@ -188,4 +188,4 @@ class AddProfile(ovlib.verb.Verb):
             kwargs['name'] = qos.name
         return self.broker.diskprofiles.add(params.DiskProfile(**kwargs), )
 
-oc = ObjectContext(api_attribute="storagedomains", object_name="storage", commands=class_ref, broker_class=StorageDomain)
+oc = Dispatcher(api_attribute="storagedomains", object_name="storage", commands=class_ref, broker_class=StorageDomain)

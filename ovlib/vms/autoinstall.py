@@ -1,11 +1,12 @@
-import time
-
-import ovlib.verb
 from ovirtsdk4 import types
 
-class Autoinstall(ovlib.verb.Verb):
+from ovlib.vms import VmDispatcher
+from ovlib import command
+from ovlib.verb import Verb
+
+@command(VmDispatcher, verb='autoinstall')
+class Autoinstall(Verb):
     """Automaticaly boot on the specified kernel, using a custom command line, it expected to execute an autoinstallation command"""
-    verb = "autoinstall"
 
     def fill_parser(self, parser):
         parser.add_option("-k", "--kernel", dest="kernel", help="Kernel path", default=None)

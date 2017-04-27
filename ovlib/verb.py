@@ -18,17 +18,17 @@ except:
 
 class Verb(object):
     """A abstract class, used to implements actual verb"""
-    def __init__(self, object):
-        self.api = object.api
-        self.object = object
-        self.type = None
+    def __init__(self, dispatcher):
+        self.api = dispatcher.api
+        self.dispatcher = object
+        self.object = None
 
     def fill_parser(self, parser):
         pass
 
     def validate(self):
         """try to validate the object needed by the commande, should be overriden if the no particular object is expected"""
-        if self.type is None or self.service is None:
+        if self.object is None:
             return False
         else:
             return True
@@ -45,22 +45,6 @@ class Verb(object):
 
         (verb_options, verb_args) = parser.parse_args(args)
         return (verb_options, verb_args)
-
-    def wait_for(self, status, wait=1):
-        while True:
-            self.type = self.api.follow_link(self.type)
-            if self.type.status == status:
-                return
-            else:
-                time.sleep(wait)
-
-    def wait_finished(self, status, wait=1):
-        while True:
-            self.type = self.contenaire.get(id=self.type.id)
-            if self.type.status == status:
-                return
-            else:
-                time.sleep(wait)
 
     def execute(self, *args, **kwargs):
         raise NameError('Not implemented')
@@ -103,22 +87,6 @@ class Verb(object):
         """A default status command to run on success"""
         return 0;
 
-    def _export(self, writerClass, type):
-        buf = None
-        writer = None
-        try:
-            buf = io.BytesIO()
-            writer = xml.XmlWriter(buf, indent=True)
-            writerClass.write_one(type, writer)
-            writer.flush()
-            return buf.getvalue()
-
-        finally:
-            if writer is not None:
-                writer.close()
-            if buf is not None:
-                buf.close()
-
 
 class List(Verb):
     verb = "list"
@@ -135,7 +103,7 @@ class List(Verb):
     def execute(self, *args, **kwargs):
         self.template = kwargs.pop('template', self.template)
 
-        for i in self.service.list(**kwargs):
+        for i in self.object.list(**kwargs):
             yield i
 
     def get_service_path(self, *args, **kwargs):
@@ -148,18 +116,19 @@ class List(Verb):
             values[i[1]] = getattr(status, i[1])
         return  "%s\n" %(formatter.format(self.template, **values))
 
+
 class XmlExport(Verb):
     verb = "export"
 
     def execute(self, *args, **kwargs):
-        return self._export(self.type.writer, self.type)
+        return self.object.export(args)
 
 
 class Statistics(Verb):
     verb = "statistics"
 
     def execute(self, *args, **kwargs):
-        for s in self.service.statistics_service().list():
+        for s in self.object.statistics_service().list():
             yield s
 
     def to_str(self, stat):
@@ -176,7 +145,7 @@ class Delete(Verb):
     verb = "delete"
 
     def execute(self, *args, **kwargs):
-        return self.service.delete()
+        return self.object.delete()
 
 
 class DeleteForce(Delete):
@@ -190,7 +159,7 @@ class DeleteForce(Delete):
             # force a True/False content
             force=kwargs['force'] is True,
         )
-        return self.broker.delete(action_params)
+        return self.object.delete(action_params)
 
 class Update(Verb):
     verb = "update"
@@ -201,4 +170,4 @@ class Update(Verb):
         return super(Update, self).validate()
 
     def execute(self, *args, **kwargs):
-        return self.broker.update()
+        return self.object.update()
