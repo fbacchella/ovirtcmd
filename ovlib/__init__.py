@@ -10,7 +10,7 @@ from urlparse import urljoin
 import ovirtsdk4.writers
 import ovirtsdk4.types
 
-from ovirtsdk4 import xml
+from ovirtsdk4 import xml, List
 
 class OVLibError(Exception):
     def __init__(self, error_message, value={}, exception=None):
@@ -185,8 +185,11 @@ class Dispatcher(object):
         via REST, so in case using search for nested entity we return all entities
         and filter them by specified attributes.
         """
+        if 'id' in kwargs:
+            service = self.api.service("%s/%s" % (self.service_root, kwargs['id']))
+            return self.wrapper(self._api, None, service)
         # Check if 'list' method support search(look for search parameter):
-        if 'search' in inspect.getargspec(self.service.list)[0]:
+        elif 'search' in inspect.getargspec(self.service.list)[0]:
             res = self.service.list(
                 search=' and '.join('{}={}'.format(k, v) for k, v in kwargs.items())
             )
@@ -196,14 +199,17 @@ class Dispatcher(object):
                     k for k, v in kwargs.items() if getattr(e, k, None) == v
                 ]) == len(kwargs)
             ]
-
-        res = res or [None]
-        type = res[0]
-        if type is not None:
-            service = self.api.service("%s/%s" % (self.service_root, type.id))
-            return self.wrapper(self._api, type, service)
+        if len(res) == 1:
+            search_type = res[0]
+            if search_type is not None:
+                service = self.api.service("%s/%s" % (self.service_root, search_type.id))
+                return self.wrapper(self._api, search_type, service)
+            else:
+                return self.wrapper(self._api, None, self.service)
+        elif len(res) == 0:
+            raise OVLibError("no object found matching the search")
         else:
-            return self.wrapper(self._api, None, self.service)
+            raise OVLibError("Too many objects found matching the search")
 
     @property
     def api(self):
@@ -276,7 +282,7 @@ class ObjectWrapper(object):
             buf = ""
             for i in self.list():
                 next_wrapper = instanciate_service(self.api, i.href)
-                buf += next_wrapper.export(path)
+                buf += "%s\n" % next_wrapper.export(path)
             return buf
         elif len(path) == 0:
             try:
@@ -295,7 +301,7 @@ class ObjectWrapper(object):
             if hasattr(self.type, next):
                 next_type = getattr(self.type, next)
                 if not hasattr(next_type, 'href'):
-                    return next_type
+                    return str(next_type)
                 else:
                     next_href = next_type.href
                     if next_href is not None:
@@ -317,8 +323,19 @@ class ObjectWrapper(object):
                         if type_wrappers.has_key(next_type_class):
                             next_wrapper = type_wrappers[next_type_class](api=self.api, type=next_type)
                             return next_wrapper.export(path[1:])
+                        elif isinstance(next_type, List) and len(next_type) > 0:
+                            buf = ""
+                            for i in next_type:
+                                i_class = type(i)
+                                if type_wrappers.has_key(i_class):
+                                    next_wrapper = type_wrappers[i_class](api=self.api, type=i)
+                                    buf += "%s\n" % next_wrapper.export(path[1:])
+                            return buf
                         else:
                             print "no way to export %s" % next_type
+                            return ""
+            else:
+                return ""
 
     def wait_for(self, status, wait=1):
         while True:

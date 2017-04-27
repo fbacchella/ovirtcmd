@@ -90,11 +90,11 @@ class Context(object):
         'url': None,
         'username': None,
         'password': None,
-        'debug': True,
         'ca_file': '/etc/pki/ovirt-engine/ca.pem',
         'insecure': False,
         'kerberos': False,
-        'log': logging.getLogger(),
+        #'debug': True,
+        #'log': logging.getLogger(),
     }
 
     connected = False

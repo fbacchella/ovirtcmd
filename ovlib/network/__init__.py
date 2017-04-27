@@ -7,35 +7,35 @@ from ovirtsdk4.services import NetworkService
 from ovirtsdk4.writers import NetworkWriter
 
 @wrapper(writerClass=NetworkWriter, type_class=Network, service_class=NetworkService)
-class NicWrapper(ObjectWrapper):
+class NetworkWrapper(ObjectWrapper):
     pass
 
-@dispatcher(object_name="network", service_root="nics", wrapper=NicWrapper)
-class NicDispatcher(Dispatcher):
+@dispatcher(object_name="network", service_root="networks", wrapper=NetworkWrapper)
+class NetworkDispatcher(Dispatcher):
     pass
 
 
-@command(NicDispatcher)
+@command(NetworkDispatcher)
 class List(ovlib.verb.List):
     pass
 
 
-@command(NicDispatcher)
+@command(NetworkDispatcher)
 class XmlExport(ovlib.verb.XmlExport):
     pass
 
 
-@command(NicDispatcher)
+@command(NetworkDispatcher)
 class Delete(ovlib.verb.Delete):
     pass
 
 
-@command(NicDispatcher)
+@command(NetworkDispatcher)
 class Update(ovlib.verb.Update):
     param_name = 'Network'
 
 
-@command(NicDispatcher)
+@command(NetworkDispatcher)
 class Create(ovlib.verb.Create):
 
     def fill_parser(self, parser):
@@ -68,7 +68,7 @@ class Create(ovlib.verb.Create):
             cluster.networks.add(params.Network(id=new_network.id, required=required))
 
 
-@command(NicDispatcher, verb='assign')
+@command(NetworkDispatcher, verb='assign')
 class Assign(ovlib.verb.Verb):
 
     def fill_parser(self, parser):
