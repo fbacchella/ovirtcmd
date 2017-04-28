@@ -3,14 +3,18 @@ import urllib
 import tempfile
 import os
 
-from ovlib import Dispatcher, ObjectWrapper, command, dispatcher, wrapper
+from ovlib import Dispatcher, ObjectWrapper, ListObjectWrapper, command, dispatcher, wrapper
 
-from ovirtsdk4.types import Vm, GraphicsType, VmStatus, GraphicsConsole, Nic, OperatingSystem
-from ovirtsdk4.services import VmsService, VmNicsService, VmNicService, OperatingSystemService
+from ovirtsdk4.types import Vm, VmStatus, GraphicsConsole, Nic, OperatingSystem
+from ovirtsdk4.services import VmsService, VmService, VmNicsService, VmNicService, OperatingSystemService
 from ovirtsdk4.writers import VmWriter, GraphicsConsoleWriter, NicWriter, OperatingSystemWriter
 
 
-@wrapper(writer_class=VmWriter, type_class=Vm, service_class=VmsService, other_attributes=['os'])
+@wrapper(service_class=VmsService, service_root="vms")
+class VmsWrapper(ListObjectWrapper):
+    pass
+
+@wrapper(writer_class=VmWriter, type_class=Vm, service_class=VmService, other_attributes=['os'])
 class VmWrapper(ObjectWrapper):
 
     def get_graphic_console(self, console):
@@ -45,7 +49,7 @@ class OperatingSystemWrapper(ObjectWrapper):
     pass
 
 
-@dispatcher(object_name="vm", service_root="vms", wrapper=VmWrapper)
+@dispatcher(object_name="vm", wrapper=VmWrapper, list_wrapper=VmsWrapper)
 class VmDispatcher(Dispatcher):
     pass
 

@@ -1,5 +1,5 @@
 import ovlib.verb
-from ovlib import Dispatcher, ObjectWrapper, command, dispatcher, wrapper
+from ovlib import Dispatcher, ObjectWrapper, ListObjectWrapper, command, dispatcher, wrapper
 
 from ovirtsdk4.types import DataCenter, Qos
 from ovirtsdk4.writers import DataCenterWriter, QosWriter
@@ -10,7 +10,7 @@ class QosWrapper(ObjectWrapper):
     pass
 
 @wrapper(service_class=QossService)
-class QossWrapper(ObjectWrapper):
+class QossWrapper(ListObjectWrapper):
     pass
 
 @wrapper(writer_class=DataCenterWriter, type_class=DataCenter, service_class=DataCenterService)
@@ -18,11 +18,11 @@ class DataCenterWrapper(ObjectWrapper):
     pass
 
 
-@wrapper(service_class=DataCentersService)
-class DataCentersWrapper(ObjectWrapper):
+@wrapper(service_class=DataCentersService, service_root="datacenters")
+class DataCentersWrapper(ListObjectWrapper):
     pass
 
-@dispatcher(object_name="datacenter", service_root="datacenters", wrapper=DataCenterWrapper)
+@dispatcher(object_name="datacenter", wrapper=DataCenterWrapper, list_wrapper=DataCentersWrapper)
 class DataCenterDispatcher(Dispatcher):
     pass
 

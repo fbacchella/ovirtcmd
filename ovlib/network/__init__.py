@@ -1,20 +1,21 @@
 import ovlib.verb
 
-from ovlib import Dispatcher, ObjectWrapper, command, dispatcher, wrapper
+from ovlib import Dispatcher, ObjectWrapper, ListObjectWrapper, command, dispatcher, wrapper
 
 from ovirtsdk4.types import Network
 from ovirtsdk4.services import NetworkService, NetworksService
 from ovirtsdk4.writers import NetworkWriter
 
-@wrapper(service_class=NetworksService)
-class NetworksWrapper(ObjectWrapper):
+
+@wrapper(service_class=NetworksService, service_root="networks")
+class NetworksWrapper(ListObjectWrapper):
     pass
 
 @wrapper(writer_class=NetworkWriter, type_class=Network, service_class=NetworkService)
 class NetworkWrapper(ObjectWrapper):
     pass
 
-@dispatcher(object_name="network", service_root="networks", wrapper=NetworkWrapper)
+@dispatcher(object_name="network", wrapper=NetworkWrapper, list_wrapper=NetworksWrapper)
 class NetworkDispatcher(Dispatcher):
     pass
 

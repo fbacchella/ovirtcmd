@@ -1,45 +1,84 @@
 import ovlib.verb
-from ovlib import Dispatcher, command
-from ovirtsdk.infrastructure.brokers import Disk
-from ovirtsdk.xml import params
-from ovlib import parse_size
 
-class_ref = []
+from ovlib import Dispatcher, ListObjectWrapper, ObjectWrapper, command, dispatcher, wrapper, parse_size
 
+from ovirtsdk4.types import Disk, StorageDomain
+from ovirtsdk4.services import DiskService, DisksService, StorageDomainService, StorageDomainsService
+from ovirtsdk4.writers import DiskWriter, StorageDomainWriter
 
-@command(class_ref)
-class List(ovlib.verb.Statistics):
+@wrapper(writer_class=StorageDomainWriter, type_class=StorageDomain, service_class=StorageDomainService)
+class StorageDomainWrapper(ObjectWrapper):
     pass
 
 
-@command(class_ref)
+@wrapper(service_class=StorageDomainsService, service_root="storagedomains")
+class StoragesDomainWrapper(ListObjectWrapper):
+    pass
+
+
+@dispatcher(object_name="storagedomain", wrapper=StorageDomainWrapper, list_wrapper=StoragesDomainWrapper)
+class StorageDomainDispatcher(Dispatcher):
+    pass
+
+
+@command(StorageDomainDispatcher)
+class StorageDomainList(ovlib.verb.List):
+    pass
+
+
+@wrapper(writer_class=DiskWriter, type_class=Disk, service_class=DiskService)
+class DiskWrapper(ObjectWrapper):
+    pass
+
+
+@wrapper(service_class=DisksService, service_root="disks")
+class DisksWrapper(ListObjectWrapper):
+    pass
+
+
+@dispatcher(object_name="disk", wrapper=DiskWrapper, list_wrapper=DisksWrapper)
+class DiskDispatcher(Dispatcher):
+    pass
+
+@command(DiskDispatcher)
+class DiskStatistics(ovlib.verb.Statistics):
+    pass
+
+
+@command(DiskDispatcher)
 class List(ovlib.verb.List):
     pass
 
 
-@command(class_ref)
+@command(DiskDispatcher)
 class XmlExport(ovlib.verb.XmlExport):
     pass
 
 
-@command(class_ref)
+@command(DiskDispatcher)
 class Delete(ovlib.verb.Delete):
     pass
 
-@command(class_ref)
+
+@command(DiskDispatcher)
 class Create(ovlib.verb.Create):
 
     def uses_template(self):
         return True
 
-    def execute(self, *args, **kwargs):
+    def fill_parser(self, parser):
+        parser.add_option("-d", "--storage_domain", dest="storage_domain", help="Storage Domain name", default=None)
+        parser.add_option("-s", "--size", dest="disk_size", help="size", default=None)
+        parser.add_option("-l", "--lun_storage", dest="lun_storage", help="LUN device", default=None)
+
+    def execute(self, **kwargs):
         disk_size = kwargs.pop('disk_size', None)
         if disk_size is not None:
             kwargs['size'] = parse_size(disk_size)
 
         storage_domain=kwargs.pop('storage_domain', None)
         if storage_domain is not None:
-            storage_domain = self.get(self.api.storagedomains, storage_domain)
+            storage_domain = StoragesDomainWrapper(self.api).get(name=storage_domain)
             kwargs['storage_domains'] = params.StorageDomains(
                 storage_domain=[params.StorageDomain(id=storage_domain.id)])
 
@@ -59,4 +98,3 @@ class Create(ovlib.verb.Create):
         return self.contenaire.add(params.Disk(**kwargs))
 
 
-oc = Dispatcher(api_attribute="disks", object_name="disk", commands=class_ref, broker_class=Disk)

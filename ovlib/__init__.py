@@ -81,14 +81,14 @@ all_libs = (
     'vms',
     'datacenters',
 #    'templates',
-#    'disks',
-    'capabilities',
+    'disks',
+#    'capabilities',
     'hosts',
-    'clusters',
+#    'clusters',
 #    'storages',
-    'network',
+#    'network',
 #    'permissions',
-    'generics',
+#    'generics',
 )
 
 
@@ -100,10 +100,10 @@ def command(dispatcher_class, verb=None):
         return command_class
     return decorator
 
-def dispatcher(object_name, service_root, wrapper):
+def dispatcher(object_name, wrapper, list_wrapper):
     def decorator(dispatcher_class):
         dispatcher_class.object_name = object_name
-        dispatcher_class.service_root = service_root
+        dispatcher_class.list_wrapper = list_wrapper
         dispatcher_class.wrapper = wrapper
         dispatchers[object_name] = dispatcher_class()
         return dispatcher_class
@@ -163,7 +163,7 @@ class Dispatcher(object):
             except ovirtsdk4.Error as e:
                 raise OVLibError(e.message)
         else:
-            cmd.object = ObjectWrapper.make_wrapper(self._api, None, self.service)
+            cmd.object = self._lister
 
         if cmd.validate():
             if cmd.uses_template():
@@ -178,36 +178,7 @@ class Dispatcher(object):
             raise OVLibError("validation failed")
 
     def get(self, **kwargs):
-        """
-        Search for the entity by attributes. Nested entities don't support search
-        via REST, so in case using search for nested entity we return all entities
-        and filter them by specified attributes.
-        """
-        if 'id' in kwargs:
-            service = self.api.service("%s/%s" % (self.service_root, kwargs['id']))
-            return self.wrapper(self._api, None, service)
-        # Check if 'list' method support search(look for search parameter):
-        elif 'search' in inspect.getargspec(self.service.list)[0]:
-            res = self.service.list(
-                search=' and '.join('{}={}'.format(k, v) for k, v in kwargs.items())
-            )
-        else:
-            res = [
-                e for e in self.service.list() if len([
-                    k for k, v in kwargs.items() if getattr(e, k, None) == v
-                ]) == len(kwargs)
-            ]
-        if len(res) == 1:
-            search_type = res[0]
-            if search_type is not None:
-                service = self.api.service("%s/%s" % (self.service_root, search_type.id))
-                return self.wrapper(self._api, search_type, service)
-            else:
-                return self.wrapper(self._api, None, self.service)
-        elif len(res) == 0:
-            raise OVLibError("no object found matching the search")
-        else:
-            raise OVLibError("Too many objects found matching the search")
+        return self._lister.get(**kwargs)
 
     @property
     def api(self):
@@ -216,7 +187,7 @@ class Dispatcher(object):
     @api.setter
     def api(self, api):
         self._api = api
-        self.service = api.service(self.service_root)
+        self._lister = self.__class__.list_wrapper(api)
 
 
 type_wrappers={}
@@ -233,11 +204,15 @@ class AttributeWrapper(object):
             obj.dirty = False
         return getattr(obj.type, self.name)
 
-def wrapper(writer_class=None, type_class=None, service_class=None, other_methods = [], other_attributes = []):
+def wrapper(writer_class=None, type_class=None, service_class=None, other_methods = [], other_attributes = [], service_root=None):
     def decorator(func):
         func.writerClass = writer_class
         func.typeClass = type_class
         func.service_class = service_class
+        for clazz in inspect.getmro(func):
+            if clazz == ListObjectWrapper:
+                func.service_root = service_root
+                break
         func.methods = other_methods + ['delete', 'list', 'start', 'stop', 'statistics_service', 'update']
         for attribute in other_attributes + ['status', 'name']:
             if not hasattr(func, attribute):
@@ -297,7 +272,7 @@ class ObjectWrapper(object):
         else:
             self._is_enumerator = False
         if type is None and not self._is_enumerator:
-            self.type = self.service.get()
+            self.type = service.get()
         else:
             self.type = type
         if service is None:
@@ -366,6 +341,44 @@ class ObjectWrapper(object):
     @property
     def is_enumerator(self):
         return self._is_enumerator
+
+
+class ListObjectWrapper(ObjectWrapper):
+
+    def __init__(self, api):
+        super(ListObjectWrapper, self).__init__(api, service=api.service(self.__class__.service_root))
+
+    def get(self, **kwargs):
+        """
+        Search for the entity by attributes. Nested entities don't support search
+        via REST, so in case using search for nested entity we return all entities
+        and filter them by specified attributes.
+        """
+        if 'id' in kwargs:
+            service = self.api.service("%s/%s" % (self.__class__.service_root, kwargs['id']))
+            return ObjectWrapper.make_wrapper(self.api, service=service)
+        # Check if 'list' method support search(look for search parameter):
+        elif 'search' in inspect.getargspec(self.service.list)[0]:
+            res = self.service.list(
+                search=' and '.join('{}={}'.format(k, v) for k, v in kwargs.items())
+            )
+            print res
+        else:
+            res = [
+                e for e in self.service.list() if len([
+                    k for k, v in kwargs.items() if getattr(e, k, None) == v
+                ]) == len(kwargs)
+            ]
+        if len(res) == 1:
+            search_type = res[0]
+            if search_type is not None:
+                return ObjectWrapper.make_wrapper(api=self.api, type=search_type)
+            else:
+                return OVLibError("Invalid object found matching the search")
+        elif len(res) == 0:
+            raise OVLibError("no object found matching the search")
+        else:
+            raise OVLibError("Too many objects found matching the search")
 
 
 for lib in all_libs:
