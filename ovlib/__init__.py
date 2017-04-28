@@ -5,8 +5,6 @@ import inspect
 import io
 import time
 
-from urlparse import urljoin
-
 import ovirtsdk4.writers
 import ovirtsdk4.types
 
@@ -90,7 +88,7 @@ all_libs = (
 #    'storages',
     'network',
 #    'permissions',
-#    'generics',
+    'generics',
 )
 
 
@@ -235,9 +233,9 @@ class AttributeWrapper(object):
             obj.dirty = False
         return getattr(obj.type, self.name)
 
-def wrapper(writerClass=None, type_class=None, service_class=None, other_methods = [], other_attributes = []):
+def wrapper(writer_class=None, type_class=None, service_class=None, other_methods = [], other_attributes = []):
     def decorator(func):
-        func.writerClass = writerClass
+        func.writerClass = writer_class
         func.typeClass = type_class
         func.service_class = service_class
         func.methods = other_methods + ['delete', 'list', 'start', 'stop', 'statistics_service', 'update']
@@ -248,11 +246,11 @@ def wrapper(writerClass=None, type_class=None, service_class=None, other_methods
             type_wrappers[type_class] = func
         if service_class is not None:
             service_wrappers[service_class] = func
-        if writerClass is not None:
+        if writer_class is not None:
             if type_class is not None:
-                writers[type_class] = writerClass
+                writers[type_class] = writer_class
             if service_class is not None:
-                writers[service_class] = writerClass
+                writers[service_class] = writer_class
         return func
     return decorator
 
@@ -370,5 +368,5 @@ class ObjectWrapper(object):
 
 
 for lib in all_libs:
-    cmd_module = __import__(lib, globals(), locals(), [], -1)
+    __import__(lib, globals(), locals(), [], -1)
 

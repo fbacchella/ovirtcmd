@@ -10,7 +10,7 @@ from ovirtsdk4.services import VmsService, VmNicsService, VmNicService, Operatin
 from ovirtsdk4.writers import VmWriter, GraphicsConsoleWriter, NicWriter, OperatingSystemWriter
 
 
-@wrapper(writerClass=VmWriter, type_class=Vm, service_class=VmsService, other_attributes=['os'])
+@wrapper(writer_class=VmWriter, type_class=Vm, service_class=VmsService, other_attributes=['os'])
 class VmWrapper(ObjectWrapper):
 
     def get_graphic_console(self, console):
@@ -35,12 +35,12 @@ class VmNicsWrapper(ObjectWrapper):
     pass
 
 
-@wrapper(service_class=VmNicService, type_class=Nic, writerClass=NicWriter)
+@wrapper(service_class=VmNicService, type_class=Nic, writer_class=NicWriter)
 class VmNicWrapper(ObjectWrapper):
     pass
 
 
-@wrapper(service_class=OperatingSystemService, type_class=OperatingSystem, writerClass=OperatingSystemWriter)
+@wrapper(service_class=OperatingSystemService, type_class=OperatingSystem, writer_class=OperatingSystemWriter)
 class OperatingSystemWrapper(ObjectWrapper):
     pass
 
@@ -132,7 +132,7 @@ class Console(ovlib.verb.Verb):
         return self.object.get_vv_file(console)
 
 
-@wrapper(writerClass=GraphicsConsoleWriter, type_class=GraphicsConsole)
+@wrapper(writer_class=GraphicsConsoleWriter, type_class=GraphicsConsole)
 class GraphicsConsoleWrapper(ObjectWrapper):
     pass
 

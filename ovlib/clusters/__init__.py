@@ -5,7 +5,7 @@ from ovirtsdk4.types import Cluster
 from ovirtsdk4.writers import ClusterWriter
 from ovirtsdk4.services import ClustersService
 
-@wrapper(writerClass=ClusterWriter, type_class=Cluster, service_class=ClustersService)
+@wrapper(writer_class=ClusterWriter, type_class=Cluster, service_class=ClustersService)
 class ClusterWrapper(ObjectWrapper):
     pass
 

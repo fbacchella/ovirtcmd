@@ -6,7 +6,7 @@ from ovirtsdk4.types import Network
 from ovirtsdk4.services import NetworkService
 from ovirtsdk4.writers import NetworkWriter
 
-@wrapper(writerClass=NetworkWriter, type_class=Network, service_class=NetworkService)
+@wrapper(writer_class=NetworkWriter, type_class=Network, service_class=NetworkService)
 class NetworkWrapper(ObjectWrapper):
     pass
 

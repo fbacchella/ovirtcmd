@@ -2,27 +2,39 @@ class_ref_mac_pool = []
 class_ref_mac_qos = []
 
 import ovlib.verb
-from ovlib import Dispatcher, command
-from ovirtsdk.xml import params
-from ovirtsdk.infrastructure.brokers import MacPool, DataCenterQoS, StorageDomainDiskProfile, VMCdRoms
+from ovlib import Dispatcher, ObjectWrapper, command, dispatcher, wrapper
+from ovirtsdk4.types import MacPool, Qos
+from ovirtsdk4.writers import MacPoolWriter, QosWriter
+from ovirtsdk4.services import MacPoolService, MacPoolsService, QosService, QossService
 
+@wrapper(writer_class=MacPoolWriter, type_class=MacPool, service_class=MacPoolService)
+class MacPoolWrapper(ObjectWrapper):
+    pass
 
-@command(class_ref_mac_pool)
+@wrapper(service_class=MacPoolsService)
+class MacPoolsWrapper(ObjectWrapper):
+    pass
+
+@dispatcher(service_root="macpools", object_name="macpool", wrapper=MacPoolWrapper)
+class MacPoolDispatcher(Dispatcher):
+    pass
+
+@command(MacPoolDispatcher)
 class List(ovlib.verb.List):
     pass
 
 
-@command(class_ref_mac_pool)
+@command(MacPoolDispatcher)
 class XmlExport(ovlib.verb.XmlExport):
     pass
 
 
-@command(class_ref_mac_pool)
+@command(MacPoolDispatcher)
 class Delete(ovlib.verb.Delete):
     pass
 
 
-@command(class_ref_mac_pool)
+@command(MacPoolDispatcher)
 class Create(ovlib.verb.Create):
 
     def fill_parser(self, parser):
@@ -56,55 +68,12 @@ class Create(ovlib.verb.Create):
         return self.contenaire.add(new_mac_pool)
 
 
-macpool = Dispatcher(api_attribute ="macpools", object_name="macpool", commands=class_ref_mac_pool, broker_class=MacPool)
 
-class_ref_mac_qos = []
-@command(class_ref_mac_qos)
-class List(ovlib.verb.List):
+@wrapper(writer_class=QosWriter, type_class=Qos, service_class=QosService)
+class QosWrapper(ObjectWrapper):
     pass
 
-
-@command(class_ref_mac_qos)
-class XmlExport(ovlib.verb.XmlExport):
+@wrapper(service_class=QossService)
+class QossWrapper(ObjectWrapper):
     pass
 
-
-@command(class_ref_mac_qos)
-class Delete(ovlib.verb.Delete):
-    pass
-
-
-qos = Dispatcher(api_attribute="qoss", object_name=None, commands=class_ref_mac_qos, broker_class=DataCenterQoS)
-
-
-class_ref_mac_diskprofile = []
-@command(class_ref_mac_diskprofile)
-class List(ovlib.verb.List):
-    pass
-
-
-@command(class_ref_mac_diskprofile)
-class XmlExport(ovlib.verb.XmlExport):
-    pass
-
-
-@command(class_ref_mac_diskprofile)
-class Delete(ovlib.verb.Delete):
-    pass
-
-
-diskprofile = Dispatcher(api_attribute="diskprofiles", object_name='diskprofile', commands=class_ref_mac_diskprofile, broker_class=StorageDomainDiskProfile)
-
-class_ref_cdroms = []
-
-@command(class_ref_cdroms)
-class List(ovlib.verb.List):
-    pass
-
-
-@command(class_ref_cdroms)
-class XmlExport(ovlib.verb.XmlExport):
-    pass
-
-
-cdroms = Dispatcher(api_attribute="cdroms", object_name=None, commands=class_ref_cdroms, broker_class=VMCdRoms)

@@ -5,17 +5,17 @@ from ovlib import Dispatcher, ObjectWrapper, command, dispatcher, wrapper
 from ovirtsdk4.types import ClusterLevel, Permit, CpuType
 from ovirtsdk4.writers import ClusterLevelWriter, PermitWriter, CpuTypeWriter
 
-@wrapper(writerClass=ClusterLevelWriter, type_class=ClusterLevel)
+@wrapper(writer_class=ClusterLevelWriter, type_class=ClusterLevel)
 class ClusterLevelWrapper(ObjectWrapper):
     pass
 
 
-@wrapper(writerClass=PermitWriter, type_class=Permit)
+@wrapper(writer_class=PermitWriter, type_class=Permit)
 class PermitWrapper(ObjectWrapper):
     pass
 
 
-@wrapper(writerClass=CpuTypeWriter, type_class=CpuType)
+@wrapper(writer_class=CpuTypeWriter, type_class=CpuType)
 class CpuTypeWrapper(ObjectWrapper):
     pass
 

@@ -6,7 +6,7 @@ from ovirtsdk4.services import HostService, HostsService
 from ovlib import wrapper, ObjectWrapper, Dispatcher, dispatcher
 from ovirtsdk4.writers import HostWriter
 
-@wrapper(writerClass=HostWriter, type_class=Host, service_class=HostService, other_methods=['deactivate', 'activate', 'fence'])
+@wrapper(writer_class=HostWriter, type_class=Host, service_class=HostService, other_methods=['deactivate', 'activate', 'fence'])
 class HostWrapper(ObjectWrapper):
     pass
 
