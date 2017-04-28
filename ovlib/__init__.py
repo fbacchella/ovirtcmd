@@ -242,23 +242,33 @@ def wrapper(writerClass=None, type_class=None, service_class=None):
         return func
     return decorator
 
-
-def resolve_service_href(api, href):
-    absolute_href = urljoin(api.url, href)
-    # the second replace is to remove the first / in the path
-    service_path = absolute_href.replace(api.url, "").replace("/", "", 1)
-    new_service = api.service(service_path)
-    return new_service
-
-def instanciate_service(api, href):
-    service = resolve_service_href(api, href)
-    service_class = type(service)
-    if service_wrappers.has_key(service_class):
-        return service_wrappers[service_class](api=api, service=service)
-    else:
-        return None
+native_type = type
 
 class ObjectWrapper(object):
+    """This object wrapper the writer, the type and the service in a single object than can access all of that"""
+
+    @staticmethod
+    def make_wrapper(api, type=None, service=None):
+        """Try to resolve the wrapper, given a type, or a service."""
+        if service is None and type is None:
+            return None
+        if service is None:
+            if type is not None and hasattr(type, 'href'):
+                if type.href is not None:
+                    service = api.resolve_service_href(type.href)
+        wrapper = None
+        if service is not None:
+            service_class = native_type(service)
+            if service_wrappers.has_key(service_class):
+                wrapper = service_wrappers[service_class]
+        elif type is not None:
+            type_class = native_type(type)
+            if type_wrappers.has_key(type_class):
+                wrapper = type_wrappers[type_class]
+        if wrapper is not None:
+            return wrapper(api=api, service=service, type=type)
+         # nothing succeded to find the wrapper, return None
+        return None
 
     def __init__(self, api, type=None, service=None):
         self.api = api
@@ -271,7 +281,7 @@ class ObjectWrapper(object):
             self.type = self.service.get()
         else:
             self.type = type
-        for method in ('delete', 'list', 'start', 'stop', 'statistics_service'):
+        for method in ('delete', 'list', 'start', 'stop', 'statistics_service', 'deactivate', 'activate'):
             if hasattr(self.service, method):
                 setattr(self, method, getattr(self.service, method))
 
@@ -281,7 +291,7 @@ class ObjectWrapper(object):
         if self.is_enumerator:
             buf = ""
             for i in self.list():
-                next_wrapper = instanciate_service(self.api, i.href)
+                next_wrapper = ObjectWrapper.make_wrapper(self.api, i.href)
                 buf += "%s\n" % next_wrapper.export(path)
             return buf
         elif len(path) == 0:
@@ -300,40 +310,22 @@ class ObjectWrapper(object):
             next=path[0]
             if hasattr(self.type, next):
                 next_type = getattr(self.type, next)
-                if not hasattr(next_type, 'href'):
+                next_wrapper = ObjectWrapper.make_wrapper(self.api, type=next_type)
+                if next_wrapper is not None:
+                    return next_wrapper.export(path[1:])
+                elif isinstance(next_type, List) and len(next_type) > 0:
+                    buf = ""
+                    for i in next_type:
+                        i_class = type(i)
+                        if type_wrappers.has_key(i_class):
+                            next_wrapper = type_wrappers[i_class](api=self.api, type=i)
+                            buf += "%s\n" % next_wrapper.export(path[1:])
+                    return buf
+                elif not hasattr(next_type, 'href'):
                     return str(next_type)
                 else:
-                    next_href = next_type.href
-                    if next_href is not None:
-                        print next_type.__dict__
-                        print "%s %s" % (next_type.href, next_type.id)
-                        next_service = resolve_service_href(self.api, next_type.href)
-                        next_service_class = type(next_service)
-                        if service_wrappers.has_key(next_service_class):
-                            next_wrapper = service_wrappers[next_service_class](api=self.api, service=next_service)
-                            return next_wrapper.export(path[1:])
-                        else:
-                            print next_type
-                            print next_type.href
-                            print next_service
-                            print "missing %s" % next_service_class
-                            return ""
-                    else:
-                        next_type_class = type(next_type)
-                        if type_wrappers.has_key(next_type_class):
-                            next_wrapper = type_wrappers[next_type_class](api=self.api, type=next_type)
-                            return next_wrapper.export(path[1:])
-                        elif isinstance(next_type, List) and len(next_type) > 0:
-                            buf = ""
-                            for i in next_type:
-                                i_class = type(i)
-                                if type_wrappers.has_key(i_class):
-                                    next_wrapper = type_wrappers[i_class](api=self.api, type=i)
-                                    buf += "%s\n" % next_wrapper.export(path[1:])
-                            return buf
-                        else:
-                            print "no way to export %s" % next_type
-                            return ""
+                     print "no way to export %s" % next_type
+                     return ""
             else:
                 return ""
 
@@ -348,6 +340,12 @@ class ObjectWrapper(object):
     @property
     def is_enumerator(self):
         return self._is_enumerator
+
+    @property
+    def status(self):
+        return self.type.status
+
+
 
 
 for lib in all_libs:

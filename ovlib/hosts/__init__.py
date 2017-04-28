@@ -47,10 +47,10 @@ class Maintenance(ovlib.verb.Verb):
         parser.add_option("-a", "--async", dest="async", help="Don't wait for maintenance state", default=False, action='store_true')
 
     def execute(self, reason=None, async=False, *args, **kwargs):
-        if self.type.status != HostStatus.MAINTENANCE:
-            self.service.deactivate(reason=reason, async=async)
+        if self.object.status != HostStatus.MAINTENANCE:
+            self.object.deactivate(reason=reason, async=async)
             if not async:
-                self.wait_for(HostStatus.MAINTENANCE)
+                self.object.wait_for(HostStatus.MAINTENANCE)
         return True
 
 
@@ -61,9 +61,9 @@ class Activate(ovlib.verb.Verb):
         parser.add_option("-a", "--async", dest="async", help="Don't wait for maintenance state", default=False, action='store_true')
 
     def execute(self, *args, **kwargs):
-        if self.type.status == HostStatus.MAINTENANCE:
-            self.service.activate()
-            self.wait_for(HostStatus.UP)
+        if self.object.status == HostStatus.MAINTENANCE:
+            self.object.activate()
+            self.object.wait_for(HostStatus.UP)
         return True
 
 

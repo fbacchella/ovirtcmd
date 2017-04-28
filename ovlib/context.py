@@ -132,6 +132,7 @@ class Context(object):
 
     def connect(self):
         self.api = ovirtsdk4.Connection(**self.api_connect_settings)
+        self.follow_link = self.api.follow_link
         self.connected = True
 
     def disconnect(self):
@@ -151,7 +152,9 @@ class Context(object):
         # the second replace is to remove the first / in the path
         service_path = absolute_href.replace(self.api.url, "").replace("/", "", 1)
         new_service = self.api.service(service_path)
-
         return new_service
+
+    def service(self, path):
+        return self.api.service(path)
 
 
