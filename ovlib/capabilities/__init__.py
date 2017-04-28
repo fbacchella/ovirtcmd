@@ -1,11 +1,17 @@
 import ovlib.verb
 
-from ovlib import Dispatcher, ObjectWrapper, command, dispatcher, wrapper
+from ovlib import Dispatcher, ObjectWrapper, ListObjectWrapper, command, dispatcher, wrapper
 
 from ovirtsdk4.types import ClusterLevel, Permit, CpuType
 from ovirtsdk4.writers import ClusterLevelWriter, PermitWriter, CpuTypeWriter
+from ovirtsdk4.services import ClusterLevelsService, ClusterLevelService
 
-@wrapper(writer_class=ClusterLevelWriter, type_class=ClusterLevel)
+@wrapper(service_root="clusterlevels", service_class=ClusterLevelsService)
+class ClusterLevelsWrapper(ListObjectWrapper):
+    pass
+
+
+@wrapper(writer_class=ClusterLevelWriter, type_class=ClusterLevel, service_class=ClusterLevelService)
 class ClusterLevelWrapper(ObjectWrapper):
     pass
 
@@ -20,7 +26,7 @@ class CpuTypeWrapper(ObjectWrapper):
     pass
 
 
-@dispatcher(object_name="capabilities", service_root="clusterlevels", wrapper=ClusterLevelWrapper)
+@dispatcher(object_name="capabilities", wrapper=ClusterLevelWrapper, list_wrapper=ClusterLevelsWrapper)
 class ClusterLevelDispatcher(Dispatcher):
 
     def get(self, name=None, id=None):

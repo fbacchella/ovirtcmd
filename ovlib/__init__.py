@@ -82,11 +82,11 @@ all_libs = (
     'datacenters',
 #    'templates',
     'disks',
-#    'capabilities',
+    'capabilities',
     'hosts',
 #    'clusters',
 #    'storages',
-#    'network',
+    'network',
 #    'permissions',
 #    'generics',
 )
