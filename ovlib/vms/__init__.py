@@ -29,6 +29,13 @@ class VmWrapper(ObjectWrapper):
         vvfile.close()
         return vvfile_path
 
+    @property
+    def os(self):
+        if self.dirty:
+            self.type = self.api.follow_link(self.type)
+            self.dirty = False
+        return self.type.os
+
 
 @wrapper(service_class=VmNicsService)
 class VmNicsWrapper(ObjectWrapper):

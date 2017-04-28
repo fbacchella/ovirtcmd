@@ -1,26 +1,34 @@
 import ovlib.verb
-from ovlib import Dispatcher, command
-from ovirtsdk.xml import params
-from ovirtsdk.infrastructure.brokers import Cluster
+from ovlib import Dispatcher, ObjectWrapper, command, dispatcher, wrapper
 
-class_ref = []
+from ovirtsdk4.types import Cluster
+from ovirtsdk4.writers import ClusterWriter
+from ovirtsdk4.services import ClustersService
 
-@command(class_ref)
+@wrapper(writerClass=ClusterWriter, type_class=Cluster, service_class=ClustersService)
+class ClusterWrapper(ObjectWrapper):
+    pass
+
+@dispatcher(service_root="clusters", object_name="cluster", wrapper=ClusterWrapper)
+class ClusterDispatcher(Dispatcher):
+    pass
+
+@command(ClusterDispatcher)
 class List(ovlib.verb.List):
     pass
 
 
-@command(class_ref)
+@command(ClusterDispatcher)
 class XmlExport(ovlib.verb.XmlExport):
     pass
 
 
-@command(class_ref)
+@command(ClusterDispatcher)
 class Delete(ovlib.verb.Delete):
     pass
 
 
-@command(class_ref)
+@command(ClusterDispatcher)
 class Create(ovlib.verb.Create):
 
     def uses_template(self):
@@ -49,12 +57,12 @@ class Create(ovlib.verb.Create):
         return self.contenaire.add(params.Cluster(**kwargs))
 
 
-@command(class_ref)
+@command(ClusterDispatcher)
 class Delete(ovlib.verb.Delete):
     pass
 
 
-@command(class_ref)
+@command(ClusterDispatcher)
 class AddNetwork(ovlib.verb.Verb):
     verb = "addnet"
 
@@ -66,4 +74,3 @@ class AddNetwork(ovlib.verb.Verb):
         return self.broker.add()
 
 
-oc = Dispatcher(api_attribute="clusters", object_name="cluster", commands=class_ref, broker_class=Cluster)

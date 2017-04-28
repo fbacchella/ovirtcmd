@@ -86,7 +86,7 @@ all_libs = (
 #    'disks',
     'capabilities',
     'hosts',
-#    'clusters',
+    'clusters',
 #    'storages',
     'network',
 #    'permissions',
@@ -165,7 +165,7 @@ class Dispatcher(object):
             except ovirtsdk4.Error as e:
                 raise OVLibError(e.message)
         else:
-            cmd.object = ObjectWrapper(self._api, None, self.service)
+            cmd.object = ObjectWrapper.make_wrapper(self._api, None, self.service)
 
         if cmd.validate():
             if cmd.uses_template():
@@ -230,7 +230,7 @@ def wrapper(writerClass=None, type_class=None, service_class=None, other_methods
         func.writerClass = writerClass
         func.typeClass = type_class
         func.service_class = service_class
-        func.methods = other_methods + ['delete', 'list', 'start', 'stop', 'statistics_service']
+        func.methods = other_methods + ['delete', 'list', 'start', 'stop', 'statistics_service', 'update']
         if type_class is not None:
             type_wrappers[type_class] = func
         if service_class is not None:

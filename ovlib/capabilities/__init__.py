@@ -1,6 +1,4 @@
 import ovlib.verb
-from ovlib import Dispatcher, command
-
 
 from ovlib import Dispatcher, ObjectWrapper, command, dispatcher, wrapper
 

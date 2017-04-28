@@ -2,12 +2,16 @@ import time
 import ovlib.verb
 from ovlib import Dispatcher, command
 from ovirtsdk4.types import Host, GraphicsType, HostStatus
-from ovirtsdk4.services import HostService
+from ovirtsdk4.services import HostService, HostsService
 from ovlib import wrapper, ObjectWrapper, Dispatcher, dispatcher
 from ovirtsdk4.writers import HostWriter
 
 @wrapper(writerClass=HostWriter, type_class=Host, service_class=HostService, other_methods=['deactivate', 'activate', 'fence'])
 class HostWrapper(ObjectWrapper):
+    pass
+
+@wrapper(service_class=HostsService)
+class HostsWrapper(ObjectWrapper):
     pass
 
 @dispatcher(service_root = "hosts", object_name = "host", wrapper=HostWrapper)
