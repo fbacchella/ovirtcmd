@@ -245,6 +245,13 @@ def wrapper(writerClass=None, type_class=None, service_class=None, other_methods
 
 native_type = type
 
+def method_wrapper(object_wrapper, service, method):
+    service_method = getattr(service, method)
+    def check(*args, **kwargs):
+        object_wrapper.dirty = True
+        return service_method(*args, **kwargs)
+    return check
+
 class ObjectWrapper(object):
     """This object wrapper the writer, the type and the service in a single object than can access all of that"""
 
@@ -274,6 +281,7 @@ class ObjectWrapper(object):
     def __init__(self, api, type=None, service=None):
         self.api = api
         self.service = service
+        self.dirty = False
         if hasattr(self.service, "list"):
             self._is_enumerator = True
         else:
@@ -284,7 +292,7 @@ class ObjectWrapper(object):
             self.type = type
         for method in self.methods:
             if hasattr(self.service, method):
-                setattr(self, method, getattr(self.service, method))
+                setattr(self, method, method_wrapper(self, service, method))
 
     def export(self, path):
         buf = None
@@ -333,6 +341,7 @@ class ObjectWrapper(object):
     def wait_for(self, status, wait=1):
         while True:
             self.type = self.api.follow_link(self.type)
+            self.dirty = False
             if self.type.status == status:
                 return
             else:
@@ -344,6 +353,9 @@ class ObjectWrapper(object):
 
     @property
     def status(self):
+        if self.dirty:
+            self.type = self.api.follow_link(self.type)
+            self.dirty = False
         return self.type.status
 
 
