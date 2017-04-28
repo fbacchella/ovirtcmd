@@ -6,7 +6,7 @@ from ovirtsdk4.services import HostService
 from ovlib import wrapper, ObjectWrapper, Dispatcher, dispatcher
 from ovirtsdk4.writers import HostWriter
 
-@wrapper(writerClass=HostWriter, type_class=Host, service_class=HostService)
+@wrapper(writerClass=HostWriter, type_class=Host, service_class=HostService, other_methods=['deactivate', 'activate', 'fence'])
 class HostWrapper(ObjectWrapper):
     pass
 
@@ -113,10 +113,10 @@ class Reboot(ovlib.verb.Verb):
     def execute(self, *args, **kwargs):
         last_boot = get_uptime(self.broker)
 
-        if self.broker.status.state != "maintenance":
-            self.broker.deactivate()
-            self.wait_for("maintenance")
-        self.broker.fence(params.Action(fence_type='restart'))
+        if self.object.status != HostStatus.MAINTENANCE:
+            self.object.deactivate(reason='For reboot', async=False)
+            self.object.wait_for(HostStatus.MAINTENANCE)
+        self.object.fence(params.Action(fence_type='restart'))
         # needs to be activated before checking for up, otherwise it will return maintenance forever
         doactivate=True
         while doactivate:

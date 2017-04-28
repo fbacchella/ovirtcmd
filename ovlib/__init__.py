@@ -225,11 +225,12 @@ type_wrappers={}
 service_wrappers={}
 writers={}
 
-def wrapper(writerClass=None, type_class=None, service_class=None):
+def wrapper(writerClass=None, type_class=None, service_class=None, other_methods = []):
     def decorator(func):
         func.writerClass = writerClass
         func.typeClass = type_class
         func.service_class = service_class
+        func.methods = other_methods + ['delete', 'list', 'start', 'stop', 'statistics_service']
         if type_class is not None:
             type_wrappers[type_class] = func
         if service_class is not None:
@@ -281,7 +282,7 @@ class ObjectWrapper(object):
             self.type = self.service.get()
         else:
             self.type = type
-        for method in ('delete', 'list', 'start', 'stop', 'statistics_service', 'deactivate', 'activate'):
+        for method in self.methods:
             if hasattr(self.service, method):
                 setattr(self, method, getattr(self.service, method))
 
@@ -344,8 +345,6 @@ class ObjectWrapper(object):
     @property
     def status(self):
         return self.type.status
-
-
 
 
 for lib in all_libs:
