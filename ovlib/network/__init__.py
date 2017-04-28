@@ -3,8 +3,12 @@ import ovlib.verb
 from ovlib import Dispatcher, ObjectWrapper, command, dispatcher, wrapper
 
 from ovirtsdk4.types import Network
-from ovirtsdk4.services import NetworkService
+from ovirtsdk4.services import NetworkService, NetworksService
 from ovirtsdk4.writers import NetworkWriter
+
+@wrapper(service_class=NetworksService)
+class NetworksWrapper(ObjectWrapper):
+    pass
 
 @wrapper(writer_class=NetworkWriter, type_class=Network, service_class=NetworkService)
 class NetworkWrapper(ObjectWrapper):
