@@ -225,12 +225,25 @@ type_wrappers={}
 service_wrappers={}
 writers={}
 
-def wrapper(writerClass=None, type_class=None, service_class=None, other_methods = []):
+class AttributeWrapper(object):
+    def __init__(self, name):
+        self.name = name
+
+    def __get__(self, obj, objtype):
+        if obj.dirty:
+            obj.type = obj.api.follow_link(obj.type)
+            obj.dirty = False
+        return getattr(obj.type, self.name)
+
+def wrapper(writerClass=None, type_class=None, service_class=None, other_methods = [], other_attributes = []):
     def decorator(func):
         func.writerClass = writerClass
         func.typeClass = type_class
         func.service_class = service_class
         func.methods = other_methods + ['delete', 'list', 'start', 'stop', 'statistics_service', 'update']
+        for attribute in other_attributes + ['status', 'name']:
+            if not hasattr(func, attribute):
+                setattr(func, attribute, AttributeWrapper(attribute))
         if type_class is not None:
             type_wrappers[type_class] = func
         if service_class is not None:
@@ -251,6 +264,7 @@ def method_wrapper(object_wrapper, service, method):
         object_wrapper.dirty = True
         return service_method(*args, **kwargs)
     return check
+
 
 class ObjectWrapper(object):
     """This object wrapper the writer, the type and the service in a single object than can access all of that"""
@@ -280,9 +294,7 @@ class ObjectWrapper(object):
 
     def __init__(self, api, type=None, service=None):
         self.api = api
-        self.service = service
-        self.dirty = False
-        if hasattr(self.service, "list"):
+        if hasattr(service, "list"):
             self._is_enumerator = True
         else:
             self._is_enumerator = False
@@ -290,9 +302,14 @@ class ObjectWrapper(object):
             self.type = self.service.get()
         else:
             self.type = type
-        for method in self.methods:
+        if service is None:
+            self.service = api.resolve_service_href(type.href)
+        else:
+            self.service = service
+        self.dirty = False
+        for method in self.__class__.methods:
             if hasattr(self.service, method):
-                setattr(self, method, method_wrapper(self, service, method))
+                setattr(self, method, method_wrapper(self, self.service, method))
 
     def export(self, path):
         buf = None
@@ -342,7 +359,7 @@ class ObjectWrapper(object):
         while True:
             self.type = self.api.follow_link(self.type)
             self.dirty = False
-            if self.type.status == status:
+            if self.status == status:
                 return
             else:
                 time.sleep(wait)
@@ -350,13 +367,6 @@ class ObjectWrapper(object):
     @property
     def is_enumerator(self):
         return self._is_enumerator
-
-    @property
-    def status(self):
-        if self.dirty:
-            self.type = self.api.follow_link(self.type)
-            self.dirty = False
-        return self.type.status
 
 
 for lib in all_libs:
