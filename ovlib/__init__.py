@@ -79,7 +79,7 @@ dispatchers = { }
 
 all_libs = (
     'vms',
-#    'datacenters',
+    'datacenters',
 #    'templates',
 #    'disks',
     'capabilities',
@@ -315,8 +315,9 @@ class ObjectWrapper(object):
         if self.is_enumerator:
             buf = ""
             for i in self.list():
-                next_wrapper = ObjectWrapper.make_wrapper(self.api, i.href)
-                buf += "%s\n" % next_wrapper.export(path)
+                next_wrapper = ObjectWrapper.make_wrapper(self.api, i)
+                if next_wrapper is not None:
+                    buf += "%s\n" % next_wrapper.export(path)
             return buf
         elif len(path) == 0:
             try:

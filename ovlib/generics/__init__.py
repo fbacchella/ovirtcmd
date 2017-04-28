@@ -1,11 +1,14 @@
-class_ref_mac_pool = []
-class_ref_mac_qos = []
-
 import ovlib.verb
 from ovlib import Dispatcher, ObjectWrapper, command, dispatcher, wrapper
-from ovirtsdk4.types import MacPool, Qos
-from ovirtsdk4.writers import MacPoolWriter, QosWriter
-from ovirtsdk4.services import MacPoolService, MacPoolsService, QosService, QossService
+
+from ovirtsdk4.types import MacPool, Range
+from ovirtsdk4.writers import MacPoolWriter, RangeWriter
+from ovirtsdk4.services import MacPoolService, MacPoolsService
+
+@wrapper(writer_class=RangeWriter, type_class=Range)
+class RangeWrapper(ObjectWrapper):
+    pass
+
 
 @wrapper(writer_class=MacPoolWriter, type_class=MacPool, service_class=MacPoolService)
 class MacPoolWrapper(ObjectWrapper):
@@ -69,11 +72,4 @@ class Create(ovlib.verb.Create):
 
 
 
-@wrapper(writer_class=QosWriter, type_class=Qos, service_class=QosService)
-class QosWrapper(ObjectWrapper):
-    pass
-
-@wrapper(service_class=QossService)
-class QossWrapper(ObjectWrapper):
-    pass
 

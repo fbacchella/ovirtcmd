@@ -1,25 +1,46 @@
 import ovlib.verb
-from ovlib import Dispatcher, command
-from ovirtsdk.xml import params
-from ovirtsdk.infrastructure.brokers import DataCenter
+from ovlib import Dispatcher, ObjectWrapper, command, dispatcher, wrapper
 
-class_ref = []
+from ovirtsdk4.types import DataCenter, Qos
+from ovirtsdk4.writers import DataCenterWriter, QosWriter
+from ovirtsdk4.services import DataCenterService, DataCentersService, QossService, QosService
 
-@command(class_ref)
+@wrapper(writer_class=QosWriter, type_class=Qos, service_class=QosService)
+class QosWrapper(ObjectWrapper):
+    pass
+
+@wrapper(service_class=QossService)
+class QossWrapper(ObjectWrapper):
+    pass
+
+@wrapper(writer_class=DataCenterWriter, type_class=DataCenter, service_class=DataCenterService)
+class DataCenterWrapper(ObjectWrapper):
+    pass
+
+
+@wrapper(service_class=DataCentersService)
+class DataCentersWrapper(ObjectWrapper):
+    pass
+
+@dispatcher(object_name="datacenter", service_root="datacenters", wrapper=DataCenterWrapper)
+class DataCenterDispatcher(Dispatcher):
+    pass
+
+@command(DataCenterDispatcher)
 class List(ovlib.verb.List):
     pass
 
 
-@command(class_ref)
+@command(DataCenterDispatcher)
 class XmlExport(ovlib.verb.XmlExport):
     pass
 
-@command(class_ref)
+@command(DataCenterDispatcher)
 class Delete(ovlib.verb.DeleteForce):
     pass
 
 
-@command(class_ref)
+@command(DataCenterDispatcher)
 class Attach(ovlib.verb.Verb):
     verb = "attach"
 
@@ -32,7 +53,7 @@ class Attach(ovlib.verb.Verb):
         self.broker.storagedomains.add(params.StorageDomain(id=sd.id))
 
 
-@command(class_ref)
+@command(DataCenterDispatcher)
 class Create(ovlib.verb.Create):
 
     def uses_template(self):
@@ -50,7 +71,7 @@ class Create(ovlib.verb.Create):
         return self.contenaire.add(params.DataCenter(**kwargs))
 
 
-@command(class_ref)
+@command(DataCenterDispatcher)
 class Create(ovlib.verb.Verb):
     verb = "addqos"
 
@@ -59,4 +80,3 @@ class Create(ovlib.verb.Verb):
         return self.broker.qoss.add(params.QoS(**kwargs))
 
 
-oc = Dispatcher(api_attribute="datacenters", object_name="datacenter", commands=class_ref, broker_class=DataCenter)
