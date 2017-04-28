@@ -10,7 +10,7 @@ from ovirtsdk4.services import VmsService, VmNicsService, VmNicService, Operatin
 from ovirtsdk4.writers import VmWriter, GraphicsConsoleWriter, NicWriter, OperatingSystemWriter
 
 
-@wrapper(writerClass=VmWriter, type_class=Vm, service_class=VmsService)
+@wrapper(writerClass=VmWriter, type_class=Vm, service_class=VmsService, other_attributes=['os'])
 class VmWrapper(ObjectWrapper):
 
     def get_graphic_console(self, console):
@@ -28,13 +28,6 @@ class VmWrapper(ObjectWrapper):
         vvfile.write(graphics_console_service.remote_viewer_connection_file())
         vvfile.close()
         return vvfile_path
-
-    @property
-    def os(self):
-        if self.dirty:
-            self.type = self.api.follow_link(self.type)
-            self.dirty = False
-        return self.type.os
 
 
 @wrapper(service_class=VmNicsService)
@@ -98,24 +91,26 @@ class Stop(ovlib.verb.Verb):
 @command(VmDispatcher, verb='ticket')
 class Ticket(ovlib.verb.Verb):
 
-    def execute(self, *args, **kwargs):
+    def fill_parser(self, parser):
+        parser.add_option("-c", "--c", dest="console_number", help="Console number", default=0, type=int)
+
+    def execute(self, console_number=0):
         self.object.wait_for(VmStatus.UP)
-        consoles_service = self.service.graphics_consoles_service()
+        consoles_service = self.object.service.graphics_consoles_service()
         consoles = consoles_service.list(current=True)
-        console = next(
-            (c for c in consoles if c.protocol == GraphicsType.SPICE),
-            None
-        )
+        console = consoles[console_number]
         console_service = consoles_service.console_service(console.id)
         ticket = console_service.ticket()
-
+        port = self.object.type.display.port
+        if port is None:
+            port = self.object.type.display.secure_port
         console_info = {
-            'type': self.type.display.type,
-            'address': self.type.display.address,
+            'type': self.object.type.display.type,
+            'address': self.object.type.display.address,
             'password': ticket.value,
-            'port': self.type.display.port,
-            'secure_port': self.type.display.secure_port,
-            'title': self.type.name + ":%d"
+            'port': port,
+            'secure_port': self.object.type.display.secure_port,
+            'title': self.object.type.name + ":%d"
         }
         for (k,v) in console_info.items():
             console_info[k] = urllib.quote(str(v))

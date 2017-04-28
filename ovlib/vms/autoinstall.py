@@ -17,11 +17,11 @@ class Autoinstall(Verb):
         return True
 
     def execute(self, *args, **kwargs):
-        if self.type.status != types.VmStatus.DOWN:
-            self.service.stop()
-            self.wait_for(types.VmStatus.DOWN)
+        if self.object.status != types.VmStatus.DOWN:
+            self.object.stop()
+            self.object.wait_for(types.VmStatus.DOWN)
 
-        old_os_params =  self.type.os
+        old_os_params =  self.object.os
         old_kernel = old_os_params.kernel
         if old_kernel is None:
             old_kernel = ''
@@ -35,7 +35,7 @@ class Autoinstall(Verb):
         old_os_params.initrd = kwargs.get('initrd', None)
         old_os_params.cmdline = kwargs.get('cmdline', None)
 
-        self.service.update(
+        self.object.update(
             types.Vm(
                 os=types.OperatingSystem(
                     kernel=kwargs.get('kernel', None),
@@ -44,12 +44,12 @@ class Autoinstall(Verb):
             )
         ))
 
-        self.service.start()
-        self.wait_for(types.VmStatus.UP)
+        self.object.start()
+        self.object.wait_for(types.VmStatus.UP)
         yield "booted, run installing\n"
-        self.wait_for(types.VmStatus.DOWN)
+        self.object.wait_for(types.VmStatus.DOWN)
 
-        self.service.update(
+        self.object.update(
             types.Vm(
                 os=types.OperatingSystem(
                     kernel=old_kernel,
@@ -58,5 +58,5 @@ class Autoinstall(Verb):
                 )
             ))
 
-        self.service.start()
+        self.object.start()
         yield "done\n"
