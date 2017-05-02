@@ -2,7 +2,7 @@ import time
 import ovlib.verb
 
 from ovirtsdk4.types import Host, HostStatus, HostNic, NetworkAttachment, IpAddressAssignment
-from ovirtsdk4.services import HostService, HostsService, NetworkAttachmentService, NetworkAttachmentsService
+from ovirtsdk4.services import HostService, HostsService, NetworkAttachmentService, NetworkAttachmentsService, HostNicsService, HostNicService
 from ovirtsdk4.writers import HostWriter, HostNicWriter, NetworkAttachmentWriter, IpAddressAssignmentWriter
 
 from ovlib import wrapper, ObjectWrapper, ListObjectWrapper, Dispatcher, dispatcher, command
@@ -15,8 +15,14 @@ class IpAddressWrapper(ObjectWrapper):
 
 
 @wrapper(writer_class=HostNicWriter,
+         service_class=HostNicService,
          type_class=HostNic)
 class HostNicWrapper(ObjectWrapper):
+    pass
+
+
+@wrapper(service_class=HostNicsService)
+class HostNicsWrapper(ListObjectWrapper):
     pass
 
 

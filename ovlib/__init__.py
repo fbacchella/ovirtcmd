@@ -280,8 +280,7 @@ class ObjectWrapper(object):
             else:
                 return wrapper(api=api, service=service, type=type)
          # nothing succeded to find the wrapper, return None
-        print "%s %s %s" % (type, service, list)
-        return None
+        raise OVLibError("failed to wrap an object" , {'type': type, 'service': 'service', 'list': list})
 
     def __init__(self, api, type=None, service=None):
         self.api = api
@@ -308,7 +307,7 @@ class ObjectWrapper(object):
         if self.is_enumerator:
             buf = ""
             for i in self.list():
-                next_wrapper = ObjectWrapper.make_wrapper(self.api, i)
+                next_wrapper = self.api.wrap(i)
                 if next_wrapper is not None:
                     buf += "%s\n" % next_wrapper.export(path)
             return buf
@@ -328,7 +327,7 @@ class ObjectWrapper(object):
             next=path[0]
             if hasattr(self.type, next):
                 next_type = getattr(self.type, next)
-                next_wrapper = ObjectWrapper.make_wrapper(self.api, type=next_type)
+                next_wrapper = self.api.wrap(next_type)
                 if next_wrapper is not None:
                     return next_wrapper.export(path[1:])
                 elif isinstance(next_type, List) and len(next_type) > 0:
