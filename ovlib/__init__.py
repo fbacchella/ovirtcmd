@@ -1,12 +1,12 @@
 import re
 from ovlib.template import load_template, DotTemplate
-import ovirtsdk4
 import inspect
 import io
 import time
 
 import ovirtsdk4.writers
 import ovirtsdk4.types
+import ovirtsdk4
 
 from ovirtsdk4 import xml, List
 
@@ -214,7 +214,7 @@ def wrapper(writer_class=None, type_class=None, service_class=None, other_method
                 func.service_root = service_root
                 break
         func.methods = other_methods + ['delete', 'list', 'start', 'stop', 'statistics_service', 'update']
-        for attribute in other_attributes + ['status', 'name']:
+        for attribute in other_attributes + ['status', 'name', 'id']:
             if not hasattr(func, attribute):
                 setattr(func, attribute, AttributeWrapper(attribute))
         if type_class is not None:
@@ -243,14 +243,28 @@ class ObjectWrapper(object):
     """This object wrapper the writer, the type and the service in a single object than can access all of that"""
 
     @staticmethod
-    def make_wrapper(api, type=None, service=None):
+    def make_wrapper(api, detect=None, type=None, service=None, list=None):
         """Try to resolve the wrapper, given a type, or a service."""
-        if service is None and type is None:
-            return None
+        if service is None and type is None and list is None and detect is None:
+                return None
+        if detect is not None:
+            # If detect was given, it will override any other given values and find the good one
+            type = None
+            service = None
+            list = None
+            if isinstance(detect, ovirtsdk4.Struct):
+                type = detect
+            elif isinstance(detect, ovirtsdk4.service.Service):
+                service = detect
+            elif isinstance(detect, ovirtsdk4.List):
+                list = detect
+            else:
+                return detect
         if service is None:
-            if type is not None and hasattr(type, 'href'):
-                if type.href is not None:
-                    service = api.resolve_service_href(type.href)
+            if isinstance(type, ovirtsdk4.Struct) and type.href is not None:
+                service = api.resolve_service_href(type.href)
+            elif isinstance(list, ovirtsdk4.List) and list.href is not None:
+                service = api.resolve_service_href(list.href)
         wrapper = None
         if service is not None:
             service_class = native_type(service)
@@ -261,8 +275,12 @@ class ObjectWrapper(object):
             if type_wrappers.has_key(type_class):
                 wrapper = type_wrappers[type_class]
         if wrapper is not None:
-            return wrapper(api=api, service=service, type=type)
+            if issubclass(wrapper, ListObjectWrapper):
+                return wrapper(api=api, list=list)
+            else:
+                return wrapper(api=api, service=service, type=type)
          # nothing succeded to find the wrapper, return None
+        print "%s %s %s" % (type, service, list)
         return None
 
     def __init__(self, api, type=None, service=None):
@@ -284,7 +302,7 @@ class ObjectWrapper(object):
             if hasattr(self.service, method):
                 setattr(self, method, method_wrapper(self, self.service, method))
 
-    def export(self, path):
+    def export(self, path=[]):
         buf = None
         writer = None
         if self.is_enumerator:
@@ -345,8 +363,12 @@ class ObjectWrapper(object):
 
 class ListObjectWrapper(ObjectWrapper):
 
-    def __init__(self, api):
-        super(ListObjectWrapper, self).__init__(api, service=api.service(self.__class__.service_root))
+    def __init__(self, api, list=None):
+        if list is not None:
+            service = api.resolve_service_href(list.href)
+        else:
+            service = api.service(self.__class__.service_root)
+        super(ListObjectWrapper, self).__init__(api, service=service)
 
     def get(self, **kwargs):
         """
@@ -362,7 +384,6 @@ class ListObjectWrapper(ObjectWrapper):
             res = self.service.list(
                 search=' and '.join('{}={}'.format(k, v) for k, v in kwargs.items())
             )
-            print res
         else:
             res = [
                 e for e in self.service.list() if len([

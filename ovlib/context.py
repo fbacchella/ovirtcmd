@@ -157,4 +157,7 @@ class Context(object):
     def service(self, path):
         return self.api.service(path)
 
+    def wrap(self, sdk_object):
+        return ovlib.ObjectWrapper.make_wrapper(self, sdk_object)
+
 
