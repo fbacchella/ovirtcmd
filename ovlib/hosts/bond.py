@@ -1,8 +1,27 @@
 import ovlib.verb
 import ipaddress
 
+from ovlib import wrapper, ObjectWrapper, command
+from ovlib.hosts import HostDispatcher
+
+from ovirtsdk4.types import Bonding, Option, HostNic, NetworkAttachment
+from ovirtsdk4.writers import BondingWriter, OptionWriter
+
+
+@wrapper(writer_class=BondingWriter,
+         type_class=Bonding)
+class BondingWrapper(ObjectWrapper):
+    pass
+
+
+@wrapper(writer_class=OptionWriter,
+         type_class=Option)
+class OptionWrapper(ObjectWrapper):
+    pass
+
+
+@command(HostDispatcher, verb='bond')
 class Bond(ovlib.verb.Verb):
-    verb = "bond"
 
     def uses_template(self):
         return True
@@ -14,50 +33,22 @@ class Bond(ovlib.verb.Verb):
         parser.add_option("-o", "--bond_option", dest="bond_options", action="store_variable", type="string", help="Used as '-o name value'")
         parser.add_option("-b", "--bond_name", dest="bond_name", default="bond0")
 
-    def execute(self, *args, **kwargs):
-        # build the bonded interfaces
-        bond_name = kwargs['bond_name']
-
-        mtu = kwargs.pop('mtu', None)
-        nics = map(lambda x: params.HostNIC(name=x, mtu=mtu), kwargs.pop('interfaces', []))
-        bond_options = map(lambda (x, y): params.Option(name=x, value=y), kwargs.pop('bond_options', {}).iteritems() )
-        bonding = params.Bonding(
-            slaves=params.Slaves(host_nic=nics),
-            options=params.Options(
-                option=bond_options
-            )
+    def execute(self, bond_name='bond0', mtu=None, interfaces=[], bond_options={}, *args, **kwargs):
+        nics = map(lambda x: HostNic(name=x, mtu=mtu), interfaces)
+        bond_options = map(lambda (x, y): Option(name=x, value=y), bond_options.iteritems())
+        bonding = Bonding(slaves=nics, options=bond_options)
+        bonded_if = HostNic(name=bond_name, bonding=bonding, mtu=mtu)
+        bonded_na = []
+        for i in self.api.wrap(self.object.network_attachments).list():
+            old_na = self.api.wrap(i)
+            new_na = NetworkAttachment()
+            new_na.host_nic = bonded_if
+            new_na.id = old_na.id
+            bonded_na.append(new_na)
+        self.object.setup_networks(
+            modified_bonds=[bonded_if],
+            modified_network_attachments=bonded_na,
         )
-        bonded_if = params.HostNIC(name=bond_name, bonding=bonding, mtu=mtu)
+        self.object.commit_net_config()
 
-        # resolves the network that needs to be moved to this interface
-        # IP configuration is kept if network already exists
-        old_net_attachement = {}
-        networks_by_name = {}
-        for i in self.broker.networkattachments.list():
-            net = self.get(self.api.networks, i.network.id)
-            old_net_attachement[net.name] = {'id': i.id, 'ips': i.ip_address_assignments}
-            networks_by_name[net.name] = net.id
-
-        bonded_networks_list = kwargs.pop('networks', [])
-        if len(bonded_networks_list) == 0:
-            bonded_networks_list = ['ovirtmgmt']
-
-        bonded_networks = []
-        bond_nic = params.HostNIC(name=bond_name)
-        for i in bonded_networks_list:
-            attachement_kwargs = {'host_nic':  bond_nic }
-            if i in networks_by_name:
-                net_id = networks_by_name[i]
-            else:
-                host_cluster = self.get(self.api.clusters, self.broker.cluster.id)
-                net_id = self.get(host_cluster.networks, i).id
-            attachement_kwargs['network'] = params.Network(id=net_id)
-            if i in old_net_attachement:
-                attachement_kwargs['id'] = old_net_attachement[i]['id']
-                attachement_kwargs['ip_address_assignments'] = old_net_attachement[i]['ips']
-            bonded_networks.append(params.NetworkAttachment(**attachement_kwargs))
-
-        return self.broker.setupnetworks(params.Action(modified_bonds=params.HostNics(host_nic=[bonded_if]),
-                                                       modified_network_attachments=params.NetworkAttachments(network_attachment=bonded_networks),
-                                                       )
-                                         )
+        return True

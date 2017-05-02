@@ -1,13 +1,43 @@
 import time
 import ovlib.verb
 
-from ovirtsdk4.types import Host, GraphicsType, HostStatus
-from ovirtsdk4.services import HostService, HostsService
-from ovirtsdk4.writers import HostWriter
+from ovirtsdk4.types import Host, HostStatus, HostNic, NetworkAttachment, IpAddressAssignment
+from ovirtsdk4.services import HostService, HostsService, NetworkAttachmentService, NetworkAttachmentsService
+from ovirtsdk4.writers import HostWriter, HostNicWriter, NetworkAttachmentWriter, IpAddressAssignmentWriter
 
 from ovlib import wrapper, ObjectWrapper, ListObjectWrapper, Dispatcher, dispatcher, command
 
-@wrapper(writer_class=HostWriter, type_class=Host, service_class=HostService, other_methods=['deactivate', 'activate', 'fence'])
+
+@wrapper(writer_class=IpAddressAssignmentWriter,
+         type_class=IpAddressAssignment)
+class IpAddressWrapper(ObjectWrapper):
+    pass
+
+
+@wrapper(writer_class=HostNicWriter,
+         type_class=HostNic)
+class HostNicWrapper(ObjectWrapper):
+    pass
+
+
+@wrapper(service_class=NetworkAttachmentsService)
+class NetworkAttachmentsWrapper(ListObjectWrapper):
+    pass
+
+
+@wrapper(writer_class=NetworkAttachmentWriter,
+         type_class=NetworkAttachment,
+         service_class=NetworkAttachmentService,
+         other_attributes=['ip_address_assignments', 'in_sync', 'host_nic', 'network', 'dns_resolver_configuration'])
+class NetworkAttachmentWrapper(ObjectWrapper):
+    pass
+
+
+@wrapper(writer_class=HostWriter,
+         type_class=Host,
+         service_class=HostService,
+         other_methods=['deactivate', 'activate', 'fence', 'upgrade', 'upgrade_check', 'unregistered_storage_domains_discover', 'setup_networks', 'commit_net_config'],
+         other_attributes=['update_available', 'network_attachments'])
 class HostWrapper(ObjectWrapper):
     pass
 
@@ -59,6 +89,13 @@ class Maintenance(ovlib.verb.Verb):
         return True
 
 
+@command(HostDispatcher, verb='upgradecheck')
+class UpgradeCheck(ovlib.verb.Verb):
+
+    def execute(self, reason=None, async=False, *args, **kwargs):
+        return self.object.upgrade_check()
+
+
 @command(HostDispatcher, verb='activate')
 class Activate(ovlib.verb.Verb):
 
@@ -76,10 +113,11 @@ class Activate(ovlib.verb.Verb):
 class DiscoverDomain(ovlib.verb.Verb):
 
     def execute(self, *args, **kwargs):
-        return self.broker.unregisteredstoragedomainsdiscover()
+        return self.object.unregistered_storage_domains_discover()
 
     def to_str(self, value):
-        return self._export(value.storage_domains)
+        for i in value:
+            return i.export()
 
 def get_uptime(host):
     uptime_stat = host.statistics.get(name="boot.time")
@@ -136,24 +174,46 @@ class Reboot(ovlib.verb.Verb):
         self.wait_for("up")
         return True
 
-
+from datetime import datetime
 @command(HostDispatcher, verb='upgrade')
 class Upgrade(ovlib.verb.Verb):
 
     def fill_parser(self, parser):
-        parser.add_option("-i", "--image", dest="image", help="Not documented")
+        parser.add_option("-a", "--async", dest="async", help="Don't wait for maintenance state", default=False, action='store_true')
 
-    def execute(self, image=None):
-        action = params.Action(image=image)
-        try:
-            self.broker.upgrade(action)
-            self.wait_finished("installing")
+    def execute(self, async=False):
+        #self.object.upgrade_check()
+        if self.object.update_available:
+            if self.object.status != HostStatus.MAINTENANCE:
+                print "%s maintenance state" % str(datetime.now())
+                self.object.deactivate(reason='For upgrade', async=True)
+                self.object.wait_for(HostStatus.MAINTENANCE)
+            print "%s start upgrade" % str(datetime.now())
+            self.object.upgrade(async=False)
+            print "%s upgrade launched" % str(datetime.now())
+            if not async:
+                self.object.wait_for(HostStatus.INSTALLING)
+                print "%s upgrade notified" % str(datetime.now())
+                # Upgrade is always async, so needs to wait for a maintenance status.
+                self.object.wait_for(HostStatus.MAINTENANCE)
+                print "%s upgrade finished" % str(datetime.now())
+
             return True
-        except RequestError as e:
-            if e.detail == 'Cannot upgrade Host. There are no available updates for the host.':
-                return "upgrade not needed"
+        else:
+            return None
+
+        def to_str(self, value):
+            print isinstance(value, bool)
+            if isinstance(value, bool) and value:
+                return "Upgraded succeeded"
+            elif value is None:
+                return "Upgraded not needed"
             else:
-                raise e
+                return value
+
+
+
+
 
 import create
 import bond
