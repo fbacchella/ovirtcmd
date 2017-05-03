@@ -1,9 +1,10 @@
 import ovlib.verb
-from ovlib import Dispatcher, ObjectWrapper, command, dispatcher, wrapper
+from ovlib import Dispatcher, ObjectWrapper, ListObjectWrapper, command, dispatcher, wrapper
 
 from ovirtsdk4.types import MacPool, Range
 from ovirtsdk4.writers import MacPoolWriter, RangeWriter
 from ovirtsdk4.services import MacPoolService, MacPoolsService
+
 
 @wrapper(writer_class=RangeWriter, type_class=Range)
 class RangeWrapper(ObjectWrapper):
@@ -14,31 +15,32 @@ class RangeWrapper(ObjectWrapper):
 class MacPoolWrapper(ObjectWrapper):
     pass
 
-@wrapper(service_class=MacPoolsService)
-class MacPoolsWrapper(ObjectWrapper):
+@wrapper(service_class=MacPoolsService, service_root="macpools")
+class MacPoolsWrapper(ListObjectWrapper):
     pass
 
-@dispatcher(service_root="macpools", object_name="macpool", wrapper=MacPoolWrapper)
+
+@dispatcher(object_name="macpool", wrapper=MacPoolWrapper, list_wrapper=MacPoolsWrapper)
 class MacPoolDispatcher(Dispatcher):
     pass
 
 @command(MacPoolDispatcher)
-class List(ovlib.verb.List):
+class MacPoolList(ovlib.verb.List):
     pass
 
 
 @command(MacPoolDispatcher)
-class XmlExport(ovlib.verb.XmlExport):
+class MacPoolExport(ovlib.verb.XmlExport):
     pass
 
 
 @command(MacPoolDispatcher)
-class Delete(ovlib.verb.Delete):
+class MacPoolDelete(ovlib.verb.Delete):
     pass
 
 
 @command(MacPoolDispatcher)
-class Create(ovlib.verb.Create):
+class MacPoolCreate(ovlib.verb.Create):
 
     def fill_parser(self, parser):
         parser.add_option("-n", "--name", dest="name", help="Network name")
