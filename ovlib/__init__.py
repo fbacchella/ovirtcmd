@@ -238,6 +238,18 @@ def method_wrapper(object_wrapper, service, method):
         return service_method(*args, **kwargs)
     return check
 
+class IteratorObjectWrapper(object):
+    def __init__(self, api, parent_list):
+        self.parent_list = parent_list
+        self.api = api
+
+    def __iter__(self):
+        self.iterator = iter(self.parent_list)
+        return self
+
+    def next(self):
+        next_object = self.iterator.next()
+        return self.api.wrap(next_object)
 
 class ObjectWrapper(object):
     """This object wrapper the writer, the type and the service in a single object than can access all of that"""
@@ -279,12 +291,16 @@ class ObjectWrapper(object):
                 return wrapper(api=api, list=list)
             else:
                 return wrapper(api=api, service=service, type=type)
+        elif list is not None:
+            # We found a wrapper, but no service, it's just a plain list, wraps the content
+            return IteratorObjectWrapper(api, list)
+
          # nothing succeded to find the wrapper, return None
-        raise OVLibError("failed to wrap an object" , {'type': type, 'service': 'service', 'list': list})
+        raise OVLibError("failed to wrap an object" , {'type': type, 'service': service, 'list': list})
 
     def __init__(self, api, type=None, service=None):
         self.api = api
-        if hasattr(service, "list"):
+        if isinstance(self, ListObjectWrapper):
             self._is_enumerator = True
         else:
             self._is_enumerator = False
@@ -327,10 +343,7 @@ class ObjectWrapper(object):
             next=path[0]
             if hasattr(self.type, next):
                 next_type = getattr(self.type, next)
-                next_wrapper = self.api.wrap(next_type)
-                if next_wrapper is not None:
-                    return next_wrapper.export(path[1:])
-                elif isinstance(next_type, List) and len(next_type) > 0:
+                if (isinstance(next_type, List) and len(next_type) > 0 or isinstance(next_type, IteratorObjectWrapper)):
                     buf = ""
                     for i in next_type:
                         i_class = type(i)
@@ -338,6 +351,9 @@ class ObjectWrapper(object):
                             next_wrapper = type_wrappers[i_class](api=self.api, type=i)
                             buf += "%s\n" % next_wrapper.export(path[1:])
                     return buf
+                next_wrapper = self.api.wrap(next_type)
+                if next_wrapper is not None and hasattr(next_wrapper, 'export'):
+                    return next_wrapper.export(path[1:])
                 elif not hasattr(next_type, 'href'):
                     return str(next_type)
                 else:
