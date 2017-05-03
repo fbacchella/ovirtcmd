@@ -6,7 +6,8 @@ from ovirtsdk4.types import Event
 from ovirtsdk4.services import EventService, EventsService
 from ovirtsdk4.writers import EventWriter
 
-@wrapper(writer_class=EventWriter, type_class=Event, service_class=EventService)
+
+@wrapper(writer_class=EventWriter, type_class=Event, service_class=EventService, other_attributes=['description', 'code', 'severity'])
 class EventWrapper(ObjectWrapper):
     pass
 
@@ -23,8 +24,14 @@ class EventDispatcher(Dispatcher):
 
 @command(EventDispatcher)
 class EventsList(ovlib.verb.List):
-    template = "{id!s}"
-    pass
+    template = "{id!s} {description!s}"
+
+    def fill_parser(self, parser):
+        parser.add_option("-f", "--from", dest="from_", help="Start searching from", default=None, type=int)
+
+    def execute(self, from_=None):
+        for e in self.object.list(from_=from_):
+            yield e
 
 
 @command(EventDispatcher)

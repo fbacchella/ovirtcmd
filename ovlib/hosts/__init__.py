@@ -1,11 +1,12 @@
 import time
 import ovlib.verb
 
+from ovirtsdk4 import List
 from ovirtsdk4.types import Host, HostStatus, HostNic, NetworkAttachment, IpAddressAssignment
 from ovirtsdk4.services import HostService, HostsService, NetworkAttachmentService, NetworkAttachmentsService, HostNicsService, HostNicService
 from ovirtsdk4.writers import HostWriter, HostNicWriter, NetworkAttachmentWriter, IpAddressAssignmentWriter
 
-from ovlib import wrapper, ObjectWrapper, ListObjectWrapper, Dispatcher, dispatcher, command
+from ovlib import wrapper, ObjectWrapper, ListObjectWrapper, Dispatcher, dispatcher, command, event_waiter
 
 
 @wrapper(writer_class=IpAddressAssignmentWriter,
@@ -45,7 +46,16 @@ class NetworkAttachmentWrapper(ObjectWrapper):
          other_methods=['deactivate', 'activate', 'fence', 'upgrade', 'upgrade_check', 'unregistered_storage_domains_discover', 'setup_networks', 'commit_net_config'],
          other_attributes=['update_available', 'network_attachments'])
 class HostWrapper(ObjectWrapper):
-    pass
+
+    def upgrade_check(self, async=True):
+        if not async:
+            events_returned = []
+            with event_waiter(self.api, "host.name=%s" % self.type.name, [885, 839, 886, 887], events_returned):
+                self.service.upgrade_check()
+            return self.api.wrap(events_returned)
+        else:
+            return self.service.upgrade_check()
+
 
 @wrapper(service_class=HostsService, service_root = "hosts")
 class HostsWrapper(ListObjectWrapper):
@@ -56,22 +66,22 @@ class HostDispatcher(Dispatcher):
     pass
 
 @command(HostDispatcher)
-class Statistics(ovlib.verb.Statistics):
+class HostStatistics(ovlib.verb.Statistics):
     pass
 
 
 @command(HostDispatcher)
-class List(ovlib.verb.List):
+class HostList(ovlib.verb.List):
     pass
 
 
 @command(HostDispatcher)
-class XmlExport(ovlib.verb.XmlExport):
+class HostExport(ovlib.verb.XmlExport):
     pass
 
 
 @command(HostDispatcher)
-class Delete(ovlib.verb.Delete):
+class HostDelete(ovlib.verb.Delete):
 
     def execute(self, *args, **kwargs):
         if self.broker.status.state != "maintenance":
@@ -98,8 +108,18 @@ class Maintenance(ovlib.verb.Verb):
 @command(HostDispatcher, verb='upgradecheck')
 class UpgradeCheck(ovlib.verb.Verb):
 
-    def execute(self, reason=None, async=False, *args, **kwargs):
-        return self.object.upgrade_check()
+    def fill_parser(self, parser):
+        parser.add_option("-a", "--async", dest="async", help="Don't wait for maintenance state", default=False, action='store_true')
+
+    def execute(self, async=False, *args, **kwargs):
+        return self.object.upgrade_check(async)
+
+    def to_str(self, value):
+        if isinstance(value, List):
+            for i in map(lambda x: self.api.wrap(x), value):
+                return i.description
+        else:
+            return str(self.api.wrap(value))
 
 
 @command(HostDispatcher, verb='activate')
@@ -124,6 +144,7 @@ class DiscoverDomain(ovlib.verb.Verb):
     def to_str(self, value):
         for i in value:
             return i.export()
+
 
 def get_uptime(host):
     uptime_stat = host.statistics.get(name="boot.time")
@@ -180,30 +201,30 @@ class Reboot(ovlib.verb.Verb):
         self.wait_for("up")
         return True
 
-from datetime import datetime
+
 @command(HostDispatcher, verb='upgrade')
 class Upgrade(ovlib.verb.Verb):
 
     def fill_parser(self, parser):
-        parser.add_option("-a", "--async", dest="async", help="Don't wait for maintenance state", default=False, action='store_true')
+        parser.add_option("-a", "--async", dest="async", help="Don't wait for completion state", default=False, action='store_true')
+        parser.add_option("-r", "--refresh", dest="refresh_update", help="Refresh the upgrade status", default=False, action='store_true')
 
-    def execute(self, async=False):
-        #self.object.upgrade_check()
+    def execute(self, async=False, refresh_update=False):
+        if refresh_update:
+            events = self.object.upgrade_check(async=False)
+            if isinstance(events, (List, list)):
+                if events[0].code != 885:
+                    return events[0].description
+
         if self.object.update_available:
             if self.object.status != HostStatus.MAINTENANCE:
-                print "%s maintenance state" % str(datetime.now())
                 self.object.deactivate(reason='For upgrade', async=True)
                 self.object.wait_for(HostStatus.MAINTENANCE)
-            print "%s start upgrade" % str(datetime.now())
             self.object.upgrade(async=False)
-            print "%s upgrade launched" % str(datetime.now())
             if not async:
                 self.object.wait_for(HostStatus.INSTALLING)
-                print "%s upgrade notified" % str(datetime.now())
                 # Upgrade is always async, so needs to wait for a maintenance status.
                 self.object.wait_for(HostStatus.MAINTENANCE)
-                print "%s upgrade finished" % str(datetime.now())
-
             return True
         else:
             return None
@@ -213,12 +234,9 @@ class Upgrade(ovlib.verb.Verb):
             if isinstance(value, bool) and value:
                 return "Upgraded succeeded"
             elif value is None:
-                return "Upgraded not needed"
+                return "Upgrade not needed"
             else:
                 return value
-
-
-
 
 
 import create
