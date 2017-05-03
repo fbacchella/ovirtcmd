@@ -77,21 +77,6 @@ def is_id(try_id):
 
 dispatchers = { }
 
-all_libs = (
-    'vms',
-    'datacenters',
-#    'templates',
-    'disks',
-    'capabilities',
-    'hosts',
-#    'clusters',
-#    'storages',
-    'network',
-#    'permissions',
-#    'generics',
-)
-
-
 def command(dispatcher_class, verb=None):
     def decorator(command_class):
         if verb is not None:
@@ -417,6 +402,16 @@ class ListObjectWrapper(ObjectWrapper):
             raise OVLibError("Too many objects found matching the search")
 
 
-for lib in all_libs:
-    __import__(lib, globals(), locals(), [], -1)
+import ovlib.events
+import ovlib.vms
+import ovlib.datacenters
+import ovlib.disks
+import ovlib.capabilities
+import ovlib.hosts
+import ovlib.network
 
+#import ovlib.templates
+#import ovlib.clusters
+#import ovlib.storages
+#import ovlib.permissions
+import ovlib.macpools
