@@ -1,8 +1,11 @@
 import re
-from ovlib.template import load_template, DotTemplate
 import inspect
 import io
 import time
+
+from contextlib import contextmanager
+
+from ovlib.template import load_template, DotTemplate
 
 import ovirtsdk4.writers
 import ovirtsdk4.types
@@ -179,6 +182,7 @@ type_wrappers={}
 service_wrappers={}
 writers={}
 
+
 class AttributeWrapper(object):
     def __init__(self, name):
         self.name = name
@@ -188,6 +192,7 @@ class AttributeWrapper(object):
             obj.type = obj.api.follow_link(obj.type)
             obj.dirty = False
         return getattr(obj.type, self.name)
+
 
 def wrapper(writer_class=None, type_class=None, service_class=None, other_methods = [], other_attributes = [], service_root=None):
     def decorator(func):
@@ -216,12 +221,14 @@ def wrapper(writer_class=None, type_class=None, service_class=None, other_method
 
 native_type = type
 
+
 def method_wrapper(object_wrapper, service, method):
     service_method = getattr(service, method)
     def check(*args, **kwargs):
         object_wrapper.dirty = True
         return service_method(*args, **kwargs)
     return check
+
 
 class IteratorObjectWrapper(object):
     def __init__(self, api, parent_list):
@@ -235,6 +242,27 @@ class IteratorObjectWrapper(object):
     def next(self):
         next_object = self.iterator.next()
         return self.api.wrap(next_object)
+
+
+@contextmanager
+def event_waiter(api, object_filter, ids, events, timeout=1000, wait=1):
+    events_service = ovlib.events.EventsWrapper(api)
+    last_event = int(events_service.list(max=1)[0].id)
+    yield
+    search = '%s and %s' % (object_filter, " or ".join(map(lambda x: "type=%s" % x, ids)))
+    end_of_wait =  time.time() + timeout
+    while True:
+        if time.time() > end_of_wait:
+            raise OVLibError("Timeout will waiting for events", value={'ids': ids})
+        founds = events_service.list(
+            from_= last_event,
+            search=search,
+        )
+        if len(founds) > 0:
+            events += founds
+            break
+        time.sleep(wait)
+
 
 class ObjectWrapper(object):
     """This object wrapper the writer, the type and the service in a single object than can access all of that"""
@@ -299,7 +327,7 @@ class ObjectWrapper(object):
             self.service = service
         self.dirty = False
         for method in self.__class__.methods:
-            if hasattr(self.service, method):
+            if hasattr(self.service, method) and not hasattr(self, method):
                 setattr(self, method, method_wrapper(self, self.service, method))
 
     def export(self, path=[]):
