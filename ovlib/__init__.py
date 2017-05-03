@@ -437,9 +437,9 @@ import ovlib.disks
 import ovlib.capabilities
 import ovlib.hosts
 import ovlib.network
-
+import ovlib.macpools
+import ovlib.system
 #import ovlib.templates
 #import ovlib.clusters
 #import ovlib.storages
 #import ovlib.permissions
-import ovlib.macpools
