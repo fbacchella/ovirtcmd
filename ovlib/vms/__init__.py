@@ -5,16 +5,34 @@ import os
 
 from ovlib import Dispatcher, ObjectWrapper, ListObjectWrapper, command, dispatcher, wrapper
 
-from ovirtsdk4.types import Vm, VmStatus, GraphicsConsole, Nic, OperatingSystem
-from ovirtsdk4.services import VmsService, VmService, VmNicsService, VmNicService, OperatingSystemService
-from ovirtsdk4.writers import VmWriter, GraphicsConsoleWriter, NicWriter, OperatingSystemWriter
+from ovirtsdk4.types import Vm, VmStatus, GraphicsConsole, Nic, OperatingSystem, Display
+from ovirtsdk4.services import VmsService, VmService, \
+    VmNicsService, VmNicService, \
+    OperatingSystemService, VmGraphicsConsoleService, VmGraphicsConsolesService
+from ovirtsdk4.writers import VmWriter, GraphicsConsoleWriter, NicWriter, OperatingSystemWriter, DisplayWriter
+
+
+@wrapper(service_class=VmGraphicsConsolesService)
+class VmGraphicsConsolesWrapper(ListObjectWrapper):
+    pass
+
+
+@wrapper(writer_class=GraphicsConsoleWriter, type_class=GraphicsConsole, service_class=VmGraphicsConsoleService)
+class VmGraphicsConsoleWrapper(ObjectWrapper):
+    pass
+
+
+@wrapper(writer_class=DisplayWriter, type_class=Display)
+class DisplayWrapper(ObjectWrapper):
+    pass
 
 
 @wrapper(service_class=VmsService, service_root="vms")
 class VmsWrapper(ListObjectWrapper):
     pass
 
-@wrapper(writer_class=VmWriter, type_class=Vm, service_class=VmService, other_attributes=['os'])
+
+@wrapper(writer_class=VmWriter, type_class=Vm, service_class=VmService, other_attributes=['os'], other_methods=['suspend'])
 class VmWrapper(ObjectWrapper):
 
     def get_graphic_console(self, console):
@@ -35,7 +53,7 @@ class VmWrapper(ObjectWrapper):
 
 
 @wrapper(service_class=VmNicsService)
-class VmNicsWrapper(ObjectWrapper):
+class VmNicsWrapper(ListObjectWrapper):
     pass
 
 
@@ -55,22 +73,22 @@ class VmDispatcher(Dispatcher):
 
 
 @command(VmDispatcher)
-class Statistics(ovlib.verb.Statistics):
+class VmStatistics(ovlib.verb.Statistics):
     pass
 
 
 @command(VmDispatcher)
-class List(ovlib.verb.List):
+class VmList(ovlib.verb.List):
     pass
 
 
 @command(VmDispatcher)
-class XmlExport(ovlib.verb.XmlExport):
+class VmExport(ovlib.verb.XmlExport):
     pass
 
 
 @command(VmDispatcher, verb='start')
-class Start(ovlib.verb.Verb):
+class VmStart(ovlib.verb.Verb):
 
     def fill_parser(self, parser):
         parser.add_option("-c", "--console", dest="console", help="Launch a console", default=False, action="store_true")
@@ -86,10 +104,22 @@ class Start(ovlib.verb.Verb):
 
 
 @command(VmDispatcher, verb='stop')
-class Stop(ovlib.verb.Verb):
+class VmStop(ovlib.verb.Verb):
 
     def execute(self, *args, **kwargs):
         return self.object.stop()
+
+
+@command(VmDispatcher, verb='suspend')
+class VmSuspend(ovlib.verb.Verb):
+
+    def fill_parser(self, parser):
+        parser.add_option("-a", "--async", dest="async", help="Don't wait for completion state", default=False, action='store_true')
+
+    def execute(self, async=False):
+        self.object.suspend(async=async)
+        if not async:
+            self.object.wait_for(VmStatus.SUSPENDED)
 
 
 @command(VmDispatcher, verb='ticket')
@@ -134,11 +164,6 @@ class Console(ovlib.verb.Verb):
 
     def execute(self, console=0):
         return self.object.get_vv_file(console)
-
-
-@wrapper(writer_class=GraphicsConsoleWriter, type_class=GraphicsConsole)
-class GraphicsConsoleWrapper(ObjectWrapper):
-    pass
 
 
 import autoinstall

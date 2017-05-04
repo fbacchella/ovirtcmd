@@ -314,19 +314,18 @@ class ObjectWrapper(object):
 
     def __init__(self, api, type=None, service=None):
         self.api = api
-        if isinstance(self, ListObjectWrapper):
-            self._is_enumerator = True
-        else:
-            self._is_enumerator = False
-        if type is None and not self._is_enumerator:
+        self._is_enumerator = False
+        if type is None and not isinstance(self, ListObjectWrapper):
             self.type = service.get()
+            self.dirty = False
         else:
             self.type = type
+            # type is taken directly, it might not have been resolved
+            self.dirty = True
         if service is None:
             self.service = api.resolve_service_href(type.href)
         else:
             self.service = service
-        self.dirty = False
         for method in self.__class__.methods:
             if hasattr(self.service, method) and not hasattr(self, method):
                 setattr(self, method, method_wrapper(self, self.service, method))
@@ -394,6 +393,7 @@ class ListObjectWrapper(ObjectWrapper):
         else:
             service = api.service(self.__class__.service_root)
         super(ListObjectWrapper, self).__init__(api, service=service)
+        self._is_enumerator = True
 
     def get(self, **kwargs):
         """
