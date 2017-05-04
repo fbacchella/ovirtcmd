@@ -448,6 +448,7 @@ import ovlib.hosts
 import ovlib.network
 import ovlib.macpools
 import ovlib.system
+import ovlib.users
 #import ovlib.templates
 #import ovlib.clusters
 #import ovlib.storages

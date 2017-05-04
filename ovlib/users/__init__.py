@@ -1,67 +1,34 @@
 import ovlib.verb
 from ovlib import Dispatcher, ObjectWrapper, ListObjectWrapper, command, dispatcher, wrapper
 
-from ovirtsdk4.types import Session
-from ovirtsdk4.writers import SessionWriter
+from ovirtsdk4.types import Session, User
+from ovirtsdk4.writers import SessionWriter, UserWriter
+from ovirtsdk4.services import UserService, UsersService
 
 
-@wrapper(service_class=MacPoolsService, service_root="macpools")
-class MacPoolsWrapper(ListObjectWrapper):
+@wrapper(service_class=UsersService, service_root="users")
+class UsersWrapper(ListObjectWrapper):
     pass
 
 
-@dispatcher(object_name="macpool", wrapper=MacPoolWrapper, list_wrapper=MacPoolsWrapper)
-class MacPoolDispatcher(Dispatcher):
-    pass
-
-@command(MacPoolDispatcher)
-class MacPoolList(ovlib.verb.List):
+@wrapper(service_class=UserService, type_class=User, writer_class=UserWriter)
+class UserWrapper(ObjectWrapper):
     pass
 
 
-@command(MacPoolDispatcher)
-class MacPoolExport(ovlib.verb.XmlExport):
+@dispatcher(object_name="user", wrapper=UserWrapper, list_wrapper=UsersWrapper)
+class UserDispatcher(Dispatcher):
+    def get(self, name=None, id=None):
+        if id is None and name is not None:
+            id=name
+        return super(UserDispatcher, self).get(user_name=name)
+
+@command(UserDispatcher)
+class UserList(ovlib.verb.List):
+    template = "{id!s} {user_name!s}"
+
+
+@command(UserDispatcher)
+class UserExport(ovlib.verb.XmlExport):
     pass
-
-
-@command(MacPoolDispatcher)
-class MacPoolDelete(ovlib.verb.Delete):
-    pass
-
-
-@command(MacPoolDispatcher)
-class MacPoolCreate(ovlib.verb.Create):
-
-    def fill_parser(self, parser):
-        parser.add_option("-n", "--name", dest="name", help="Network name")
-        parser.add_option("-a", "--allow_duplicates", dest="allow_duplicates", help="Allow Duplicates", default=False, action='store_true')
-        parser.add_option("-f", "--from", dest="from", help="From")
-        parser.add_option("-t", "--to", dest="to", help="To")
-        parser.add_option("-r", "--range", dest="ranges", help="From-To", default=[], action='append')
-
-    def do_range(self, from_to=None, from_mac=None, to_mac=None):
-        if isinstance(from_to, str) or isinstance(from_to, unicode):
-            (from_mac, to_mac) = from_to.split('-')[0:2]
-        elif isinstance(from_to, list) or isinstance(from_to, tuple):
-            (from_mac, to_mac) = from_to[0:2]
-        return params.Range(from_mac, to_mac)
-
-    def execute(self, *args, **kwargs):
-        ranges = []
-        for r in kwargs.pop('ranges', []):
-            ranges.append(self.do_range(r))
-        range = kwargs.pop('range', None)
-        if range is not None:
-            ranges.append(self.do_range(range))
-        from_mac = kwargs.pop('from', None)
-        to_mac = kwargs.pop('to', None)
-        if from_mac is not None and to_mac is not None:
-            from_to = ranges.append(self.do_range(from_mac=from_mac, to_mac=to_mac))
-            ranges.append(from_to)
-        kwargs['ranges'] = params.Ranges(ranges)
-        new_mac_pool = params.MacPool(**kwargs)
-        return self.contenaire.add(new_mac_pool)
-
-
-
 
