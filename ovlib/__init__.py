@@ -2,6 +2,7 @@ import re
 import inspect
 import io
 import time
+import collections
 
 from contextlib import contextmanager
 
@@ -333,14 +334,7 @@ class ObjectWrapper(object):
     def export(self, path=[]):
         buf = None
         writer = None
-        if self.is_enumerator:
-            buf = ""
-            for i in self.list():
-                next_wrapper = self.api.wrap(i)
-                if next_wrapper is not None:
-                    buf += "%s\n" % next_wrapper.export(path)
-            return buf
-        elif len(path) == 0:
+        if len(path) == 0 and self.writerClass is not None:
             try:
                 buf = io.BytesIO()
                 writer = xml.XmlWriter(buf, indent=True)
@@ -352,28 +346,31 @@ class ObjectWrapper(object):
                     writer.close()
                 if buf is not None:
                     buf.close()
+        elif len(path) == 0:
+            raise OVLibError("Unexportable class, missing writer class: %s" % type(self))
         else:
             next=path[0]
             if hasattr(self.type, next):
                 next_type = getattr(self.type, next)
-                if (isinstance(next_type, List) and len(next_type) > 0 or isinstance(next_type, IteratorObjectWrapper)):
-                    buf = ""
-                    for i in next_type:
-                        i_class = type(i)
-                        if type_wrappers.has_key(i_class):
-                            next_wrapper = type_wrappers[i_class](api=self.api, type=i)
-                            buf += "%s\n" % next_wrapper.export(path[1:])
-                    return buf
                 next_wrapper = self.api.wrap(next_type)
                 if next_wrapper is not None and hasattr(next_wrapper, 'export'):
                     return next_wrapper.export(path[1:])
-                elif not hasattr(next_type, 'href'):
-                    return str(next_type)
+                elif isinstance(next_wrapper, collections.Iterable) and not isinstance(next_wrapper, (str, unicode)):
+                    # yes, a string is iterable in python, not funny
+                    buf = ""
+                    for i in next_type:
+                        if i is None:
+                            return ""
+                        i_wrapper = self.api.wrap(i)
+                        if hasattr(i_wrapper, 'export'):
+                            buf += "%s" % i_wrapper.export(path[1:])
+                        else:
+                            buf += str(next_type) + "\n"
+                    return buf
                 else:
-                     print "no way to export %s" % next_type
-                     return ""
+                    return str(next_type) + "\n"
             else:
-                return ""
+                raise OVLibError("Attribute %s missing in %s" % (next, self))
 
     def wait_for(self, status, wait=1):
         while True:
@@ -428,6 +425,18 @@ class ListObjectWrapper(ObjectWrapper):
             raise OVLibError("no object found matching the search")
         else:
             raise OVLibError("Too many objects found matching the search")
+
+    def __iter__(self):
+        for i in self.list():
+            yield self.api.wrap(i)
+
+    def export(self, path=[]):
+        buf = ""
+        for i in self.list():
+            next_wrapper = self.api.wrap(i)
+            if next_wrapper is not None:
+                buf += "%s" % next_wrapper.export(path)
+        return buf
 
 
 import ovlib.events
