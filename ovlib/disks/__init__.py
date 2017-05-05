@@ -2,28 +2,9 @@ import ovlib.verb
 
 from ovlib import Dispatcher, ListObjectWrapper, ObjectWrapper, command, dispatcher, wrapper, parse_size
 
-from ovirtsdk4.types import Disk, StorageDomain
-from ovirtsdk4.services import DiskService, DisksService, StorageDomainService, StorageDomainsService
-from ovirtsdk4.writers import DiskWriter, StorageDomainWriter
-
-@wrapper(writer_class=StorageDomainWriter, type_class=StorageDomain, service_class=StorageDomainService)
-class StorageDomainWrapper(ObjectWrapper):
-    pass
-
-
-@wrapper(service_class=StorageDomainsService, service_root="storagedomains")
-class StoragesDomainWrapper(ListObjectWrapper):
-    pass
-
-
-@dispatcher(object_name="storagedomain", wrapper=StorageDomainWrapper, list_wrapper=StoragesDomainWrapper)
-class StorageDomainDispatcher(Dispatcher):
-    pass
-
-
-@command(StorageDomainDispatcher)
-class StorageDomainList(ovlib.verb.List):
-    pass
+from ovirtsdk4.types import Disk
+from ovirtsdk4.services import DiskService, DisksService
+from ovirtsdk4.writers import DiskWriter
 
 
 @wrapper(writer_class=DiskWriter, type_class=Disk, service_class=DiskService)
@@ -51,17 +32,17 @@ class List(ovlib.verb.List):
 
 
 @command(DiskDispatcher)
-class XmlExport(ovlib.verb.XmlExport):
+class DiskExport(ovlib.verb.XmlExport):
     pass
 
 
 @command(DiskDispatcher)
-class Delete(ovlib.verb.Delete):
+class DiskDelete(ovlib.verb.Delete):
     pass
 
 
 @command(DiskDispatcher)
-class Create(ovlib.verb.Create):
+class DiskCreate(ovlib.verb.Create):
 
     def uses_template(self):
         return True

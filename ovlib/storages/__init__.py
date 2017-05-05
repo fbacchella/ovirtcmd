@@ -1,23 +1,37 @@
 import ovlib.verb
-from ovlib import Dispatcher, command
-from ovirtsdk.xml import params
-from ovirtsdk.infrastructure.brokers import StorageDomain
-from ovirtsdk.infrastructure.common import Base
+from ovlib import Dispatcher, ObjectWrapper, ListObjectWrapper, command, dispatcher, wrapper
 
-class_ref = []
+from ovirtsdk4.types import StorageDomain, Qos, DiskProfile
+from ovirtsdk4.writers import StorageDomainWriter
+from ovirtsdk4.services import StorageDomainsService, StorageDomainService
 
-@command(class_ref)
-class List(ovlib.verb.List):
+
+@wrapper(writer_class=StorageDomainWriter, type_class=StorageDomain, service_class=StorageDomainService)
+class StorageDomainWrapper(ObjectWrapper):
+    pass
+
+@wrapper(service_class=StorageDomainsService, service_root="storagedomains")
+class StorageDomainsWrapper(ListObjectWrapper):
     pass
 
 
-@command(class_ref)
-class XmlExport(ovlib.verb.XmlExport):
+@dispatcher(object_name="storagedomain", wrapper=StorageDomainWrapper, list_wrapper=StorageDomainsWrapper)
+class StorageDomainDispatcher(Dispatcher):
     pass
 
 
-@command(class_ref)
-class Delete(ovlib.verb.Delete):
+@command(StorageDomainDispatcher)
+class StorageDomainList(ovlib.verb.List):
+    pass
+
+
+@command(StorageDomainDispatcher)
+class StorageDomainExport(ovlib.verb.XmlExport):
+    pass
+
+
+@command(StorageDomainDispatcher)
+class StorageDomainDelete(ovlib.verb.Delete):
 
     def fill_parser(self, parser):
         parser.add_option("-H", "--host", dest="host", help="Host used to delete domain", default=None)
@@ -28,11 +42,11 @@ class Delete(ovlib.verb.Delete):
         if host_name is not None :
             host_delete = self.get('hosts', host_name)
             kwargs['host'] = host_delete
-        delete_info = params.StorageDomain(**kwargs)
+        delete_info = StorageDomain(**kwargs)
         self.broker.delete(delete_info)
 
 
-@command(class_ref)
+@command(StorageDomainDispatcher, verb="discover")
 class Discover(ovlib.verb.Verb):
     verb = "discover"
 
@@ -85,8 +99,8 @@ def extract_storage_infos(host, source):
 
     return storage
 
-@command(class_ref)
-class Import(ovlib.verb.Verb):
+@command(StorageDomainDispatcher, verb="import")
+class StorageDomainImport(ovlib.verb.Verb):
     verb = "import"
 
     def validate(self):
@@ -126,14 +140,14 @@ class Import(ovlib.verb.Verb):
         new_storage_name = kwargs.get('name', None)
         if new_storage_name is None and storage is not None and storage.name is not None:
             kwargs['name'] = storage.name
-        sd_params = params.StorageDomain(**kwargs)
+        sd_params = StorageDomain(**kwargs)
         return self.contenaire.add(sd_params)
 
     def to_str(self, value):
         return self._export(value.storage_domains)
 
-@command(class_ref)
-class Create(ovlib.verb.Create):
+@command(StorageDomainDispatcher)
+class StorageDomainCreate(ovlib.verb.Create):
     def fill_parser(self, parser):
         parser.add_option("-n", "--name", dest="name")
         parser.add_option("-t", "--type", dest="type")
@@ -169,9 +183,8 @@ class Create(ovlib.verb.Create):
                                          storage=new_storage)
         return self.contenaire.add(sd_params)
 
-@command(class_ref)
+@command(StorageDomainDispatcher, verb="addprofile")
 class AddProfile(ovlib.verb.Verb):
-    verb = "addprofile"
 
     def execute(self, *args, **kwargs):
         qoss = None
@@ -183,9 +196,7 @@ class AddProfile(ovlib.verb.Verb):
         if qos is not None:
             qos = self.get(qoss, qos)
         if qos is not None:
-            kwargs['qos'] = params.QoS(id=qos.id)
+            kwargs['qos'] = Qos(id=qos.id)
         if kwargs.get('name', None) is None:
             kwargs['name'] = qos.name
-        return self.broker.diskprofiles.add(params.DiskProfile(**kwargs), )
-
-oc = Dispatcher(api_attribute="storagedomains", object_name="storage", commands=class_ref, broker_class=StorageDomain)
+        return self.broker.diskprofiles.add(DiskProfile(**kwargs), )

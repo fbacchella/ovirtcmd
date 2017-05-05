@@ -5,11 +5,45 @@ import os
 
 from ovlib import Dispatcher, ObjectWrapper, ListObjectWrapper, command, dispatcher, wrapper
 
-from ovirtsdk4.types import Vm, VmStatus, GraphicsConsole, Nic, OperatingSystem, Display
+from ovirtsdk4.types import Vm, VmStatus, GraphicsConsole, Nic, OperatingSystem, Display, DiskAttachment, TimeZone, \
+    CpuType, Cpu
 from ovirtsdk4.services import VmsService, VmService, \
     VmNicsService, VmNicService, \
-    OperatingSystemService, VmGraphicsConsoleService, VmGraphicsConsolesService
-from ovirtsdk4.writers import VmWriter, GraphicsConsoleWriter, NicWriter, OperatingSystemWriter, DisplayWriter
+    OperatingSystemService, VmGraphicsConsoleService, VmGraphicsConsolesService, \
+    DiskAttachmentService, DiskAttachmentsService
+from ovirtsdk4.writers import VmWriter, GraphicsConsoleWriter, NicWriter, OperatingSystemWriter, DisplayWriter, \
+    DiskAttachmentWriter, TimeZoneWriter, \
+    CpuTypeWriter, CpuWriter
+
+
+@wrapper(writer_class=CpuTypeWriter, type_class=CpuType)
+class CpuTypeWrapper(ObjectWrapper):
+    pass
+
+
+@wrapper(writer_class=CpuWriter, type_class=Cpu)
+class CpuWrapper(ObjectWrapper):
+    pass
+
+
+@wrapper(writer_class=TimeZoneWriter, type_class=TimeZone)
+class TimeZoneWrapper(ObjectWrapper):
+    pass
+
+
+@wrapper(writer_class=DiskAttachmentWriter, type_class=DiskAttachment, service_class=DiskAttachmentService)
+class DiskAttachmentWrapper(ObjectWrapper):
+    pass
+
+
+@wrapper(service_class=DiskAttachmentsService)
+class DiskAttachmentsWrapper(ListObjectWrapper):
+    pass
+
+
+@wrapper(writer_class=GraphicsConsoleWriter, type_class=GraphicsConsole, service_class=VmGraphicsConsoleService)
+class VmGraphicsConsoleWrapper(ObjectWrapper):
+    pass
 
 
 @wrapper(service_class=VmGraphicsConsolesService)
@@ -32,7 +66,7 @@ class VmsWrapper(ListObjectWrapper):
     pass
 
 
-@wrapper(writer_class=VmWriter, type_class=Vm, service_class=VmService, other_attributes=['os'], other_methods=['suspend'])
+@wrapper(writer_class=VmWriter, type_class=Vm, service_class=VmService, other_attributes=['os', 'disk_attachments'], other_methods=['suspend'])
 class VmWrapper(ObjectWrapper):
 
     def get_graphic_console(self, console):

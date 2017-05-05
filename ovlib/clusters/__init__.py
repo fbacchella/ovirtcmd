@@ -1,30 +1,36 @@
 import ovlib.verb
-from ovlib import Dispatcher, ObjectWrapper, command, dispatcher, wrapper
+from ovlib import Dispatcher, ObjectWrapper, command, dispatcher, wrapper, ListObjectWrapper
 
 from ovirtsdk4.types import Cluster
 from ovirtsdk4.writers import ClusterWriter
-from ovirtsdk4.services import ClustersService
+from ovirtsdk4.services import ClustersService, ClusterService
 
-@wrapper(writer_class=ClusterWriter, type_class=Cluster, service_class=ClustersService)
+@wrapper(writer_class=ClusterWriter, type_class=Cluster, service_class=ClusterService, other_attributes=['data_center', 'networks'])
 class ClusterWrapper(ObjectWrapper):
     pass
 
-@dispatcher(service_root="clusters", object_name="cluster", wrapper=ClusterWrapper)
+
+@wrapper(service_class=ClustersService, service_root="clusters")
+class ClustersWrapper(ListObjectWrapper):
+    pass
+
+
+@dispatcher(object_name="cluster", wrapper=ClusterWrapper, list_wrapper=ClustersWrapper)
 class ClusterDispatcher(Dispatcher):
     pass
 
 @command(ClusterDispatcher)
-class List(ovlib.verb.List):
+class ClusterList(ovlib.verb.List):
     pass
 
 
 @command(ClusterDispatcher)
-class XmlExport(ovlib.verb.XmlExport):
+class ClusterExport(ovlib.verb.XmlExport):
     pass
 
 
 @command(ClusterDispatcher)
-class Delete(ovlib.verb.Delete):
+class ClusterDelete(ovlib.verb.Delete):
     pass
 
 
@@ -57,20 +63,14 @@ class Create(ovlib.verb.Create):
         return self.contenaire.add(params.Cluster(**kwargs))
 
 
-@command(ClusterDispatcher)
-class Delete(ovlib.verb.Delete):
-    pass
-
-
-@command(ClusterDispatcher)
+@command(ClusterDispatcher, verb="addnet")
 class AddNetwork(ovlib.verb.Verb):
-    verb = "addnet"
 
     def fill_parser(self, parser):
         parser.add_option("-i", "--netid", dest="netid", help="Network id")
         parser.add_option("-r", "--required", dest="required", help="Is required", default=False, action='store_true')
 
     def execute(self, *args, **kwargs):
-        return self.broker.add()
+        return self.object.add()
 
 

@@ -204,7 +204,7 @@ def wrapper(writer_class=None, type_class=None, service_class=None, other_method
             if clazz == ListObjectWrapper:
                 func.service_root = service_root
                 break
-        func.methods = other_methods + ['delete', 'list', 'start', 'stop', 'statistics_service', 'update']
+        func.methods = other_methods + ['delete', 'list', 'start', 'stop', 'statistics_service', 'update', 'add']
         for attribute in other_attributes + ['status', 'name', 'id']:
             if not hasattr(func, attribute):
                 setattr(func, attribute, AttributeWrapper(attribute))
@@ -449,7 +449,9 @@ import ovlib.network
 import ovlib.macpools
 import ovlib.system
 import ovlib.users
-#import ovlib.templates
-#import ovlib.clusters
-#import ovlib.storages
+import ovlib.templates
+import ovlib.clusters
+import ovlib.operatingsystem
+import ovlib.storages
+import ovlib.disks
 #import ovlib.permissions

@@ -13,7 +13,7 @@ class QosWrapper(ObjectWrapper):
 class QossWrapper(ListObjectWrapper):
     pass
 
-@wrapper(writer_class=DataCenterWriter, type_class=DataCenter, service_class=DataCenterService)
+@wrapper(writer_class=DataCenterWriter, type_class=DataCenter, service_class=DataCenterService, other_attributes=['networks'])
 class DataCenterWrapper(ObjectWrapper):
     pass
 
