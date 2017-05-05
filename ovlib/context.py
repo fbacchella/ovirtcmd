@@ -121,19 +121,20 @@ class Context(object):
                 if attr_name in booleans:
                     self.api_connect_settings[attr_name] = config.getboolean('api', attr_name)
 
-        for (object_name, object_context) in ovlib.dispatchers.items():
-            setattr(self, object_name, self._do_getter(object_context))
-
         if self.api_connect_settings['url'] == None:
             raise ConfigurationError('incomplete configuration, oVirt url not found')
         if self.api_connect_settings['username'] == None and self.api_connect_settings['kerberos'] == None:
             raise ConfigurationError('not enought authentication informations')
 
-
     def connect(self):
         self.api = ovirtsdk4.Connection(**self.api_connect_settings)
         self.follow_link = self.api.follow_link
         self.connected = True
+        for (dispatcher_name, dispatcher_wrapper) in ovlib.dispatchers.items():
+            if hasattr(dispatcher_wrapper, 'list_wrapper') and hasattr(dispatcher_wrapper.list_wrapper, 'service_root'):
+                services_name = dispatcher_wrapper.list_wrapper.service_root
+                if not hasattr(self, services_name):
+                    setattr(self, services_name, dispatcher_wrapper.list_wrapper(self))
 
     def disconnect(self):
         if self.connected:
