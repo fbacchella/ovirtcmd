@@ -204,7 +204,7 @@ def wrapper(writer_class=None, type_class=None, service_class=None, other_method
             if clazz == ListObjectWrapper:
                 func.service_root = service_root
                 break
-        func.methods = other_methods + ['delete', 'list', 'start', 'stop', 'statistics_service', 'update', 'add']
+        func.methods = other_methods + ['remove', 'list', 'start', 'stop', 'statistics_service', 'update', 'add']
         for attribute in other_attributes + ['status', 'name', 'id']:
             if not hasattr(func, attribute):
                 setattr(func, attribute, AttributeWrapper(attribute))
@@ -246,21 +246,39 @@ class IteratorObjectWrapper(object):
 
 
 @contextmanager
-def event_waiter(api, object_filter, ids, events, timeout=1000, wait=1):
+def event_waiter(api, object_filter, wait_for, events, break_on=[], timeout=1000, wait=1, verbose=False):
+    # Works on copy, as we don't know where the arguments are coming from.
+    break_on=break_on[:]
+    wait_for=wait_for[:]
+    def purge(x):
+        try:
+            wait_for.remove(x)
+        except ValueError:
+            pass
     events_service = ovlib.events.EventsWrapper(api)
     last_event = int(events_service.list(max=1)[0].id)
     yield
-    search = '%s and %s' % (object_filter, " or ".join(map(lambda x: "type=%s" % x, ids)))
     end_of_wait =  time.time() + timeout
     while True:
+        search = '%s and %s' % (object_filter, " or ".join(map(lambda x: "type=%s" % x, set(wait_for + break_on))))
         if time.time() > end_of_wait:
-            raise OVLibError("Timeout will waiting for events", value={'ids': ids})
+            raise OVLibError("Timeout will waiting for events", value={'ids': wait_for})
         founds = events_service.list(
             from_= last_event,
             search=search,
         )
         if len(founds) > 0:
-            events += founds
+            last_event = int(founds[0].id)
+        founds = api.wrap(founds)
+        if verbose:
+            for j in founds:
+                print "%s" % j.export(['description']).strip()
+        bad_id = filter(lambda x: x in break_on, map(lambda x: int(x.code), founds))
+        events += founds
+        if len(bad_id) > 0:
+            break
+        map(purge, map(lambda x: int(x.code), founds))
+        if len(wait_for) == 0:
             break
         time.sleep(wait)
 
@@ -269,23 +287,22 @@ class ObjectWrapper(object):
     """This object wrapper the writer, the type and the service in a single object than can access all of that"""
 
     @staticmethod
-    def make_wrapper(api, detect=None, type=None, service=None, list=None):
-        """Try to resolve the wrapper, given a type, or a service."""
-        if service is None and type is None and list is None and detect is None:
-                return None
-        if detect is not None:
-            # If detect was given, it will override any other given values and find the good one
-            type = None
-            service = None
-            list = None
-            if isinstance(detect, ovirtsdk4.Struct):
-                type = detect
-            elif isinstance(detect, ovirtsdk4.service.Service):
-                service = detect
-            elif isinstance(detect, ovirtsdk4.List):
-                list = detect
-            else:
-                return detect
+    def make_wrapper(api, detect):
+        """Try to resolve the wrapper, given a type, or a service or a list."""
+        if detect is None or isinstance(detect, ObjectWrapper):
+            return detect
+        # If detect was given, it will override any other given values and find the good one
+        type = None
+        service = None
+        list = None
+        if isinstance(detect, ovirtsdk4.Struct):
+            type = detect
+        elif isinstance(detect, ovirtsdk4.service.Service):
+            service = detect
+        elif isinstance(detect, ovirtsdk4.List):
+            list = detect
+        else:
+            return detect
         if service is None:
             if isinstance(type, ovirtsdk4.Struct) and type.href is not None:
                 service = api.resolve_service_href(type.href)
@@ -302,7 +319,7 @@ class ObjectWrapper(object):
                 wrapper = type_wrappers[type_class]
         if wrapper is not None:
             if issubclass(wrapper, ListObjectWrapper):
-                return wrapper(api=api, list=list)
+                return wrapper(api=api, list=list, service=service)
             else:
                 return wrapper(api=api, service=service, type=type)
         elif list is not None:
@@ -329,6 +346,18 @@ class ObjectWrapper(object):
         for method in self.__class__.methods:
             if hasattr(self.service, method) and not hasattr(self, method):
                 setattr(self, method, method_wrapper(self, self.service, method))
+
+        if self.service is not None:
+            for method in dir(self.service):
+                if method.endswith("s_service") and not method.startswith("_") and not method == "qos_service":
+                    service_name = method.replace("_service", "")
+                    if not hasattr(self, service_name):
+                        try:
+                            services_method = getattr(self.service, method)()
+                            setattr(self, service_name, self.api.wrap(services_method))
+                        except OVLibError:
+                            setattr(self, service_name, getattr(self.service, method)())
+
 
     def export(self, path=[]):
         buf = None
@@ -380,6 +409,13 @@ class ObjectWrapper(object):
             else:
                 time.sleep(wait)
 
+    def update(self):
+        if self.type is not None:
+            self.service.update(self.type)
+
+    def __str__(self):
+        return "%s<%s>" % (type(self).__name__, "" if self.type is None else self.type.href)
+
     @property
     def is_enumerator(self):
         return self._is_enumerator
@@ -387,10 +423,10 @@ class ObjectWrapper(object):
 
 class ListObjectWrapper(ObjectWrapper):
 
-    def __init__(self, api, list=None):
+    def __init__(self, api, list=None, service=None):
         if list is not None:
             service = api.resolve_service_href(list.href)
-        else:
+        elif service is None:
             service = api.service(self.__class__.service_root)
         super(ListObjectWrapper, self).__init__(api, service=service)
         self._is_enumerator = True
@@ -403,7 +439,7 @@ class ListObjectWrapper(ObjectWrapper):
         """
         if 'id' in kwargs:
             service = self.api.service("%s/%s" % (self.__class__.service_root, kwargs['id']))
-            return ObjectWrapper.make_wrapper(self.api, service=service)
+            return self.api.wrap(service)
         # Check if 'list' method support search(look for search parameter):
         elif 'search' in inspect.getargspec(self.service.list)[0]:
             res = self.service.list(
@@ -418,7 +454,7 @@ class ListObjectWrapper(ObjectWrapper):
         if len(res) == 1:
             search_type = res[0]
             if search_type is not None:
-                return ObjectWrapper.make_wrapper(api=self.api, type=search_type)
+                return self.api.wrap(search_type)
             else:
                 return OVLibError("Invalid object found matching the search")
         elif len(res) == 0:
@@ -437,6 +473,10 @@ class ListObjectWrapper(ObjectWrapper):
             if next_wrapper is not None:
                 buf += "%s" % next_wrapper.export(path)
         return buf
+
+    def __str__(self):
+        return "%s<%s>" % (type(self).__name__, "" if self.service is None else self.service._path)
+
 
 
 import ovlib.events
