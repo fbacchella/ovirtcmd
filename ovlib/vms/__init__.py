@@ -31,7 +31,7 @@ class TimeZoneWrapper(ObjectWrapper):
     pass
 
 
-@wrapper(writer_class=DiskAttachmentWriter, type_class=DiskAttachment, service_class=DiskAttachmentService)
+@wrapper(writer_class=DiskAttachmentWriter, type_class=DiskAttachment, service_class=DiskAttachmentService, other_attributes=['active', 'disk'])
 class DiskAttachmentWrapper(ObjectWrapper):
     pass
 
@@ -66,7 +66,7 @@ class VmsWrapper(ListObjectWrapper):
     pass
 
 
-@wrapper(writer_class=VmWriter, type_class=Vm, service_class=VmService, other_attributes=['os', 'disk_attachments'], other_methods=['suspend'])
+@wrapper(writer_class=VmWriter, type_class=Vm, service_class=VmService, other_attributes=['os'], other_methods=['suspend'])
 class VmWrapper(ObjectWrapper):
 
     def get_graphic_console(self, console):
