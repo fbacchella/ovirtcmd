@@ -36,5 +36,5 @@ class TemplateExport(ovlib.verb.XmlExport):
 
 
 @command(TemplateDispatcher)
-class TemplateDelete(ovlib.verb.Delete):
+class TemplateRemove(ovlib.verb.Remove):
     pass

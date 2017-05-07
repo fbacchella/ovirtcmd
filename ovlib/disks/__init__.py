@@ -21,6 +21,7 @@ class DisksWrapper(ListObjectWrapper):
 class DiskDispatcher(Dispatcher):
     pass
 
+
 @command(DiskDispatcher)
 class DiskStatistics(ovlib.verb.Statistics):
     pass
@@ -37,7 +38,7 @@ class DiskExport(ovlib.verb.XmlExport):
 
 
 @command(DiskDispatcher)
-class DiskDelete(ovlib.verb.Delete):
+class DiskRemove(ovlib.verb.Remove):
     pass
 
 

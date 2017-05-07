@@ -141,14 +141,14 @@ class Create(Verb):
         return True
 
 
-class Delete(Verb):
-    verb = "delete"
+class Remove(Verb):
+    verb = "remove"
 
     def execute(self, *args, **kwargs):
-        return self.object.delete()
+        return self.object.remove()
 
 
-class DeleteForce(Delete):
+class RemoveForce(Remove):
 
     def fill_parser(self, parser):
         parser.add_option("-f", "--force", dest="force", help="Force", default=False, action='store_true')

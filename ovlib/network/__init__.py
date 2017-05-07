@@ -31,7 +31,7 @@ class XmlExport(ovlib.verb.XmlExport):
 
 
 @command(NetworkDispatcher)
-class Delete(ovlib.verb.Delete):
+class Remove(ovlib.verb.Remove):
     pass
 
 

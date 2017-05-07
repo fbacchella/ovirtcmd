@@ -31,7 +31,7 @@ class StorageDomainExport(ovlib.verb.XmlExport):
 
 
 @command(StorageDomainDispatcher)
-class StorageDomainDelete(ovlib.verb.Delete):
+class StorageDomainRemove(ovlib.verb.Remove):
 
     def fill_parser(self, parser):
         parser.add_option("-H", "--host", dest="host", help="Host used to delete domain", default=None)

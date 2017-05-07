@@ -36,7 +36,7 @@ class XmlExport(ovlib.verb.XmlExport):
     pass
 
 @command(DataCenterDispatcher)
-class Delete(ovlib.verb.DeleteForce):
+class Delete(ovlib.verb.RemoveForce):
     pass
 
 

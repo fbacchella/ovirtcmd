@@ -202,4 +202,4 @@ class Console(ovlib.verb.Verb):
 
 import autoinstall
 import create
-import delete
+import remove

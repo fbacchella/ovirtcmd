@@ -81,7 +81,7 @@ class HostExport(ovlib.verb.XmlExport):
 
 
 @command(HostDispatcher)
-class HostDelete(ovlib.verb.Delete):
+class HostRemove(ovlib.verb.Remove):
 
     def execute(self, *args, **kwargs):
         if self.broker.status.state != "maintenance":

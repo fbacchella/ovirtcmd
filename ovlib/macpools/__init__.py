@@ -35,7 +35,7 @@ class MacPoolExport(ovlib.verb.XmlExport):
 
 
 @command(MacPoolDispatcher)
-class MacPoolDelete(ovlib.verb.Delete):
+class MacPoolRemove(ovlib.verb.Remove):
     pass
 
 

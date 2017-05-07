@@ -30,7 +30,7 @@ class ClusterExport(ovlib.verb.XmlExport):
 
 
 @command(ClusterDispatcher)
-class ClusterDelete(ovlib.verb.Delete):
+class ClusterRemove(ovlib.verb.Remove):
     pass
 
 
