@@ -2,6 +2,7 @@ import ovlib.verb
 import urllib
 import tempfile
 import os
+import time
 
 from ovlib import Dispatcher, ObjectWrapper, ListObjectWrapper, command, dispatcher, wrapper
 
@@ -198,6 +199,33 @@ class Console(ovlib.verb.Verb):
 
     def execute(self, console=0):
         return self.object.get_vv_file(console)
+
+
+@command(VmDispatcher, verb='migrating')
+class Migrating(ovlib.verb.Verb):
+
+    def validate(self):
+        return True
+
+    def fill_parser(self, parser):
+        parser.add_option("-f", "--follow", dest="follow", help="Follows status", default=False, action="store_true")
+        parser.add_option("-p", "--pause", dest="pause", help="Pause in seconds between each status", default=5, type=int)
+
+    def execute(self, follow=False, pause=5):
+        # again is used to detect that at least one VM is actually migrating
+        again = True
+        while again:
+            again = False
+            for vm in self.object:
+                if vm.status == VmStatus.MIGRATING:
+                    stat = self.api.wrap(vm.statistics)
+                    migration = stat.get(name='migration.progress')
+                    again = True
+                    yield "%s %s%%" % (vm.name,  migration.values[0].datum)
+            if not follow:
+                break
+
+            time.sleep(5)
 
 
 import autoinstall
