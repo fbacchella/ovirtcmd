@@ -231,11 +231,10 @@ class Upgrade(ovlib.verb.Verb):
             events = self.object.upgrade_check(async=False)
             if isinstance(events, (List, list)):
                 if events[0].code_enum != EventsCode.HOST_AVAILABLE_UPDATES_FINISHED:
-                    self._status = 1
+                    self._status = 4
                     return events[0].description
 
         if self.object.update_available:
-            self._status = 2
             if self.object.status != HostStatus.MAINTENANCE:
                 self.object.deactivate(reason='For upgrade', async=True)
                 self.object.wait_for(HostStatus.MAINTENANCE)
@@ -244,14 +243,15 @@ class Upgrade(ovlib.verb.Verb):
                         EventsCode.HOST_UPGRADE_STARTED]
             if not async:
                 break_on.append(EventsCode.HOST_UPGRADE_FINISHED)
-            with event_waiter(self.api, "host.name=%s" % self.object.name, [], events_returned,
+            with event_waiter(self.api, "host.name=%s" % self.object.name, events_returned,
                               break_on=break_on):
+                self._status = 2
                 self.object.upgrade(async=async)
-            if not async:
-                self.object.wait_for(HostStatus.INSTALLING)
-                # Upgrade is always async, so needs to wait for a maintenance status.
-                self.object.wait_for(HostStatus.MAINTENANCE)
+            if events_returned[0].code_enum != EventsCode.HOST_UPGRADE_FINISHED:
                 self._status = 1
+            elif not async:
+                self._status = 4
+                return events_returned[0].description
         else:
             self._status = 3
         return self._status
@@ -269,8 +269,10 @@ class Upgrade(ovlib.verb.Verb):
             return str(value)
 
     def status(self):
-        """A default status command to run on success"""
-        return self._status;
+        if self._status == 4:
+            return 1
+        else:
+            return 0
 
 
 import create
