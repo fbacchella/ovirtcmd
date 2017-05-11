@@ -92,7 +92,7 @@ def main():
 
         object_name = args.pop(0)
         if object_name in ovlib.dispatchers:
-            ov_object = ovlib.dispatchers[object_name]
+            dispatcher = ovlib.dispatchers[object_name]
         else:
             print 'unknown object: %s' % object_name
             return 253
@@ -100,8 +100,8 @@ def main():
         #The object parser
         parser_object = optparse.OptionParser()
         parser_object.disable_interspersed_args()
-        ov_object.fill_parser(parser_object)
-        parser_object.set_usage("%s\nverbs are:\n    %s" % (usage_common, "\n    ".join(ov_object.verbs.keys())))
+        dispatcher.fill_parser(parser_object)
+        parser_object.set_usage("%s\nverbs are:\n    %s" % (usage_common, "\n    ".join(dispatcher.verbs.keys())))
 
         (object_options, object_args) = parser_object.parse_args(args)
 
@@ -114,20 +114,21 @@ def main():
                 return 253
             try:
                 context.connect()
-                ov_object.api = context
+                dispatcher.api = context
                 object_options = vars(object_options)
                 for k,v in object_options.items():
                     if v is None:
                         del object_options[k]
 
                 # run the found command and print the result
-                status = print_run_phrase(ov_object, verb, object_options, object_args)
+                status = print_run_phrase(dispatcher, verb, object_options, object_args)
                 sys.exit(status)
             except (ovlib.OVLibError) as e:
-                print "The action \"%s %s\" failed with \n    %s" % (ov_object.object_name, verb, e.error_message)
+                print "The action \"%s %s\" failed with \n    %s" % (dispatcher.object_name, verb, e.error_message)
+                print e.value
                 return 251
             except (ovirtsdk4.Error) as e:
-                print "The action \"%s %s\" failed with \n%s" % (ov_object.object_name, verb, e)
+                print "The action \"%s %s\" failed with \n%s" % (dispatcher.object_name, verb, e)
                 return 252
             finally:
                 if context is not None:
