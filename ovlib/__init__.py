@@ -271,17 +271,17 @@ class IteratorObjectWrapper(object):
 
 
 @contextmanager
-def event_waiter(api, object_filter, wait_for, events, break_on=[], timeout=1000, wait=1, verbose=False):
+def event_waiter(api, object_filter, events, wait_for=[], break_on=[], timeout=1000, wait=1, verbose=False):
     # Works on copy, as we don't know where the arguments are coming from.
-    break_on=break_on[:]
-    wait_for=wait_for[:]
+    break_on=map(lambda x: x.value, break_on)
+    wait_for=map(lambda x: x.value, wait_for)
     def purge(x):
         try:
             wait_for.remove(x)
         except ValueError:
             pass
     events_service = ovlib.events.EventsWrapper(api)
-    last_event = int(events_service.list(max=1)[0].id)
+    last_event = api.events.get_last()
     yield
     end_of_wait =  time.time() + timeout
     while True:
@@ -293,18 +293,18 @@ def event_waiter(api, object_filter, wait_for, events, break_on=[], timeout=1000
             search=search,
         )
         if len(founds) > 0:
-            last_event = int(founds[0].id)
-        founds = api.wrap(founds)
-        if verbose:
-            for j in founds:
-                print "%s" % j.export(['description']).strip()
-        bad_id = filter(lambda x: x in break_on, map(lambda x: int(x.code), founds))
-        events += founds
-        if len(bad_id) > 0:
-            break
-        map(purge, map(lambda x: int(x.code), founds))
-        if len(wait_for) == 0:
-            break
+            last_event = int(founds[-1].id)
+            founds = api.wrap(founds)
+            events += founds
+            if verbose:
+                for j in founds:
+                    print "%s" % j.export(['description']).strip()
+            stop_id = filter(lambda x: x in break_on, map(lambda x: int(x.code), founds))
+            if len(stop_id) > 0:
+                break
+            map(purge, map(lambda x: int(x.code), founds))
+            if len(wait_for) == 0:
+                break
         time.sleep(wait)
 
 
