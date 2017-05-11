@@ -2,11 +2,17 @@ import time
 import ovlib.verb
 
 from ovirtsdk4 import List
-from ovirtsdk4.types import Host, HostStatus, HostNic, NetworkAttachment, IpAddressAssignment
+from ovirtsdk4.types import Host, HostStatus, HostNic, NetworkAttachment, IpAddressAssignment, VmSummary
 from ovirtsdk4.services import HostService, HostsService, NetworkAttachmentService, NetworkAttachmentsService, HostNicsService, HostNicService
-from ovirtsdk4.writers import HostWriter, HostNicWriter, NetworkAttachmentWriter, IpAddressAssignmentWriter
+from ovirtsdk4.writers import HostWriter, HostNicWriter, NetworkAttachmentWriter, IpAddressAssignmentWriter, VmSummaryWriter
 
-from ovlib import wrapper, ObjectWrapper, ListObjectWrapper, Dispatcher, dispatcher, command, event_waiter
+from ovlib import wrapper, ObjectWrapper, ListObjectWrapper, Dispatcher, dispatcher, command, event_waiter, EventsCode
+
+
+@wrapper(writer_class=VmSummaryWriter,
+         type_class=VmSummary)
+class VmSummaryWrapper(ObjectWrapper):
+    pass
 
 
 @wrapper(writer_class=IpAddressAssignmentWriter,
@@ -43,16 +49,22 @@ class NetworkAttachmentWrapper(ObjectWrapper):
 @wrapper(writer_class=HostWriter,
          type_class=Host,
          service_class=HostService,
-         other_methods=['deactivate', 'activate', 'fence', 'upgrade', 'upgrade_check', 'unregistered_storage_domains_discover', 'setup_networks', 'commit_net_config'],
+         other_methods=['deactivate', 'activate', 'fence', 'upgrade', 'upgrade_check', 'unregistered_storage_domains_discover',
+                        'setup_networks', 'commit_net_config'],
          other_attributes=['update_available', 'network_attachments'])
 class HostWrapper(ObjectWrapper):
 
     def upgrade_check(self, async=True):
+        self.dirty = True
         if not async:
             events_returned = []
-            with event_waiter(self.api, "host.name=%s" % self.type.name, [885, 839, 886, 887], events_returned):
+            with event_waiter(self.api, "host.name=%s" % self.name, events_returned,
+                              break_on=[EventsCode.HOST_AVAILABLE_UPDATES_FINISHED,
+                                        EventsCode.HOST_AVAILABLE_UPDATES_PROCESS_IS_ALREADY_RUNNING,
+                                        EventsCode.HOST_AVAILABLE_UPDATES_SKIPPED_UNSUPPORTED_STATUS,
+                                        EventsCode.HOST_AVAILABLE_UPDATES_FAILED]):
                 self.service.upgrade_check()
-            return self.api.wrap(events_returned)
+            return events_returned
         else:
             return self.service.upgrade_check()
 
@@ -205,6 +217,11 @@ class Reboot(ovlib.verb.Verb):
 @command(HostDispatcher, verb='upgrade')
 class Upgrade(ovlib.verb.Verb):
 
+    """A abstract class, used to implements actual verb"""
+    def __init__(self, dispatcher):
+        super(Upgrade, self).__init__(dispatcher)
+        self._status = 0
+
     def fill_parser(self, parser):
         parser.add_option("-a", "--async", dest="async", help="Don't wait for completion state", default=False, action='store_true')
         parser.add_option("-r", "--refresh", dest="refresh_update", help="Refresh the upgrade status", default=False, action='store_true')
@@ -213,30 +230,47 @@ class Upgrade(ovlib.verb.Verb):
         if refresh_update:
             events = self.object.upgrade_check(async=False)
             if isinstance(events, (List, list)):
-                if events[0].code != 885:
+                if events[0].code_enum != EventsCode.HOST_AVAILABLE_UPDATES_FINISHED:
+                    self._status = 1
                     return events[0].description
 
         if self.object.update_available:
+            self._status = 2
             if self.object.status != HostStatus.MAINTENANCE:
                 self.object.deactivate(reason='For upgrade', async=True)
                 self.object.wait_for(HostStatus.MAINTENANCE)
-            self.object.upgrade(async=False)
+            events_returned = []
+            break_on = [EventsCode.HOST_UPGRADE_FAILED,
+                        EventsCode.HOST_UPGRADE_STARTED]
+            if not async:
+                break_on.append(EventsCode.HOST_UPGRADE_FINISHED)
+            with event_waiter(self.api, "host.name=%s" % self.object.name, [], events_returned,
+                              break_on=break_on):
+                self.object.upgrade(async=async)
             if not async:
                 self.object.wait_for(HostStatus.INSTALLING)
                 # Upgrade is always async, so needs to wait for a maintenance status.
                 self.object.wait_for(HostStatus.MAINTENANCE)
-            return True
+                self._status = 1
         else:
-            return None
+            self._status = 3
+        return self._status
 
-        def to_str(self, value):
-            print isinstance(value, bool)
-            if isinstance(value, bool) and value:
-                return "Upgraded succeeded"
-            elif value is None:
-                return "Upgrade not needed"
-            else:
-                return value
+    def to_str(self, value):
+        if value == 0:
+            return "Nothing to do, up to date"
+        elif value == 1:
+            return "Upgraded succeeded"
+        elif value == 2:
+            return "Upgrade in progress"
+        elif value == 3:
+            return "Upgrade not needed"
+        else:
+            return str(value)
+
+    def status(self):
+        """A default status command to run on success"""
+        return self._status;
 
 
 import create
