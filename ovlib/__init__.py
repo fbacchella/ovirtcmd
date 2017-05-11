@@ -520,3 +520,4 @@ import ovlib.operatingsystem
 import ovlib.storages
 import ovlib.disks
 #import ovlib.permissions
+import ovlib.statistics
