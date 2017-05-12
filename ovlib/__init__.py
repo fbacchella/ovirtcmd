@@ -229,7 +229,7 @@ def wrapper(writer_class=None, type_class=None, service_class=None, other_method
             if clazz == ListObjectWrapper:
                 func.service_root = service_root
                 break
-        func.methods = other_methods + ['remove', 'list', 'start', 'stop', 'statistics_service', 'update', 'add']
+        func.methods = other_methods + ['remove', 'list', 'start', 'stop', 'update', 'add']
         for attribute in other_attributes + ['status', 'name', 'id']:
             if not hasattr(func, attribute):
                 setattr(func, attribute, AttributeWrapper(attribute))
@@ -462,13 +462,14 @@ class ListObjectWrapper(ObjectWrapper):
         via REST, so in case using search for nested entity we return all entities
         and filter them by specified attributes.
         """
+        kwargs = filter(lambda x: x[1] is not None, kwargs.items())
         if 'id' in kwargs:
             service = self.api.service("%s/%s" % (self.__class__.service_root, kwargs['id']))
             return self.api.wrap(service)
         # Check if 'list' method support search(look for search parameter):
         elif 'search' in inspect.getargspec(self.service.list)[0]:
             res = self.service.list(
-                search=' and '.join('{}={}'.format(k, v) for k, v in kwargs.items())
+                search=' and '.join('{}={}'.format(k, v) for k, v in kwargs)
             )
         else:
             res = [
