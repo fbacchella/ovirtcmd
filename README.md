@@ -3,7 +3,7 @@ ovcmd
 
 A CLI tool to manage an ovirt server.
 
-It's written in python and uses the [python SDK from ovirt](http://www.ovirt.org/develop/release-management/features/infra/python-sdk/)
+It's written in python and uses the [python SDK from ovirt](http://www.ovirt.org/develop/release-management/features/infra/python-sdk/) version 4
 
 Howto install venv
 
@@ -169,16 +169,23 @@ To get the nics sub entrie, the command needs to be
     </HostNIC>
     ...
 
-Capabilites
-===========
+The sub entry option can be repeated:
+
+    $ ./ovcmd system export summary vms active
+    40
+
+List of Nouns
+=============
+
+### Capabilites
 
 ovcmd can enumerate and search capabilities.
 
-The noun associated is `capa`.
+The noun associated is `capabilities`.
 
 Usage:
 
-    ovcmd [options] capa [object_args] verb [verbs_args]
+    ovcmd [options] capabilities [object_args] verb [verbs_args]
     verbs are:
         export
         list
@@ -186,40 +193,38 @@ Usage:
     Options:
       -h, --help            show this help message and exit
       -i ID, --id=ID        object ID
-      -v VERSION, --version=VERSION
+      -n VERSION, --name=VERSION
                             capabilities version major.minor
-      -c, --current         Get the current capabilities
 
 -c return the current capabilities used, -v expect a oVirt version like 3.0 or 3.6, -i is
 the UUID for the requested version.
 
-`capa list` enumerates all the supported capabilities, returning there version, the UUID and prefixing
-the current one with a 'c'
+`capabilities list` enumerates all the supported capabilities, returning their version.
 
 
-Virtual machines
-================
+### Virtual machines
 
 The noun associated is `vm`.
 
 Know verbs are
 
  * autoinstall
- * create
+ * statistics
+ * console
  * list
+ * create
+ * stop
  * start
  * export
  * ticket
- * delete
- * statistics
+ * migrating
 
     Options:
       -h, --help            show this help message and exit
       -i ID, --id=ID        object ID
       -n NAME, --name=NAME  object tag 'Name'
 
-Autoinstall
------------
+#### Autoinstall
 
 Automaticaly boot on the specified kernel, using a custom command line, it expect this command line to execute an
 autoinstallation command. It then wait for the installation to finish and restart the server with the old boot settings.
@@ -235,26 +240,47 @@ autoinstallation command. It then wait for the installation to finish and restar
       -c CMDLINE, --cmdline=CMDLINE
                             Command line for the kernel
 
-ticket
-------
+#### ticket
 
 It's used to generate a URL to connect to the console of a virtual machine. It resolve the IP and port information and
 also generate a ticket.
 
-Hosts
-=====
+#### console
+
+Generate a file that can be open by a [SPICE viewer](https://www.spice-space.org/page/Main_Page) to connect to a console.
+
+
+#### migrating
+
+Show the vm that are actually in migration and show progress.
+
+    Options:
+      -h, --help            show this help message and exit
+      -f, --follow          Follows status
+      -p PAUSE, --pause=PAUSE
+                            Pause in seconds between each status
+
+
+### Hosts
 
 The noun associated is `host`.
 
 Know verbs are
- * create
- * list
- * export
- * bond
- * statistics
 
-bond
-----
+ * upgrade
+ * statistics
+ * list
+ * reboot
+ * remove
+ * upgradecheck
+ * activate
+ * export
+ * maintenance
+ * bond
+ * reinstall
+ * discoverdomain
+ 
+#### bond
 
 It's used to automatically bond some interfaces from an hosts.
 
@@ -279,6 +305,85 @@ The argument -o is used to specify custom bonding options. They are given as `-o
 So the full bonding command, for a newly created hosts, and with one additionnal network called `VLAN100` and setting an MTU of 9000 for this new bond0
 is:
 
-    ovcmd host -n newhost bond -i eth0 -i eth1 -o miimon 100 -o mode 4 -o xmit_hash_policy "layer2+3" -m 9000 -n ovirtmgmt -n VLAN100
+    ovcmd host -n newhost bond -i eth0 -i eth1 -o miimon 100 -o mode 4 -o xmit_hash_policy "layer2+3" -m 9000
+
+#### upgrade
+
+Used to start the upgrade of a server. It can refresh the upgrade status using `-r`. If a host 
+is not already in maintenance status, it will put it in that mode, waiting for it to finish
+migration of the vm. It's default is to wait for the end of the upgrade and leave the host in 
+maintenance state.
+
+    Options:
+      -h, --help     show this help message and exit
+      -a, --async    Don't wait for completion state
+      -r, --refresh  Refresh the upgrade status
 
 
+### datacenter
+### network
+### os
+### system
+### cluster
+### user
+### template
+### storagedomain
+### disk
+### macpool
+### event
+
+OvCmd internals
+===============
+
+### Events enum
+
+A few events are defined in ovlib as symbolic value in a python3's enum, for easier to read code.
+More will be added as needed.
+
+### Wrapper object
+
+In OvCmd, types, services and writter object are packed together in a simple object with attributes
+usually taken from the type object and method taken from the service object. Some can also provide
+a few missing helper functions.
+
+The services object than return a list are improved in to way. They are 
+
+### Context
+
+Context is a wrapping function to the api connection.
+
+It provides some resolver that can wrap types, services and list object from the sdk in ovcmd's
+object object that increase functionnalites.
+
+In a context object, each top level services can be accessed as a simple attribute like `ctx.vms`or
+`ctx.hosts`
+
+### event_waiter
+
+The function event_waiter can be used to wrap some command in a python's `with` clause that will wait for some events.
+There is two kind of waiting. For it can wait for any event in the given list.
+It can be also given a list of event that each one must be seen exactly once.
+
+For example, if some disks are created and one wait to wait until disks creation is finished:
+
+    from ovlib import event_waiter, EventsCode
+    from ovirtsdk4.types import DiskAttachment
+    from ovlib.context import Context
+    
+        ctx = Context(**context_args)
+        vm = ctx.vms.get(name='vmname')
+
+        wait_for = []
+        for i in newdisks:
+            ...
+            disks.append(DiskAttachment(...))
+            waiting_events += [EventsCode.USER_ADD_DISK_TO_VM_FINISHED_SUCCESS, EventsCode.USER_ADD_DISK_TO_VM]
+            
+        with event_waiter(ctx, "vm.name=%s" % kwargs['name'], events_returned,
+                          wait_for=waiting_events,
+                          break_on=[EventsCode.USER_ADD_DISK_TO_VM_FINISHED_FAILURE],
+                          verbose=True):
+            map(lambda x: vm.disk_attachments.add(x), disks)
+
+It will make event_waiter for one USER_ADD_DISK_TO_VM_FINISHED_SUCCESS and one USER_ADD_DISK_TO_VM for each requested disk
+and stop waiting if one fails.
