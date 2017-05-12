@@ -2,11 +2,17 @@ import time
 import ovlib.verb
 
 from ovirtsdk4 import List
-from ovirtsdk4.types import Host, HostStatus, HostNic, NetworkAttachment, IpAddressAssignment, VmSummary
+from ovirtsdk4.types import Host, HostStatus, HostNic, NetworkAttachment, IpAddressAssignment, VmSummary, Ssh
 from ovirtsdk4.services import HostService, HostsService, NetworkAttachmentService, NetworkAttachmentsService, HostNicsService, HostNicService
-from ovirtsdk4.writers import HostWriter, HostNicWriter, NetworkAttachmentWriter, IpAddressAssignmentWriter, VmSummaryWriter
+from ovirtsdk4.writers import HostWriter, HostNicWriter, NetworkAttachmentWriter, IpAddressAssignmentWriter, VmSummaryWriter, SshWriter
 
 from ovlib import wrapper, ObjectWrapper, ListObjectWrapper, Dispatcher, dispatcher, command, event_waiter, EventsCode
+
+
+@wrapper(writer_class=SshWriter,
+         type_class=Ssh)
+class SshWrapper(ObjectWrapper):
+    pass
 
 
 @wrapper(writer_class=VmSummaryWriter,
