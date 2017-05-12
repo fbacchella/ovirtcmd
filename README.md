@@ -361,8 +361,8 @@ In a context object, each top level services can be accessed as a simple attribu
 ### event_waiter
 
 The function event_waiter can be used to wrap some command in a python's `with` clause that will wait for some events.
-There is two kind of waiting. For it can wait for any event in the given list.
-It can be also given a list of event that each one must be seen exactly once.
+There is two kind of waiting. Firt it can wait for any event in the given list, using the `break_on` argument. 
+It can be also given a list of event that each one must be seen exactly once, using the `wait_for` argument.
 
 For example, if some disks are created and one wait to wait until disks creation is finished:
 
