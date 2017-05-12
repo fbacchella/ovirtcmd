@@ -55,7 +55,6 @@ class NetworkAttachmentWrapper(ObjectWrapper):
 class HostWrapper(ObjectWrapper):
 
     def upgrade_check(self, async=True):
-        self.dirty = True
         if not async:
             events_returned = []
             with event_waiter(self.api, "host.name=%s" % self.name, events_returned,
@@ -63,9 +62,11 @@ class HostWrapper(ObjectWrapper):
                                         EventsCode.HOST_AVAILABLE_UPDATES_PROCESS_IS_ALREADY_RUNNING,
                                         EventsCode.HOST_AVAILABLE_UPDATES_SKIPPED_UNSUPPORTED_STATUS,
                                         EventsCode.HOST_AVAILABLE_UPDATES_FAILED]):
+                self.dirty = True
                 self.service.upgrade_check()
             return events_returned
         else:
+            self.dirty = True
             return self.service.upgrade_check()
 
 
