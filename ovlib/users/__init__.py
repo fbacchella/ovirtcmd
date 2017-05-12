@@ -1,9 +1,9 @@
 import ovlib.verb
 from ovlib import Dispatcher, ObjectWrapper, ListObjectWrapper, command, dispatcher, wrapper
 
-from ovirtsdk4.types import Session, User
-from ovirtsdk4.writers import SessionWriter, UserWriter
-from ovirtsdk4.services import UserService, UsersService
+from ovirtsdk4.types import User, SshPublicKey
+from ovirtsdk4.writers import UserWriter, SshPublicKeyWriter
+from ovirtsdk4.services import UserService, UsersService, SshPublicKeyService, SshPublicKeysService
 
 
 @wrapper(service_class=UsersService, service_root="users")
@@ -16,12 +16,22 @@ class UserWrapper(ObjectWrapper):
     pass
 
 
+@wrapper(service_class=SshPublicKeysService)
+class SshPublicKeysWrapper(ListObjectWrapper):
+    pass
+
+
+@wrapper(service_class=SshPublicKeyService, type_class=SshPublicKey, writer_class=SshPublicKeyWriter)
+class SshPublicKeyWrapper(ObjectWrapper):
+    pass
+
+
 @dispatcher(object_name="user", wrapper=UserWrapper, list_wrapper=UsersWrapper)
 class UserDispatcher(Dispatcher):
+    pass
     def get(self, name=None, id=None):
-        if id is None and name is not None:
-            id=name
-        return super(UserDispatcher, self).get(user_name=name)
+        return super(UserDispatcher, self).get(login=name, id=id)
+
 
 @command(UserDispatcher)
 class UserList(ovlib.verb.List):
