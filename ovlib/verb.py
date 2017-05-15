@@ -4,7 +4,6 @@ import string
 import io
 
 from ovlib.template import VariableOption
-from ovlib.context import ObjectExecutor
 from ovlib import OVLibErrorNotFound, is_id, OVLibError
 from ovirtsdk4 import types, Struct
 from ovirtsdk4.writer import Writer
