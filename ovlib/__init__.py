@@ -462,14 +462,14 @@ class ListObjectWrapper(ObjectWrapper):
         via REST, so in case using search for nested entity we return all entities
         and filter them by specified attributes.
         """
-        kwargs = filter(lambda x: x[1] is not None, kwargs.items())
+        kwargs = {k: v for k, v in kwargs.iteritems() if v is not None}
         if 'id' in kwargs:
             service = self.api.service("%s/%s" % (self.__class__.service_root, kwargs['id']))
             return self.api.wrap(service)
         # Check if 'list' method support search(look for search parameter):
         elif 'search' in inspect.getargspec(self.service.list)[0]:
             res = self.service.list(
-                search=' and '.join('{}={}'.format(k, v) for k, v in kwargs)
+                search=' and '.join('{}={}'.format(k, v) for k, v in kwargs.iteritems())
             )
         else:
             res = [
