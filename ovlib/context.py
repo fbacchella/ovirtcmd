@@ -1,5 +1,6 @@
 import pycurl
 import ConfigParser
+from enum import IntEnum
 
 import ovirtsdk4
 
@@ -9,6 +10,13 @@ from urlparse import urljoin
 
 # The api settings that store boolean values
 booleans = frozenset(['debug', 'insecure', 'kerberos'])
+
+
+class CurlDebugType(IntEnum):
+    TEXT = 1
+    HEADER = 2
+    DATA = 4
+    SSL = 8
 
 
 class ConfigurationError(Exception):
@@ -42,9 +50,13 @@ class Context(object):
             config.readfp(open(config_file))
 
         config_api = {}
+        config_logging = {}
         if len(config.sections()) != 0:
             for (k, v) in config.items("api"):
                 config_api[k] = v
+
+            for (k, v) in config.items("logging"):
+                config_logging[k] = v
 
         for attr_name in self.api_connect_settings.keys():
             if attr_name in kwargs:
@@ -60,6 +72,13 @@ class Context(object):
             raise ConfigurationError('incomplete configuration, oVirt url not found')
         if self.api_connect_settings['username'] == None and self.api_connect_settings['kerberos'] == None:
             raise ConfigurationError('not enought authentication informations')
+
+        if config_logging.get('filters', None) is not None:
+            self.filter = 0
+            filters = map(lambda x: x.strip(), config_logging['filters'].split(','))
+            for f in filters:
+                self.filter |= CurlDebugType[f.upper()]
+
 
     def connect(self):
         self.api = ovirtsdk4.Connection(**self.api_connect_settings)
@@ -99,20 +118,25 @@ class Context(object):
         This is the implementation of the cURL debug callback.
         """
 
-        if debug_type == pycurl.INFOTYPE_SSL_DATA_IN or debug_type == pycurl.INFOTYPE_SSL_DATA_OUT:
+        prefix = {pycurl.INFOTYPE_TEXT: '   ' if CurlDebugType.TEXT & self.filter else False,
+                  pycurl.INFOTYPE_HEADER_IN: '<  ' if CurlDebugType.HEADER & self.filter else False,
+                  pycurl.INFOTYPE_HEADER_OUT: '>  ' if CurlDebugType.HEADER & self.filter else False,
+                  pycurl.INFOTYPE_DATA_IN: '<< ' if CurlDebugType.DATA & self.filter else False,
+                  pycurl.INFOTYPE_DATA_OUT: '>> ' if CurlDebugType.DATA & self.filter else False,
+                  pycurl.INFOTYPE_SSL_DATA_IN: '<S ' if CurlDebugType.SSL & self.filter else False,
+                  pycurl.INFOTYPE_SSL_DATA_OUT: '>S ' if CurlDebugType.SSL & self.filter else False
+                  }[debug_type]
+        if prefix is False:
             return
 
-        prefix = {pycurl.INFOTYPE_TEXT: '   ',
-                  pycurl.INFOTYPE_HEADER_IN: '>  ',
-                  pycurl.INFOTYPE_HEADER_OUT: '<  ',
-                  pycurl.INFOTYPE_DATA_IN: '>> ',
-                  pycurl.INFOTYPE_DATA_OUT: '<< '
-                }[debug_type]
         # Some versions of PycURL provide the debug data as strings, and
         # some as arrays of bytes, so we need to check the type of the
         # provided data and convert it to strings before trying to
         # manipulate it with the "replace", "strip" and "split" methods:
-        text = data.decode('utf-8') if type(data) == bytes else data
+        if not debug_type == pycurl.INFOTYPE_SSL_DATA_IN and not pycurl.INFOTYPE_SSL_DATA_OUT:
+            text = data.decode('utf-8') if type(data) == bytes else data
+        else:
+            text = data.decode('string_escape') if type(data) == bytes else data
 
         # Split the debug data into lines and send a debug message for
         # each line:
