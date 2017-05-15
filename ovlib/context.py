@@ -1,5 +1,8 @@
-import ovirtsdk4
+import pycurl
 import ConfigParser
+
+import ovirtsdk4
+
 import ovlib
 
 from urlparse import urljoin
@@ -17,9 +20,6 @@ class ConfigurationError(Exception):
         return repr(self.value)
 
 
-import logging
-logging.basicConfig(level=logging.DEBUG, filename='example.log')
-
 class Context(object):
     api_connect_settings = {
         'url': None,
@@ -28,8 +28,8 @@ class Context(object):
         'ca_file': '/etc/pki/ovirt-engine/ca.pem',
         'insecure': False,
         'kerberos': False,
-        #'debug': True,
-        #'log': logging.getLogger(),
+        'debug': False,
+        'log': None,
     }
 
     connected = False
@@ -63,8 +63,14 @@ class Context(object):
 
     def connect(self):
         self.api = ovirtsdk4.Connection(**self.api_connect_settings)
+        if self.api_connect_settings['debug'] and self.api_connect_settings['log'] is None:
+            self.api._curl.setopt(pycurl.VERBOSE, 1)
+            self.api._curl.setopt(pycurl.DEBUGFUNCTION, self._curl_debug)
+
         self.follow_link = self.api.follow_link
         self.connected = True
+
+        # Generated all the needed accessors for root services, as defined using dispatchers
         for (dispatcher_name, dispatcher_wrapper) in ovlib.dispatchers.items():
             if hasattr(dispatcher_wrapper, 'list_wrapper') and hasattr(dispatcher_wrapper.list_wrapper, 'service_root'):
                 services_name = dispatcher_wrapper.list_wrapper.service_root
@@ -88,4 +94,29 @@ class Context(object):
     def wrap(self, sdk_object):
         return ovlib.ObjectWrapper.make_wrapper(self, sdk_object)
 
+    def _curl_debug(self, debug_type, data):
+        """
+        This is the implementation of the cURL debug callback.
+        """
+
+        if debug_type == pycurl.INFOTYPE_SSL_DATA_IN or debug_type == pycurl.INFOTYPE_SSL_DATA_OUT:
+            return
+
+        prefix = {pycurl.INFOTYPE_TEXT: '   ',
+                  pycurl.INFOTYPE_HEADER_IN: '>  ',
+                  pycurl.INFOTYPE_HEADER_OUT: '<  ',
+                  pycurl.INFOTYPE_DATA_IN: '>> ',
+                  pycurl.INFOTYPE_DATA_OUT: '<< '
+                }[debug_type]
+        # Some versions of PycURL provide the debug data as strings, and
+        # some as arrays of bytes, so we need to check the type of the
+        # provided data and convert it to strings before trying to
+        # manipulate it with the "replace", "strip" and "split" methods:
+        text = data.decode('utf-8') if type(data) == bytes else data
+
+        # Split the debug data into lines and send a debug message for
+        # each line:
+        lines = filter (lambda x: len(x) > 0, text.replace('\r\n', '\n').split('\n'))
+        for line in lines:
+            print "%s%s" % (prefix,line)
 
