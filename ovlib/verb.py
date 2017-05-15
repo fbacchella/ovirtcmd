@@ -127,7 +127,7 @@ class Statistics(Verb):
     verb = "statistics"
 
     def execute(self, *args, **kwargs):
-        for s in self.object.statistics_service().list():
+        for s in self.object.statistics.list():
             yield s
 
     def to_str(self, stat):
