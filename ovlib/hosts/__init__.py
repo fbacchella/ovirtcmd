@@ -246,10 +246,12 @@ class Upgrade(ovlib.verb.Verb):
                 self.object.deactivate(reason='For upgrade', async=True)
                 self.object.wait_for(HostStatus.MAINTENANCE)
             events_returned = []
-            break_on = [EventsCode.HOST_UPGRADE_FAILED,
-                        EventsCode.HOST_UPGRADE_STARTED]
-            if not async:
+            break_on = [EventsCode.HOST_UPGRADE_FAILED]
+            if async:
+                break_on.append(EventsCode.HOST_UPGRADE_STARTED)
+            else:
                 break_on.append(EventsCode.HOST_UPGRADE_FINISHED)
+
             with event_waiter(self.api, "host.name=%s" % self.object.name, events_returned,
                               break_on=break_on):
                 self._status = 2
