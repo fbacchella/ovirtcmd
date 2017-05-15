@@ -238,8 +238,8 @@ class Upgrade(ovlib.verb.Verb):
             events = self.object.upgrade_check(async=False)
             if isinstance(events, (List, list)):
                 if events[0].code_enum != EventsCode.HOST_AVAILABLE_UPDATES_FINISHED:
-                    self._status = 4
-                    return events[0].description
+                    self._status = 5
+                    raise ovlib.OVLibError(events[0].description, value={'event': events[0]})
 
         if self.object.update_available:
             if self.object.status != HostStatus.MAINTENANCE:
@@ -256,11 +256,13 @@ class Upgrade(ovlib.verb.Verb):
                               break_on=break_on):
                 self._status = 2
                 self.object.upgrade(async=async)
-            if events_returned[0].code_enum != EventsCode.HOST_UPGRADE_FINISHED:
+            if len(events_returned) == 0:
+                raise ovlib.OVLibError("upgrade interrupted")
+            if not async and events_returned[0].code_enum != EventsCode.HOST_UPGRADE_FINISHED:
                 self._status = 1
             elif not async:
                 self._status = 4
-                return events_returned[0].description
+                raise ovlib.OVLibError(events_returned[0].description, value={'event': events_returned[0]})
         else:
             self._status = 3
         return self._status
@@ -278,8 +280,8 @@ class Upgrade(ovlib.verb.Verb):
             return str(value)
 
     def status(self):
-        if self._status == 4:
-            return 1
+        if self._status >= 4:
+            return self._status - 3
         else:
             return 0
 
