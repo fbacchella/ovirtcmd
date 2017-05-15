@@ -258,7 +258,7 @@ class Upgrade(ovlib.verb.Verb):
                 self.object.upgrade(async=async)
             if len(events_returned) == 0:
                 raise ovlib.OVLibError("upgrade interrupted")
-            if not async and events_returned[0].code_enum != EventsCode.HOST_UPGRADE_FINISHED:
+            if events_returned[0].code_enum == EventsCode.HOST_UPGRADE_FINISHED:
                 self._status = 1
             elif not async:
                 self._status = 4
