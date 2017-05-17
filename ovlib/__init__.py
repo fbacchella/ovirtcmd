@@ -262,12 +262,11 @@ class IteratorObjectWrapper(object):
         self.api = api
 
     def __iter__(self):
-        self.iterator = iter(self.parent_list)
-        return self
+        # __iter__ return wrapped list content
+        for i in self.parent_list:
+            yield self.api.wrap(i)
 
-    def next(self):
-        next_object = self.iterator.next()
-        return self.api.wrap(next_object)
+
 
 
 @contextmanager
@@ -356,7 +355,6 @@ class ObjectWrapper(object):
 
     def __init__(self, api, type=None, service=None):
         self.api = api
-        self._is_enumerator = False
         if type is None and not isinstance(self, ListObjectWrapper):
             self.type = service.get()
             self.dirty = False
@@ -441,10 +439,6 @@ class ObjectWrapper(object):
     def __str__(self):
         return "%s<%s>" % (type(self).__name__, "" if self.type is None else self.type.href)
 
-    @property
-    def is_enumerator(self):
-        return self._is_enumerator
-
 
 class ListObjectWrapper(ObjectWrapper):
 
@@ -454,7 +448,6 @@ class ListObjectWrapper(ObjectWrapper):
         elif service is None:
             service = api.service(self.__class__.service_root)
         super(ListObjectWrapper, self).__init__(api, service=service)
-        self._is_enumerator = True
 
     def get(self, **kwargs):
         """
