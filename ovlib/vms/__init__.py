@@ -195,7 +195,7 @@ class Ticket(ovlib.verb.Verb):
 class Console(ovlib.verb.Verb):
 
     def fill_parser(self, parser):
-        parser.add_option("-c", "--c", dest="console", help="Console number", default=0, type=int)
+        parser.add_option("-c", "--console", dest="console", help="Console number", default=0, type=int)
 
     def execute(self, console=0):
         return self.object.get_vv_file(console)

@@ -40,11 +40,11 @@ class Context(object):
         'log': None,
     }
 
-    connected = False
-    api = None
-
     def __init__(self, config_file=None, **kwargs):
         super(Context, self).__init__()
+        self.connected = False
+        self.api = None
+
         config = ConfigParser.SafeConfigParser()
         if config_file is not None:
             config.readfp(open(config_file))
