@@ -136,6 +136,7 @@ class Dispatcher(object):
     def fill_parser(self, parser):
         parser.add_option("-i", "--id", dest="id", help="object ID")
         parser.add_option("-n", "--name", dest="name", help="object tag 'Name'")
+        parser.add_option("-s", "--search", dest="search", help="Filter using a search expression")
 
     def execute(self, name, method_args=[], method_kwargs={}):
         NameError('Not implemented')
@@ -162,7 +163,7 @@ class Dispatcher(object):
         if cmd:
             (verb_options, verb_args) = cmd.parse(object_args)
 
-            # transform options to a dict and removed undeclared arguments
+            # transform options to a dict and removed undeclared arguments or empty static enumerations
             verb_options = {k: v for k, v in vars(verb_options).iteritems()
                             if v is not None and (not isinstance(v, (list, tuple, buffer, xrange, dict)) or len(v) != 0)}
             return self.execute_phrase(cmd, object_options, verb_options, verb_args)
@@ -171,13 +172,11 @@ class Dispatcher(object):
 
 
     def execute_phrase(self, cmd, object_options={}, verb_options={}, verb_args=[]):
-        if cmd.object is None and len(object_options) > 0:
+        if cmd.object is None:
             try:
                 cmd.object = self.get(**object_options)
             except ovirtsdk4.Error as e:
                 raise OVLibError(e.message)
-        else:
-            cmd.object = self._lister
 
         if cmd.validate():
             if cmd.uses_template():
@@ -257,6 +256,7 @@ def method_wrapper(object_wrapper, service, method):
 
 
 class IteratorObjectWrapper(object):
+    "This class try to mimim some aspect of a ListObjectWrapper, but don't expect too much from it"
     def __init__(self, api, parent_list):
         self.parent_list = parent_list
         self.api = api
@@ -266,7 +266,21 @@ class IteratorObjectWrapper(object):
         for i in self.parent_list:
             yield self.api.wrap(i)
 
+    def list(self):
+        # list method is not expect to return a wrapped object
+        return self.parent_list
 
+    def export(self, path=[]):
+        buf = ""
+        for i in self.parent_list:
+            if i is None:
+                return ""
+            i_wrapper = self.api.wrap(i)
+            if hasattr(i_wrapper, 'export'):
+                buf += "%s" % i_wrapper.export(path)
+            else:
+                buf += str(i) + "\n"
+        return buf
 
 
 @contextmanager
@@ -313,7 +327,7 @@ class ObjectWrapper(object):
     @staticmethod
     def make_wrapper(api, detect):
         """Try to resolve the wrapper, given a type, or a service or a list."""
-        if detect is None or isinstance(detect, ObjectWrapper):
+        if detect is None or isinstance(detect, ObjectWrapper) or isinstance(detect, IteratorObjectWrapper):
             return detect
         # If detect was given, it will override any other given values and find the good one
         type = None
@@ -449,14 +463,18 @@ class ListObjectWrapper(ObjectWrapper):
             service = api.service(self.__class__.service_root)
         super(ListObjectWrapper, self).__init__(api, service=service)
 
-    def get(self, **kwargs):
+    def get(self, search=None, **kwargs):
         """
         Search for the entity by attributes. Nested entities don't support search
         via REST, so in case using search for nested entity we return all entities
         and filter them by specified attributes.
         """
         kwargs = {k: v for k, v in kwargs.iteritems() if v is not None}
-        if 'id' in kwargs:
+        if search is not None and 'search' in inspect.getargspec(self.service.list)[0]:
+            res = self.service.list(
+                search=search
+            )
+        elif 'id' in kwargs:
             service = self.api.service("%s/%s" % (self.__class__.service_root, kwargs['id']))
             return self.api.wrap(service)
         # Check if 'list' method support search(look for search parameter):
@@ -479,7 +497,7 @@ class ListObjectWrapper(ObjectWrapper):
         elif len(res) == 0:
             raise OVLibError("no object found matching the search")
         else:
-            raise OVLibError("Too many objects found matching the search")
+            return self.api.wrap(res)
 
     def __iter__(self):
         for i in self.list():
