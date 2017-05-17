@@ -1,13 +1,9 @@
 import optparse
-import time
 import string
-import io
 
 from ovlib.template import VariableOption
-from ovlib import OVLibErrorNotFound, is_id, OVLibError
-from ovirtsdk4 import types, Struct
-from ovirtsdk4.writer import Writer
-from ovirtsdk4 import xml
+from ovlib import OVLibError, ObjectWrapper
+from ovirtsdk4 import types
 
 # Find the best implementation available on this platform
 try:
@@ -27,10 +23,7 @@ class Verb(object):
 
     def validate(self):
         """try to validate the object needed by the commande, should be overriden if the no particular object is expected"""
-        if self.object is None:
-            return False
-        else:
-            return True
+        return isinstance(self.object, ObjectWrapper)
 
     def uses_template(self):
         return False
@@ -54,33 +47,6 @@ class Verb(object):
         else:
             print value
 
-    def get(self, source, common=None, name=None, id=None):
-        # if common is set, get was called with a single positionnal argument
-        # try to be smart and detect it's type
-        search=None
-        if isinstance(common, ObjectExecutor):
-            return common.type
-        elif isinstance(common, Struct):
-            return common
-        elif common is not None and is_id(common):
-            id = common
-            name = None
-            search ="id=%s" % id
-        elif common is not None and isinstance(common, basestring):
-            id = None
-            name = common
-            search ="name=%s" % name
-
-        if isinstance(source, basestring):
-            source = getattr(self.system_service(), source)
-
-        # reach this point, so still needs resolution
-        # but name and id contains expect type
-        founds = source.list(search=search, case_sensitive=True)
-        if len(founds) == 0:
-            raise OVLibErrorNotFound("%s(name='%s', id=%s) not found" % (source, name, id))
-        else:
-            return founds[0]
 
     def status(self):
         """A default status command to run on success"""
@@ -119,6 +85,9 @@ class List(Verb):
 class XmlExport(Verb):
     verb = "export"
 
+    def validate(self,  *args, **kwargs):
+        return self.object is not None and getattr(self.object, 'export', None) is not None
+
     def execute(self, *args, **kwargs):
         return self.object.export(args)
 
@@ -132,6 +101,7 @@ class Statistics(Verb):
 
     def to_str(self, stat):
         return "%s: %s %s (%s)\n" % (stat.name, stat.values[0].datum, stat.unit, stat.type)
+
 
 class Create(Verb):
     verb = "create"
