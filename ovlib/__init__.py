@@ -214,8 +214,7 @@ class AttributeWrapper(object):
 
     def __get__(self, obj, objtype):
         if obj.dirty:
-            obj.type = obj.api.follow_link(obj.type)
-            obj.dirty = False
+            obj.refresh()
         return getattr(obj.type, self.name)
 
 
@@ -376,9 +375,13 @@ class ObjectWrapper(object):
             self.dirty = False
         else:
             self.type = type
-            # type is taken directly, it might not have been resolved
+        # type is taken directly, it might not have been resolved
+        # but some types have not href (like tickets), they will never be dirty
+        if self.type is not None and self.type.href is not None:
             self.dirty = True
-        if service is None:
+        else:
+            self.dirty = False
+        if service is None and self.type is not None and self.type.href is not None:
             self.service = api.resolve_service_href(type.href)
         else:
             self.service = service
@@ -451,6 +454,9 @@ class ObjectWrapper(object):
     def __str__(self):
         return "%s<%s>" % (type(self).__name__, "" if self.type is None else self.type.href)
 
+    def refresh(self):
+        self.type = self.api.follow_link(self.type)
+        self.dirty = False
 
 class ListObjectWrapper(ObjectWrapper):
 

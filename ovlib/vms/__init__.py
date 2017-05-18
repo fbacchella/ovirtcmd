@@ -4,18 +4,42 @@ import tempfile
 import os
 import time
 
-from ovlib import Dispatcher, ObjectWrapper, ListObjectWrapper, command, dispatcher, wrapper
+from ovlib import Dispatcher, ObjectWrapper, ListObjectWrapper, command, dispatcher, wrapper, OVLibError
 
-from ovirtsdk4.types import Vm, VmStatus, GraphicsConsole, Nic, OperatingSystem, Display, DiskAttachment, TimeZone, \
-    CpuType, Cpu, Cdrom
+from ovirtsdk4.types import Vm, VmStatus, Nic, OperatingSystem, Display, DiskAttachment, TimeZone, \
+    CpuType, Cpu, Cdrom, ReportedDevice, HostDevice, \
+    Ticket, GraphicsConsole, GraphicsType
 from ovirtsdk4.services import VmsService, VmService, \
     VmNicsService, VmNicService, \
     OperatingSystemService, VmGraphicsConsoleService, VmGraphicsConsolesService, \
     DiskAttachmentService, DiskAttachmentsService, \
-    VmCdromService, VmCdromsService
-from ovirtsdk4.writers import VmWriter, GraphicsConsoleWriter, NicWriter, OperatingSystemWriter, DisplayWriter, \
+    VmCdromService, VmCdromsService, \
+    VmReportedDeviceService, VmReportedDevicesService, \
+    VmHostDeviceService, VmHostDevicesService
+from ovirtsdk4.writers import VmWriter, NicWriter, OperatingSystemWriter, DisplayWriter, \
     DiskAttachmentWriter, TimeZoneWriter, \
-    CpuTypeWriter, CpuWriter, CdromWriter
+    CpuTypeWriter, CpuWriter, CdromWriter, ReportedDeviceWriter, HostDeviceWriter, \
+    GraphicsConsoleWriter, TicketWriter
+
+
+@wrapper(writer_class=HostDeviceWriter, type_class=HostDevice, service_class=VmHostDeviceService)
+class HostDeviceWrapper(ObjectWrapper):
+    pass
+
+
+@wrapper(service_class=VmHostDevicesService)
+class VmHostDevicesWrapper(ListObjectWrapper):
+    pass
+
+
+@wrapper(writer_class=ReportedDeviceWriter, type_class=ReportedDevice, service_class=VmReportedDeviceService)
+class ReportedDeviceWrapper(ObjectWrapper):
+    pass
+
+
+@wrapper(service_class=VmReportedDevicesService)
+class ReportedDevicesWrapper(ListObjectWrapper):
+    pass
 
 
 @wrapper(writer_class=CdromWriter, type_class=Cdrom, service_class=VmCdromService)
@@ -53,18 +77,33 @@ class DiskAttachmentsWrapper(ListObjectWrapper):
     pass
 
 
-@wrapper(writer_class=GraphicsConsoleWriter, type_class=GraphicsConsole, service_class=VmGraphicsConsoleService)
-class VmGraphicsConsoleWrapper(ObjectWrapper):
+@wrapper(writer_class=TicketWriter, type_class=Ticket, other_attributes=['expiry', 'value'])
+class TicketWrapper(ObjectWrapper):
     pass
+
+
+@wrapper(writer_class=GraphicsConsoleWriter, type_class=GraphicsConsole, service_class=VmGraphicsConsoleService,
+         other_methods=['ticket', 'remote_viewer_connection_file', 'proxy_ticket'],
+         other_attributes=['port', 'tls_port', 'address', 'vm', 'protocol', 'vm'])
+class VmGraphicsConsoleWrapper(ObjectWrapper):
+
+    def refresh(self):
+        self.type = self.service.get(current=True)
+        self.dirty = False
+
+    def get_vv_file(self, vvfile_path=None):
+        if vvfile_path is None:
+            (vvfile, vvfile_path) = tempfile.mkstemp(suffix='.vv')
+            vvfile = os.fdopen(vvfile, 'w')
+        else:
+            vvfile = open(vvfile_path, 'w')
+        vvfile.write(self.remote_viewer_connection_file())
+        vvfile.close()
+        return vvfile_path
 
 
 @wrapper(service_class=VmGraphicsConsolesService)
 class VmGraphicsConsolesWrapper(ListObjectWrapper):
-    pass
-
-
-@wrapper(writer_class=GraphicsConsoleWriter, type_class=GraphicsConsole, service_class=VmGraphicsConsoleService)
-class VmGraphicsConsoleWrapper(ObjectWrapper):
     pass
 
 
@@ -85,17 +124,6 @@ class VmWrapper(ObjectWrapper):
         graphics_consoles_service = self.service.graphics_consoles_service()
         graphics_console = graphics_consoles_service.list()[console]
         return graphics_consoles_service.console_service(graphics_console.id)
-
-    def get_vv_file(self, console, vvfile_path=None):
-        graphics_console_service = self.get_graphic_console(console)
-        if vvfile_path is None:
-            (vvfile, vvfile_path) = tempfile.mkstemp(suffix='.vv')
-            vvfile = os.fdopen(vvfile, 'w')
-        else:
-            vvfile = open(vvfile_path, 'w')
-        vvfile.write(graphics_console_service.remote_viewer_connection_file())
-        vvfile.close()
-        return vvfile_path
 
 
 @wrapper(service_class=VmNicsService)
@@ -168,49 +196,52 @@ class VmSuspend(ovlib.verb.Verb):
         if not async:
             self.object.wait_for(VmStatus.SUSPENDED)
 
-
-@command(VmDispatcher, verb='ticket')
-class Ticket(ovlib.verb.Verb):
+class RemoteDisplay(ovlib.verb.Verb):
 
     def fill_parser(self, parser):
-        parser.add_option("-c", "--c", dest="console_number", help="Console number", default=0, type=int)
+        parser.add_option("-c", "--c", dest="console_number", help="Console number", default=-1, type=int)
+        parser.add_option("-p", "--p", dest="console_protocol", help="Console Protocol", default="spice")
 
-    def execute(self, console_number=0):
+    def execute(self, console_number=-1, console_protocol="spice"):
         self.object.wait_for(VmStatus.UP)
-        consoles_service = self.object.service.graphics_consoles_service()
-        consoles = consoles_service.list(current=True)
-        console = consoles[console_number]
-        console_service = consoles_service.console_service(console.id)
-        ticket = console_service.ticket()
-        port = self.object.type.display.port
-        if port is None:
-            port = self.object.type.display.secure_port
+        consoles_service = self.object.graphics_consoles
+        if console_number > 0:
+            protocol = None
+        else:
+            protocol = GraphicsType[console_protocol.upper()]
+        i = 0
+        for c in consoles_service:
+            if i == console_number or protocol == c.protocol:
+                return self.getinfo(c)
+            i += 1
+
+        raise OVLibError("No matching console found")
+
+
+@command(VmDispatcher, verb='ticket')
+class Ticket(RemoteDisplay):
+
+    def getinfo(self, console):
+        ticket = self.api.wrap(console.ticket())
         console_info = {
-            'type': self.object.type.display.type,
-            'address': self.object.type.display.address,
+            'address': console.address,
             'password': ticket.value,
-            'port': port,
-            'secure_port': self.object.type.display.secure_port,
-            'title': self.object.type.name + ":%d"
+            'port': console.port,
+            'secure_port': console.tls_port,
         }
-        for (k,v) in console_info.items():
-            console_info[k] = urllib.quote(str(v))
-        if console_info['type'] == 'spice':
+        if console.protocol == GraphicsType.SPICE:
             url = "spice://{address}:{port}/?password={password}&tls-port={secure_port}".format(**console_info)
-        elif console_info['type'] == 'vnc':
-            url = "vnc://{address}:{port}".format(**console_info)
+        elif console.protocol == GraphicsType.VNC:
+            url = "vnc://:{password}@{address}:{port}".format(**console_info)
 
         return url
 
 
-@command(VmDispatcher, verb='console')
-class Console(ovlib.verb.Verb):
+@command(VmDispatcher, verb='viewer')
+class Console(RemoteDisplay):
 
-    def fill_parser(self, parser):
-        parser.add_option("-c", "--console", dest="console", help="Console number", default=0, type=int)
-
-    def execute(self, console=0):
-        return self.object.get_vv_file(console)
+    def getinfo(self, console):
+        return console.get_vv_file()
 
 
 @command(VmDispatcher, verb='migrating')
