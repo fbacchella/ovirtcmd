@@ -446,10 +446,6 @@ class ObjectWrapper(object):
             else:
                 time.sleep(wait)
 
-    def update(self):
-        if self.type is not None:
-            self.service.update(self.type)
-
     def __str__(self):
         return "%s<%s>" % (type(self).__name__, "" if self.type is None else self.type.href)
 
