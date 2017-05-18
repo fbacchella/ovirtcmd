@@ -7,14 +7,25 @@ import time
 from ovlib import Dispatcher, ObjectWrapper, ListObjectWrapper, command, dispatcher, wrapper
 
 from ovirtsdk4.types import Vm, VmStatus, GraphicsConsole, Nic, OperatingSystem, Display, DiskAttachment, TimeZone, \
-    CpuType, Cpu
+    CpuType, Cpu, Cdrom
 from ovirtsdk4.services import VmsService, VmService, \
     VmNicsService, VmNicService, \
     OperatingSystemService, VmGraphicsConsoleService, VmGraphicsConsolesService, \
-    DiskAttachmentService, DiskAttachmentsService
+    DiskAttachmentService, DiskAttachmentsService, \
+    VmCdromService, VmCdromsService
 from ovirtsdk4.writers import VmWriter, GraphicsConsoleWriter, NicWriter, OperatingSystemWriter, DisplayWriter, \
     DiskAttachmentWriter, TimeZoneWriter, \
-    CpuTypeWriter, CpuWriter
+    CpuTypeWriter, CpuWriter, CdromWriter
+
+
+@wrapper(writer_class=CdromWriter, type_class=Cdrom, service_class=VmCdromService)
+class VmCdromWrapper(ObjectWrapper):
+    pass
+
+
+@wrapper(service_class=VmCdromsService)
+class VmCdromsWrapper(ListObjectWrapper):
+    pass
 
 
 @wrapper(writer_class=CpuTypeWriter, type_class=CpuType)
