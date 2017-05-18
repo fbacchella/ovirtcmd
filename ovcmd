@@ -32,6 +32,7 @@ def print_run_phrase(ov_object, verb, object_options={}, object_args=[]):
     #It return false, something went wrong
     elif executed is not None:
         print "'%s %s' failed" % (ov_object.object_name, verb)
+        return cmd.status()
     return 255
 
 
