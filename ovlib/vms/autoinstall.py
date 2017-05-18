@@ -16,7 +16,7 @@ class Autoinstall(Verb):
     def uses_template(self):
         return True
 
-    def execute(self, *args, **kwargs):
+    def execute(self, kernel=None, initrd=None, cmdline=None, *args, **kwargs):
         if self.object.status != types.VmStatus.DOWN:
             self.object.stop()
             self.object.wait_for(types.VmStatus.DOWN)
@@ -31,16 +31,13 @@ class Autoinstall(Verb):
         old_cmdline = old_os_params.cmdline
         if old_cmdline is None:
             old_cmdline = ''
-        old_os_params.kernel = kwargs.get('kernel', None)
-        old_os_params.initrd = kwargs.get('initrd', None)
-        old_os_params.cmdline = kwargs.get('cmdline', None)
 
         self.object.update(
             types.Vm(
                 os=types.OperatingSystem(
-                    kernel=kwargs.get('kernel', None),
-                    initrd = kwargs.get('initrd', None),
-                    cmdline=kwargs.get('cmdline', None)
+                    kernel=kernel,
+                    initrd = initrd,
+                    cmdline=cmdline
             )
         ))
 
