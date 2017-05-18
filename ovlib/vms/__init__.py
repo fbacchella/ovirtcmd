@@ -128,12 +128,13 @@ class VmStart(ovlib.verb.Verb):
     def fill_parser(self, parser):
         parser.add_option("-c", "--console", dest="console", help="Launch a console", default=False, action="store_true")
         parser.add_option("-C", "--console_device", dest="console_device", help="Console number", default=0, type=int)
+        parser.add_option("--cloud_init", dest="use_cloud_init", help="Use cloud init", default=False, action="store_true")
 
-    def execute(self, console=False, console_device=0):
-        self.object.start()
+    def execute(self, console=False, console_device=0, use_cloud_init=False):
+        self.object.start(use_cloud_init=use_cloud_init)
         if console:
+            self.object.wait_for(VmStatus.POWERING_UP)
             return self.object.get_vv_file(console_device)
-            self.wait_for(VmStatus.POWERING_UP)
         else:
             return None
 
