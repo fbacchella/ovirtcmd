@@ -339,6 +339,8 @@ class ObjectWrapper(object):
             service = detect
         elif isinstance(detect, ovirtsdk4.List):
             list = detect
+        elif isinstance(detect, collections.Iterable):
+            list = detect
         else:
             return detect
         if service is None:
