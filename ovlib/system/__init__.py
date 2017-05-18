@@ -26,11 +26,17 @@ class ApiWrapper(ObjectWrapper):
     pass
 
 
-@wrapper(service_class=SystemService, service_root="", other_methods=['reload_configurations'])
-class SystemWrapper(ListObjectWrapper):
+@wrapper(service_class=SystemService, other_methods=['reload_configurations'])
+class SystemWrapper(ObjectWrapper):
+
+    def __init__(self, api, type=None, service=None):
+        super(SystemWrapper, self).__init__(api, service=api.service(""))
 
     def export(self, path=[]):
         return self.api.wrap(self.service.get()).export(path)
+
+    def get(self, search=None, **kwargs):
+        return self
 
 
 @dispatcher(object_name="system", wrapper=SystemWrapper, list_wrapper=SystemWrapper)
