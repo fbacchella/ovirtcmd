@@ -293,7 +293,6 @@ def event_waiter(api, object_filter, events, wait_for=[], break_on=[], timeout=1
             wait_for.remove(x)
         except ValueError:
             pass
-    events_service = ovlib.events.EventsWrapper(api)
     last_event = api.events.get_last()
     yield
     end_of_wait =  time.time() + timeout
@@ -301,17 +300,17 @@ def event_waiter(api, object_filter, events, wait_for=[], break_on=[], timeout=1
         search = '%s and %s' % (object_filter, " or ".join(map(lambda x: "type=%s" % x, set(wait_for + break_on))))
         if time.time() > end_of_wait:
             raise OVLibError("Timeout will waiting for events", value={'ids': wait_for})
-        founds = events_service.list(
+        founds = api.events.list(
             from_= last_event,
             search=search,
         )
         if len(founds) > 0:
             last_event = int(founds[-1].id)
-            founds = api.wrap(founds)
-            events += founds
-            if verbose:
-                for j in founds:
-                    print "%s" % j.export(['description']).strip()
+            for j in founds:
+                j_wrapped = api.wrap(j)
+                events += [j_wrapped]
+                if verbose:
+                    print "%s" % j_wrapped.export(['description']).strip()
             stop_id = filter(lambda x: x in break_on, map(lambda x: int(x.code), founds))
             if len(stop_id) > 0:
                 break
@@ -339,7 +338,7 @@ class ObjectWrapper(object):
             service = detect
         elif isinstance(detect, ovirtsdk4.List):
             list = detect
-        elif isinstance(detect, collections.Iterable):
+        elif isinstance(detect, collections.Iterable) and not isinstance(detect, (str, unicode)):
             list = detect
         else:
             return detect
