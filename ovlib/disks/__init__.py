@@ -1,13 +1,14 @@
 import ovlib.verb
 
-from ovlib import Dispatcher, ListObjectWrapper, ObjectWrapper, command, dispatcher, wrapper, parse_size
+from ovlib import Dispatcher, ListObjectWrapper, ObjectWrapper, command, dispatcher, wrapper, parse_size, event_waiter, EventsCode
 
-from ovirtsdk4.types import Disk
+from ovirtsdk4.types import Disk,  DiskFormat, StorageDomain, DiskAttachment, DiskInterface
 from ovirtsdk4.services import DiskService, DisksService
 from ovirtsdk4.writers import DiskWriter
 
 
-@wrapper(writer_class=DiskWriter, type_class=Disk, service_class=DiskService)
+
+@wrapper(writer_class=DiskWriter, type_class=Disk, service_class=DiskService, other_attributes=['comment', 'bootable'])
 class DiskWrapper(ObjectWrapper):
     pass
 
@@ -49,34 +50,40 @@ class DiskCreate(ovlib.verb.Create):
         return True
 
     def fill_parser(self, parser):
+        parser.add_option("-n", "--name", dest="name", help="Disk name", default=None)
         parser.add_option("-d", "--storage_domain", dest="storage_domain", help="Storage Domain name", default=None)
         parser.add_option("-s", "--size", dest="disk_size", help="size", default=None)
-        parser.add_option("-l", "--lun_storage", dest="lun_storage", help="LUN device", default=None)
+        parser.add_option("-D", "--description", dest="description", help="Disk description", default=None)
+        parser.add_option("-v", "--vm", dest="vm", help="Attachement VM", default=None)
+        parser.add_option("-f", "--format", dest="format", help="disk format", default=None)
 
-    def execute(self, **kwargs):
-        disk_size = kwargs.pop('disk_size', None)
-        if disk_size is not None:
-            kwargs['size'] = parse_size(disk_size)
+    def execute(self, name, disk_size, storage_domain, vm=None, description=None, format=DiskFormat.RAW, disk_size_ratio=10,
+                disk_interface = DiskInterface.VIRTIO_SCSI,
+                **kwargs):
+        provisioned_size = parse_size(disk_size)
 
-        storage_domain=kwargs.pop('storage_domain', None)
-        if storage_domain is not None:
-            storage_domain = StoragesDomainWrapper(self.api).get(name=storage_domain)
-            kwargs['storage_domains'] = params.StorageDomains(
-                storage_domain=[params.StorageDomain(id=storage_domain.id)])
+        if isinstance(format, (str, unicode)):
+            format = DiskFormat[format.upper()]
 
-        lun_storage = kwargs.pop('lun_storage', None)
-        units = []
-        if lun_storage is not None:
-            for lu in lun_storage:
-                units.append(params.LogicalUnit(**lu))
-            if len(units) > 0:
-                if units[0].address is not None:
-                    storage_type = 'iscsi'
-                else:
-                    storage_type = 'fcp'
-                kwargs['lun_storage'] = params.Storage(logical_unit=units, type_=storage_type)
-        kwargs['type_'] = 'system'
+        events_returned = []
+        waiting_events = [EventsCode.USER_ADD_DISK_FINISHED_SUCCESS]
+        break_on = [EventsCode.USER_ADD_DISK_FINISHED_FAILURE, EventsCode.USER_FAILED_ADD_DISK]
+        filter = "event_storage = %s" % storage_domain
+        if vm is not None:
+            filter += " or event_vm = %s" % vm
+            vm = self.api.vms.get(name=vm)
+        with event_waiter(self.api, filter, events_returned,
+                          wait_for=waiting_events,
+                          break_on=break_on,
+                          verbose=True):
+            newdisk = self.api.disks.add(Disk(
+                name = name, storage_domains=[StorageDomain(name=storage_domain)], description=description,
+                provisioned_size=provisioned_size, format=format))
 
-        return self.contenaire.add(params.Disk(**kwargs))
+        if vm is not None:
+            da = DiskAttachment(disk=newdisk, interface=disk_interface, bootable=False, active=True)
+            vm.disk_attachments.add(da)
+
+        return newdisk
 
 
