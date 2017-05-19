@@ -210,7 +210,7 @@ class RemoteDisplay(ovlib.verb.Verb):
         else:
             protocol = GraphicsType[console_protocol.upper()]
         i = 0
-        for c in consoles_service:
+        for c in consoles_service.list():
             if i == console_number or protocol == c.protocol:
                 return self.getinfo(c)
             i += 1

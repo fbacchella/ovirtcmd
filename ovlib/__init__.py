@@ -467,7 +467,21 @@ class ListObjectWrapper(ObjectWrapper):
             service = api.service(self.__class__.service_root)
         super(ListObjectWrapper, self).__init__(api, service=service)
 
-    def get(self, search=None, **kwargs):
+    def get(self, **kwargs):
+        res = self._do_query(**kwargs)
+        if len(res) == 0:
+            raise OVLibError("no object found matching the search")
+        elif len(res) > 1:
+            raise OVLibError("Too many objects found matching the search")
+        else:
+            return self.api.wrap(res[0])
+
+    def list(self, **kwargs):
+        for i in self._do_query(**kwargs):
+            if i is not None:
+                yield self.api.wrap(i)
+
+    def _do_query(self, search=None, **kwargs):
         """
         Search for the entity by attributes. Nested entities don't support search
         via REST, so in case using search for nested entity we return all entities
@@ -479,8 +493,8 @@ class ListObjectWrapper(ObjectWrapper):
                 search=search
             )
         elif 'id' in kwargs:
-            service = self.api.service("%s/%s" % (self.__class__.service_root, kwargs['id']))
-            return self.api.wrap(service)
+            service = self.api.service("%s/%s" % (self.service._path[1:], kwargs['id']))
+            return [service]
         # Check if 'list' method support search(look for search parameter):
         elif 'search' in inspect.getargspec(self.service.list)[0]:
             res = self.service.list(
@@ -492,24 +506,11 @@ class ListObjectWrapper(ObjectWrapper):
                     k for k, v in kwargs.items() if getattr(e, k, None) == v
                 ]) == len(kwargs)
             ]
-        if len(res) == 1:
-            search_type = res[0]
-            if search_type is not None:
-                return self.api.wrap(search_type)
-            else:
-                return OVLibError("Invalid object found matching the search")
-        elif len(res) == 0:
-            raise OVLibError("no object found matching the search")
-        else:
-            return self.api.wrap(res)
+        return res
 
-    def __iter__(self):
-        for i in self.list():
-            yield self.api.wrap(i)
-
-    def export(self, path=[]):
+    def export(self, path=[], **kwargs):
         buf = ""
-        for i in self.list():
+        for i in self.list(**kwargs):
             next_wrapper = self.api.wrap(i)
             if next_wrapper is not None:
                 buf += "%s" % next_wrapper.export(path)
@@ -517,7 +518,6 @@ class ListObjectWrapper(ObjectWrapper):
 
     def __str__(self):
         return "%s<%s>" % (type(self).__name__, "" if self.service is None else self.service._path)
-
 
 
 import ovlib.events

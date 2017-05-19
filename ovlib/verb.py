@@ -43,9 +43,9 @@ class Verb(object):
 
     def to_str(self, value):
         if value is True:
-            print "success"
+            return "success"
         else:
-            print value
+            return value
 
     def get(self, lister, **kwargs):
         return lister.get(**kwargs)
@@ -82,7 +82,7 @@ class List(Verb):
         values = {}
         for i in formatter.parse(self.template):
             values[i[1]] = getattr(status, i[1])
-        return  "%s\n" %(formatter.format(self.template, **values))
+        return  "%s" %(formatter.format(self.template, **values))
 
     def get(self, lister, **kwargs):
         return lister
@@ -92,10 +92,14 @@ class XmlExport(Verb):
     verb = "export"
 
     def validate(self,  *args, **kwargs):
-        return self.object is not None and getattr(self.object, 'export', None) is not None
+        return self.object is not None
 
     def execute(self, *args, **kwargs):
-        return self.object.export(args)
+        for i in self.object:
+            yield i.export(args).strip()
+
+    def get(self, lister, **kwargs):
+        return lister.list(**kwargs)
 
 
 class Statistics(Verb):
@@ -106,7 +110,7 @@ class Statistics(Verb):
             yield s
 
     def to_str(self, stat):
-        return "%s: %s %s (%s)\n" % (stat.name, stat.values[0].datum, stat.unit, stat.type)
+        return "%s: %s %s (%s)" % (stat.name, stat.values[0].datum, stat.unit, stat.type)
 
 
 class Create(Verb):
