@@ -54,11 +54,19 @@ class EventsList(ovlib.verb.List):
     template = "{id!s} {description!s}"
 
     def fill_parser(self, parser):
+        super(EventsList, self).fill_parser(parser)
         parser.add_option("-f", "--from", dest="from_", help="Start searching from", default=None, type=int)
 
-    def execute(self, from_=None):
-        for e in self.object.list(from_=from_):
-            yield e
+#    def execute(self, from_=None, template=self.template, ):
+#        if template is not None:
+#            self.template = template#
+#
+#        for i in self.object.list(search=search):
+#            yield i#
+#
+#        self.template = kwargs.pop('template', self.template)
+#        for e in self.object.list(from_=from_):
+#            yield e
 
 
 @command(EventDispatcher)
