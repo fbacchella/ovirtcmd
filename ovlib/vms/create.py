@@ -12,9 +12,9 @@ os_settings = {
         'architecture': 'X86_64',
         'soundcard_enabled': False,
         'type': 'server',
-        'network_interface': types.NicInterface['VIRTIO'],
+        'network_interface': types.NicInterface.VIRTIO,
         'network_name': 'eth%d',
-        'disk_interface': types.DiskInterface['VIRTIO_SCSI'],
+        'disk_interface': types.DiskInterface.VIRTIO_SCSI,
     }
 }
 
@@ -121,7 +121,7 @@ class VmCreate(Verb):
             disk_args = {
                 'provisioned_size': 0,
                 'interface': disk_interface,
-                'format': types.DiskFormat['RAW'],
+                'format': types.DiskFormat.RAW,
                 'sparse': False,
                 'storage_domain': storage_domain_common,
                 'suffix': 'sys' if len(disks) == 0 else len(disks),
