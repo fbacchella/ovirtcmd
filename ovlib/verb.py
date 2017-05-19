@@ -47,6 +47,8 @@ class Verb(object):
         else:
             print value
 
+    def get(self, lister, **kwargs):
+        return lister.get(**kwargs)
 
     def status(self):
         """A default status command to run on success"""
@@ -62,11 +64,12 @@ class List(Verb):
 
     def fill_parser(self, parser):
         super(List, self).fill_parser(parser)
-        parser.add_option("-q", "--query", dest="query")
+        parser.add_option("-s", "--search", dest="search")
         parser.add_option("-t", "--template", dest="template", help="template for output formatting, default to %s" % self.template)
 
-    def execute(self, *args, **kwargs):
-        self.template = kwargs.pop('template', self.template)
+    def execute(self, template=None, **kwargs):
+        if template is not None:
+            self.template = template
 
         for i in self.object.list(**kwargs):
             yield i
@@ -80,6 +83,9 @@ class List(Verb):
         for i in formatter.parse(self.template):
             values[i[1]] = getattr(status, i[1])
         return  "%s\n" %(formatter.format(self.template, **values))
+
+    def get(self, lister, **kwargs):
+        return lister
 
 
 class XmlExport(Verb):
@@ -109,6 +115,8 @@ class Create(Verb):
     def validate(self):
         return True
 
+    def get(self, lister, **kwargs):
+        return lister
 
 class Remove(Verb):
     verb = "remove"
