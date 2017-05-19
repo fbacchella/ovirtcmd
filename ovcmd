@@ -20,14 +20,14 @@ def print_run_phrase(ov_object, verb, object_options={}, object_args=[]):
             if s != None:
                 string = cmd.to_str(s)
                 if string:
-                    print string,
+                    print string
                     sys.stdout.flush()
         return cmd.status()
     # Else if it return something, just print it
     elif executed is not None and executed is not False:
         string = cmd.to_str(executed)
         if string:
-            print string,
+            print string
         return cmd.status()
     #It return false, something went wrong
     elif executed is not None:
