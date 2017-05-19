@@ -535,6 +535,5 @@ import ovlib.clusters
 import ovlib.operatingsystem
 import ovlib.storages
 import ovlib.disks
-#import ovlib.permissions
 import ovlib.statistics
 import ovlib.jobs
