@@ -515,32 +515,32 @@ class ListObjectWrapper(ObjectWrapper):
             if i is not None:
                 yield self.api.wrap(i)
 
-    def _do_query(self, search=None, **kwargs):
+    def _do_query(self, search=None, id=None, **kwargs):
         """
         Search for the entity by attributes. Nested entities don't support search
         via REST, so in case using search for nested entity we return all entities
         and filter them by specified attributes.
         """
-        kwargs = {k: v for k, v in kwargs.iteritems() if v is not None}
-        if search is not None and 'search' in inspect.getargspec(self.service.list)[0]:
-            res = self.service.list(
-                search=search
-            )
-        elif 'id' in kwargs:
-            service = self.api.service("%s/%s" % (self.service._path[1:], kwargs['id']))
+
+        if id is not None:
+            service = self.api.service("%s/%s" % (self.service._path[1:], id))
             return [service]
-        # Check if 'list' method support search(look for search parameter):
-        elif 'search' in inspect.getargspec(self.service.list)[0]:
-            res = self.service.list(
-                search=' and '.join('{}={}'.format(k, v) for k, v in kwargs.iteritems())
-            )
         else:
-            res = [
-                e for e in self.service.list() if len([
-                    k for k, v in kwargs.items() if getattr(e, k, None) == v
-                ]) == len(kwargs)
-            ]
-        return res
+            search_keys = set(kwargs.keys()) - set(inspect.getargspec(self.service.list).args)
+            search_args = {k: kwargs[k] for k in search_keys if kwargs[k] is not None}
+            list_args = {k: kwargs[k] for k in (set(kwargs.keys()) -  search_keys) if kwargs[k] is not None}
+            if 'search' in inspect.getargspec(self.service.list)[0]:
+                # Check if 'list' method support search(look for search parameter):
+                if search is None and len(search_args) > 0:
+                    search = ' and '.join('{}={}'.format(k, v) for k, v in search_args.iteritems())
+                res = self.service.list(search=search, **list_args)
+            else:
+                res = [
+                    e for e in self.service.list() if len([
+                        k for k, v in kwargs.items() if getattr(e, k, None) == v
+                    ]) == len(kwargs)
+                ]
+            return res
 
     def export(self, path=[], **kwargs):
         buf = ""
