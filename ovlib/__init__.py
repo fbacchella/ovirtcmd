@@ -434,7 +434,6 @@ class ObjectWrapper(object):
                         except OVLibError:
                             setattr(self, service_name, getattr(self.service, method)())
 
-
     def export(self, path=[]):
         buf = None
         writer = None
@@ -491,6 +490,7 @@ class ObjectWrapper(object):
     def refresh(self):
         self.type = self.api.follow_link(self.type)
         self.dirty = False
+
 
 class ListObjectWrapper(ObjectWrapper):
 

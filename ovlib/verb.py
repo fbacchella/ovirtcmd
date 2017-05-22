@@ -5,11 +5,13 @@ from ovlib.template import VariableOption
 from ovlib import OVLibError, ObjectWrapper
 from ovirtsdk4 import types
 
+
 # Find the best implementation available on this platform
 try:
     from cStringIO import StringIO
 except:
     from StringIO import StringIO
+
 
 class Verb(object):
     """A abstract class, used to implements actual verb"""
@@ -122,6 +124,7 @@ class Create(Verb):
     def get(self, lister, **kwargs):
         return lister
 
+
 class Remove(Verb):
     verb = "remove"
 
@@ -141,6 +144,7 @@ class RemoveForce(Remove):
             force=kwargs['force'] is True,
         )
         return self.object.delete(action_params)
+
 
 class Update(Verb):
     verb = "update"

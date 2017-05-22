@@ -19,6 +19,7 @@ class ClustersWrapper(ListObjectWrapper):
 class ClusterDispatcher(Dispatcher):
     pass
 
+
 @command(ClusterDispatcher)
 class ClusterList(ovlib.verb.List):
     pass

@@ -7,7 +7,6 @@ from ovirtsdk4.services import DiskService, DisksService
 from ovirtsdk4.writers import DiskWriter
 
 
-
 @wrapper(writer_class=DiskWriter, type_class=Disk, service_class=DiskService, other_attributes=['comment', 'bootable'])
 class DiskWrapper(ObjectWrapper):
     pass

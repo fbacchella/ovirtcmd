@@ -22,7 +22,6 @@ class EventWrapper(ObjectWrapper):
             self._code_enum = EventsCode(self.type.code)
         return self.type.code
 
-
     @property
     def code_enum(self):
         if self.dirty:
@@ -30,7 +29,6 @@ class EventWrapper(ObjectWrapper):
             self.dirty = False
             self._code_enum = EventsCode(self.type.code)
         return self._code_enum
-
 
 
 @wrapper(service_class=EventsService, service_root="events")

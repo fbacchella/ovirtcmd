@@ -72,7 +72,7 @@ class Create(ovlib.verb.Create):
 
 
 @command(DataCenterDispatcher)
-class Create(ovlib.verb.Verb):
+class AddQoS(ovlib.verb.Verb):
     verb = "addqos"
 
     def execute(self, *args, **kwargs):
