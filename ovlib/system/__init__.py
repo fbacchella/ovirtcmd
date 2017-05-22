@@ -35,17 +35,20 @@ class SystemWrapper(ObjectWrapper):
     def export(self, path=[]):
         return self.api.wrap(self.service.get()).export(path)
 
-    def get(self, search=None, **kwargs):
-        return self
-
 
 @dispatcher(object_name="system", wrapper=SystemWrapper, list_wrapper=SystemWrapper)
 class SystemDispatcher(Dispatcher):
     pass
 
+
 @command(SystemDispatcher)
 class SystemExport(ovlib.verb.XmlExport):
-    pass
+
+    def get(self, *args, **kwargs):
+        return [self.api.system]
+
+    def list(self, *args, **kwargs):
+        return [self.api.system]
 
 
 @command(SystemDispatcher, verb='reload')

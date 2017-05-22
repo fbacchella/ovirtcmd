@@ -5,6 +5,7 @@ from enum import IntEnum
 import ovirtsdk4
 
 import ovlib
+from ovlib.system import SystemWrapper
 
 from urlparse import urljoin
 
@@ -95,6 +96,8 @@ class Context(object):
                 services_name = dispatcher_wrapper.list_wrapper.service_root
                 if not hasattr(self, services_name):
                     setattr(self, services_name, dispatcher_wrapper.list_wrapper(self))
+        # needed because there is no list generator for system
+        setattr(self, 'system', SystemWrapper(self))
 
     def disconnect(self):
         if self.connected:
