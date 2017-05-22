@@ -12,7 +12,10 @@ class EventWrapper(ObjectWrapper):
     def __init__(self, api, type=None, service=None):
         super(EventWrapper, self).__init__(api, service=service, type=type)
         if type is not None:
-            self._code_enum = EventsCode(self.type.code)
+            try:
+                self._code_enum = EventsCode(self.type.code)
+            except ValueError:
+                self._code_enum = EventsCode.UNDEFINED
 
     @property
     def code(self):
@@ -35,7 +38,7 @@ class EventWrapper(ObjectWrapper):
 class EventsWrapper(ListObjectWrapper):
 
     def get_last(self):
-        found_events = self.list(max=1)
+        found_events = self.get(max=1)
         if len(found_events) > 0:
             return int(found_events[0].id)
         else:
@@ -44,7 +47,10 @@ class EventsWrapper(ListObjectWrapper):
 
 @dispatcher(object_name="event", wrapper=EventWrapper, list_wrapper=EventsWrapper)
 class EventDispatcher(Dispatcher):
-    pass
+
+    def fill_parser(self, parser):
+        super(EventDispatcher, self).fill_parser(parser)
+        parser.add_option("-f", "--from", dest="from_", help="Start searching from", default=None, type=int)
 
 
 @command(EventDispatcher)
@@ -55,20 +61,7 @@ class EventsList(ovlib.verb.List):
         super(EventsList, self).fill_parser(parser)
         parser.add_option("-f", "--from", dest="from_", help="Start searching from", default=None, type=int)
 
-#    def execute(self, from_=None, template=self.template, ):
-#        if template is not None:
-#            self.template = template#
-#
-#        for i in self.object.list(search=search):
-#            yield i#
-#
-#        self.template = kwargs.pop('template', self.template)
-#        for e in self.object.list(from_=from_):
-#            yield e
-
 
 @command(EventDispatcher)
 class EventExport(ovlib.verb.XmlExport):
     pass
-
-
