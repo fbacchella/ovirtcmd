@@ -57,51 +57,44 @@ class Verb(object):
         return 0;
 
 
-class List(Verb):
-    verb = "list"
-    template = "{name!s} {id!s}"
+class RepeterVerb(Verb):
 
-    def validate(self,  *args, **kwargs):
-        return True
-
-    def fill_parser(self, parser):
-        super(List, self).fill_parser(parser)
-        parser.add_option("-s", "--search", dest="search")
-        parser.add_option("-t", "--template", dest="template", help="template for output formatting, default to %s" % self.template)
-
-    def execute(self, template=None, **kwargs):
-        if template is not None:
-            self.template = template
-
-        for i in self.object.list(**kwargs):
-            yield i
-
-    def get_service_path(self, *args, **kwargs):
-        return self.object.service_root
-
-    def to_str(self, status):
-        formatter = string.Formatter()
-        values = {}
-        for i in formatter.parse(self.template):
-            values[i[1]] = getattr(status, i[1])
-        return  "%s" %(formatter.format(self.template, **values))
-
-    def get(self, lister, **kwargs):
-        return lister
-
-
-class XmlExport(Verb):
-    verb = "export"
-
-    def validate(self,  *args, **kwargs):
+    def validate(self, *args, **kwargs):
         return self.object is not None
-
-    def execute(self, *args, **kwargs):
-        for i in self.object:
-            yield i.export(args).strip()
 
     def get(self, lister, **kwargs):
         return lister.list(**kwargs)
+
+
+class List(RepeterVerb):
+    verb = "list"
+    template = "{name!s} {id!s}"
+
+    def fill_parser(self, parser):
+        super(List, self).fill_parser(parser)
+        parser.add_option("-t", "--template", dest="template", help="template for output formatting, default to %s" % self.template)
+
+    def execute(self, template=None):
+        if template is not None:
+            self.template = template
+
+        for i in self.object:
+            yield i
+
+    def to_str(self, item):
+        formatter = string.Formatter()
+        values = {}
+        for i in formatter.parse(self.template):
+            values[i[1]] = getattr(item, i[1])
+        return  "%s" %(formatter.format(self.template, **values))
+
+
+class XmlExport(RepeterVerb):
+    verb = "export"
+
+    def execute(self, *args):
+        for i in self.object:
+            yield i.export(args).strip()
 
 
 class Statistics(Verb):

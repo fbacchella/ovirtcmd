@@ -39,13 +39,6 @@ class ClusterLevelDispatcher(Dispatcher):
 class List(ovlib.verb.List):
     template = "{id!s}"
 
-    def execute(self, *args, **kwargs):
-        print self.object
-        self.template = kwargs.pop('template', self.template)
-
-        for i in self.object.list(**kwargs):
-            yield i
-
 
 @command(ClusterLevelDispatcher)
 class XmlExport(ovlib.verb.XmlExport):
