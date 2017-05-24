@@ -1,25 +1,44 @@
-ovcmd
+oVirtCmd
 =====
 
-OvCmd is a CLI tool and sdk to manage an ovirt server.
+oVirtCmd is a CLI tool and sdk to manage an ovirt server.
 
 It's written in python and uses the [python SDK from ovirt](http://www.ovirt.org/develop/release-management/features/infra/python-sdk/) version 4.
 
-More documentation about the sdk can be found at http://ovirt.github.io/ovirt-engine-sdk/master/ or
+More documentation about the sdk can be found at [ovirtsdk4 doc](http://ovirt.github.io/ovirt-engine-sdk/master/) or 
+[REST API GUIDE for RHV 4.1](https://access.redhat.com/documentation/en-us/red_hat_virtualization/4.1/html/rest_api_guide/)
+
+Howto install in a virtualenv
+-----------------------------
+
+    VENV=...
+    export PYCURL_SSL_LIBRARY=..
+    virtualenv $VENV
+    $VENV/bin/python setup.py install
+    
+On a RedHat familly distribution, the following packages are needed:
+
+    yum install python-virtualenv gcc openssl-devel libcurl-devel libyaml-devel libxml2-devel
+
+and `PYCURL_SSL_LIBRARY` must be set to `nss`. If missing, installation will not be able to detect the good ssl library used. 
+
+For keytab support (see later), one should also run:
+
+    $VENV/bin/pip install gssapi
 
 Usage
 =====
 
 CLI
 ---
-ovcmd can be used a CLI for oVirt. Each command does a single action. Many of them maps directly to usual
-oVirt command, but some are specific to ovcmd or try to add functionnality to existing one.
+oVirtCmd can be used a CLI for oVirt. Each command does a single action. Many of them maps directly to usual
+oVirt command, but some are specific to oVirtCmd or try to add functionnality to existing one.
 
 The general command line is
 
     ovcmd [args] noun [args] verb [args]
 
-The section 'noun' match a generic Ovirt object that can be managed using OvCmd.
+The section 'noun' match a generic oVirt object that can be managed using oVirtCmd.
 
 For each noun, there is a set of verbs that can apply to it. Each args section
 apply to the preceding term. So `ovcmd -c someting vm` is different from `ovcmd vm -c someting`.
@@ -32,7 +51,7 @@ The verbs are usually taken from the python sdk, but not all are implemented and
 Config file
 ===========
 
-ovcmd use a `ini` file to store settings, a example is given in `sample_config.ini`.
+oVirtCmd use a `ini` file to store settings, a example is given in `sample_config.ini`.
 
 It the environnement variable `OVCONFIG` is given, it will be used to find the config file.
 
@@ -70,7 +89,7 @@ Some command that take a import number of arguments like `ovcmd vm create` can t
 
 A template is a yaml file that provides many settings, they usually duplicate
 command line settings, but they can be more detailled. A template can used variables
-written as ${variable_name}.
+written as ${variable_name}`.
 
 To use a template, give the argument `-T template_file` to the file and each variables is declared
 with `-V variable_name value`.
@@ -123,7 +142,7 @@ Associated with filter, it can extract the names of all virtual machine running 
 Scripting
 ---------
 
-ovcmd can also be used to script oVirt actions, using python. It mimics closely the usual oVirt's API but try
+oVirtCmd can also be used to script oVirt actions, using python. It mimics closely the usual oVirt's API but try
 to hide parts of it's complexity.
 
 In this case, the command line is
@@ -198,7 +217,7 @@ A sample that create a bunch of VM:
 Kerberos support
 ----------------
 
-The ovirt's sdk natively support kerberos, but OvCmd add improved support of keytab. It's configured in [kerberos] section
+The ovirt's sdk natively support kerberos, but oVirtCmd add improved support of keytab. It's configured in [kerberos] section
 in the ini file:
 
     [kerberos]
@@ -206,10 +225,10 @@ in the ini file:
     keytab=
     principal=
 
-It allows OvCmd to load a kerberos identity from a custom keytab, using a custom principal. The ccache define where tickets will
+It allows oVirtCmd to load a kerberos identity from a keytab, using a custom principal. The ccache define where tickets will
 be stored and can use alternative credential cache, for more information see [MIT's ccache types](http://web.mit.edu/Kerberos/krb5-latest/doc/basic/ccache_def.html#ccache-types).
 
-It uses [Python's GSSAPI](https://pypi.python.org/pypi/gssapi) but it's imported only if need, so installation is not mandatory.
+It uses [Python's GSSAPI](https://pypi.python.org/pypi/gssapi) but it's imported only if needed, so installation is not mandatory.
 
 
 List of Nouns
@@ -217,7 +236,7 @@ List of Nouns
 
 ### Capabilites
 
-ovcmd can enumerate and search capabilities.
+oVirtCmd can enumerate and search capabilities.
 
 The noun associated is `capabilities`.
 
@@ -370,7 +389,7 @@ maintenance state.
 ### macpool
 ### event
 
-OvCmd internals
+oVirtCmd internals
 ===============
 
 ### Events enum
@@ -380,7 +399,7 @@ More will be added as needed.
 
 ### Wrapper object
 
-In OvCmd, types, services and writter object are packed together in a simple object with attributes
+In oVirtCmd, types, services and writter object are packed together in a simple object with attributes
 usually taken from the type object and method taken from the service object. Some can also provide
 a few missing helper functions.
 
