@@ -85,7 +85,7 @@ class VmCreate(Verb):
         if cpu is None:
             cpu_topology = {'cores': 1, 'threads': 1, 'sockets': 1}
         # if plain cpu argument was given, it's a number of socket, single core, single thread
-        elif isinstance(cpu, (int, basestring)):
+        elif isinstance(cpu, (int, str)):
             cpu_topology = {}
             cpu_topology['cores'] = 1
             cpu_topology['threads'] = 1
@@ -94,7 +94,7 @@ class VmCreate(Verb):
             if 'architecture' in cpu:
                 architecture = types.Architecture[cpu.pop('architecture')]
             if 'topology' in cpu:
-                cpu_topology ={k: int(v) for k, v in cpu.pop('topology').items()}
+                cpu_topology ={k: int(v) for k, v in list(cpu.pop('topology').items())}
             else:
                 cpu_topology = cpu
 
@@ -132,8 +132,8 @@ class VmCreate(Verb):
             #If a id to an existing disk was given
             if is_id(disk_information):
                 disk_args = {'id': disk_information}
-            elif isinstance(disk_information, (basestring, list, tuple)):
-                if isinstance(disk_information, basestring):
+            elif isinstance(disk_information, (str, list, tuple)):
+                if isinstance(disk_information, str):
                     disk_information_array = disk_information.split(",")
                 else:
                     disk_information_array = disk_information
@@ -151,9 +151,9 @@ class VmCreate(Verb):
             if disk_size is not None:
                 disk_args['provisioned_size'] = parse_size(disk_size)
 
-            if 'format' in disk_args and isinstance(disk_args['format'], (str, unicode)):
+            if 'format' in disk_args and isinstance(disk_args['format'], str):
                 disk_args['format'] = types.DiskFormat[disk_args['format']]
-            if 'interface' in disk_args and isinstance(disk_args['interface'], (str, unicode)):
+            if 'interface' in disk_args and isinstance(disk_args['interface'], str):
                 disk_args['interface'] = types.DiskInterface[disk_args['interface']]
 
             storage_domain = disk_args.pop('storage_domain', None)
@@ -183,7 +183,7 @@ class VmCreate(Verb):
                 'name': if_name % len(nics),
                 'interface': if_interface,
             }
-            if isinstance(net_info, basestring):
+            if isinstance(net_info, str):
                 net_args['network'] = net_info
             elif isinstance(net_info, dict):
                 net_args.update(net_info)
@@ -192,7 +192,7 @@ class VmCreate(Verb):
             if net_name is not None:
                 net_args['network'] = dc.networks.get(name=net_name).type
 
-            if 'interface' in net_args and isinstance(net_args['interface'], (str, unicode)):
+            if 'interface' in net_args and isinstance(net_args['interface'], str):
                 net_args['interface'] = types.NicInterface[net_args['interface']]
 
             nics.append(types.Nic(**net_args))
@@ -207,6 +207,8 @@ class VmCreate(Verb):
                                     EventsCode.NETWORK_ACTIVATE_VM_INTERFACE_FAILURE],
                           verbose=True):
             newvm = self.api.wrap(self.api.vms.add(types.Vm(**kwargs)))
-            map(lambda x: newvm.nics.add(x), nics)
-            map(lambda x: newvm.disk_attachments.add(x), disks)
+            for x in nics:
+                newvm.nics.add(x)
+            for x in disks:
+                newvm.disk_attachments.add(x)
         return newvm

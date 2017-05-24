@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import string
 import yaml
 import sys
@@ -35,11 +37,11 @@ class TemplateDict(dict):
         return self.resolve(value)
 
     def items(self):
-        for (key, value) in super(TemplateDict, self).items():
+        for (key, value) in list(super(TemplateDict, self).items()):
             yield (key, self.resolve(value))
 
     def iteritems(self):
-        for (key, value) in super(TemplateDict, self).iteritems():
+        for (key, value) in super(TemplateDict, self).items():
             yield (key, self.resolve(value))
 
     def pop(self, key, default=None):
@@ -53,9 +55,9 @@ class TemplateDict(dict):
             except KeyError as e:
                 raise ovlib.OVLibError("unknwon variable '%s' in template '%s'"% (e.message, value), {'variable': e.message, 'template':value}, e)
         elif isinstance(value, (list, tuple)):
-            return map(lambda x: self.resolve(x), value)
+            return [self.resolve(x) for x in value]
         elif isinstance(value, dict):
-            return {k: self.resolve(v) for k, v in value.iteritems()}
+            return {k: self.resolve(v) for k, v in value.items()}
         else:
             return value
 
@@ -98,6 +100,6 @@ def load_template(template, variables):
         try:
             yaml_template = yaml.safe_load(docker_file)
         except (yaml.scanner.ScannerError, yaml.parser.ParserError) as e:
-            print >> sys.stderr, e
+            print(e, file=sys.stderr)
             return None
     return TemplateDict(variables, yaml_template)

@@ -50,7 +50,7 @@ class MacPoolCreate(ovlib.verb.Create):
         parser.add_option("-r", "--range", dest="ranges", help="From-To", default=[], action='append')
 
     def do_range(self, from_to=None, from_mac=None, to_mac=None):
-        if isinstance(from_to, str) or isinstance(from_to, unicode):
+        if isinstance(from_to, str) or isinstance(from_to, str):
             (from_mac, to_mac) = from_to.split('-')[0:2]
         elif isinstance(from_to, list) or isinstance(from_to, tuple):
             (from_mac, to_mac) = from_to[0:2]

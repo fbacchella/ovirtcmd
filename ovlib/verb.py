@@ -8,9 +8,9 @@ from ovirtsdk4 import types
 
 # Find the best implementation available on this platform
 try:
-    from cStringIO import StringIO
+    from io import StringIO
 except:
-    from StringIO import StringIO
+    from io import StringIO
 
 
 class Verb(object):

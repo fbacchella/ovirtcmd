@@ -1,5 +1,5 @@
 import pycurl
-import ConfigParser
+from configparser import ConfigParser
 from enum import IntEnum
 
 import ovirtsdk4
@@ -7,7 +7,7 @@ import ovirtsdk4
 import ovlib
 from ovlib.system import SystemWrapper
 
-from urlparse import urljoin
+from six.moves.urllib.parse import urljoin
 
 # The api settings that store boolean values
 booleans = frozenset(['debug', 'insecure', 'kerberos'])
@@ -46,9 +46,9 @@ class Context(object):
         self.connected = False
         self.api = None
 
-        config = ConfigParser.SafeConfigParser()
+        config = ConfigParser()
         if config_file is not None:
-            config.readfp(open(config_file))
+            config.read(config_file, encoding='utf-8')
 
         config_api = {}
         config_logging = {}
@@ -64,7 +64,7 @@ class Context(object):
             if config.has_section('kerberos'):
                 config_kerberos = {k: v for k,v in config.items('kerberos')}
 
-        for attr_name in Context.api_connect_settings.keys():
+        for attr_name in list(Context.api_connect_settings.keys()):
             if attr_name in kwargs:
                 self.api_connect_settings[attr_name] = kwargs.pop(attr_name)
                 # given in the command line
@@ -96,7 +96,7 @@ class Context(object):
 
         if config_logging.get('filters', None) is not None:
             self.filter = 0
-            filters = map(lambda x: x.strip(), config_logging['filters'].split(','))
+            filters = [x.strip() for x in config_logging['filters'].split(',')]
             for f in filters:
                 self.filter |= CurlDebugType[f.upper()]
 
@@ -111,7 +111,7 @@ class Context(object):
         self.connected = True
 
         # Generated all the needed accessors for root services, as defined using dispatchers
-        for (dispatcher_name, dispatcher_wrapper) in ovlib.dispatchers.items():
+        for (dispatcher_name, dispatcher_wrapper) in list(ovlib.dispatchers.items()):
             if hasattr(dispatcher_wrapper, 'list_wrapper') and hasattr(dispatcher_wrapper.list_wrapper, 'service_root'):
                 services_name = dispatcher_wrapper.list_wrapper.service_root
                 if not hasattr(self, services_name):
@@ -127,7 +127,7 @@ class Context(object):
         absolute_href = urljoin(self.api.url, href)
         # the second replace is to remove the first / in the path
         service_path = absolute_href.replace(self.api.url, "").replace("/", "", 1)
-        new_service = self.api.service(service_path)
+        new_service = self.api.service(service_path.encode('ascii','ignore'))
         return new_service
 
     def service(self, path):
@@ -163,7 +163,7 @@ class Context(object):
 
         # Split the debug data into lines and send a debug message for
         # each line:
-        lines = filter (lambda x: len(x) > 0, text.replace('\r\n', '\n').split('\n'))
+        lines = [x for x in text.replace('\r\n', '\n').split('\n') if len(x) > 0]
         for line in lines:
-            print "%s%s" % (prefix,line)
+            print("%s%s" % (prefix,line))
 

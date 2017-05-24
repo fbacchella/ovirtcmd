@@ -118,7 +118,7 @@ size_re = re.compile('(\\d+)([TGMKk]?)');
 
 
 def parse_size(input_size, out_suffix="", default_suffix=None):
-    if isinstance(input_size, basestring):
+    if isinstance(input_size, str):
         matcher = size_re.match("%s" % input_size)
         if matcher is not None:
             value = float(matcher.group(1))
@@ -140,7 +140,7 @@ def create_re():
 id_re = create_re()
 
 def is_id(try_id):
-    return isinstance(try_id, basestring) and id_re.match(try_id) is not None
+    return isinstance(try_id, str) and id_re.match(try_id) is not None
 
 
 dispatchers = { }
@@ -203,7 +203,7 @@ class Dispatcher(object):
             (verb_options, verb_args) = cmd.parse(object_args)
 
             # transform options to a dict and removed undeclared arguments or empty static enumerations
-            verb_options = {k: v for k, v in vars(verb_options).iteritems()
+            verb_options = {k: v for k, v in list(vars(verb_options).items())
                             if v is not None and (not isinstance(v, (list, tuple, buffer, xrange, dict)) or len(v) != 0)}
             return self.execute_phrase(cmd, object_options, verb_options, verb_args)
         else:
@@ -222,7 +222,7 @@ class Dispatcher(object):
                 yamltemplate = verb_options.pop('yamltemplate', None)
                 yamlvariables = verb_options.pop('yamlvariables', {})
                 template = self.fill_template(yamltemplate, yamlvariables)
-                for (k, v) in template.items():
+                for (k, v) in list(template.items()):
                     if k not in verb_options and v is not None:
                         verb_options[k] = v
             return (cmd, cmd.execute(*verb_args, **verb_options))
@@ -321,18 +321,13 @@ class IteratorObjectWrapper(object):
 @contextmanager
 def event_waiter(api, object_filter, events, wait_for=[], break_on=[], timeout=1000, wait=1, verbose=False):
     # Works on copy, as we don't know where the arguments are coming from.
-    break_on=map(lambda x: x.value, break_on)
-    wait_for=map(lambda x: x.value, wait_for)
-    def purge(x):
-        try:
-            wait_for.remove(x)
-        except ValueError:
-            pass
+    break_on=[x.value for x in break_on]
+    wait_for=[x.value for x in wait_for]
     last_event = api.events.get_last()
     yield
     end_of_wait =  time.time() + timeout
     while True:
-        search = '%s and %s' % (object_filter, " or ".join(map(lambda x: "type=%s" % x, set(wait_for + break_on))))
+        search = '%s and %s' % (object_filter, " or ".join(["type=%s" % x for x in set(wait_for + break_on)]))
         if time.time() > end_of_wait:
             raise OVLibError("Timeout will waiting for events", value={'ids': wait_for})
         founds = api.events.list(
@@ -345,11 +340,15 @@ def event_waiter(api, object_filter, events, wait_for=[], break_on=[], timeout=1
                 j_wrapped = api.wrap(j)
                 events += [j_wrapped]
                 if verbose:
-                    print "%s" % j_wrapped.export(['description']).strip()
-            stop_id = filter(lambda x: x in break_on, map(lambda x: int(x.code), founds))
+                    print(("%s" % j_wrapped.export(['description']).strip()))
+            stop_id = [x for x in [int(x.code) for x in founds] if x in break_on]
             if len(stop_id) > 0:
                 break
-            map(purge, map(lambda x: int(x.code), founds))
+            for x in founds:
+                try:
+                    wait_for.remove(int(x.code))
+                except ValueError:
+                    pass
             if len(wait_for) == 0:
                 break
         time.sleep(wait)
@@ -373,7 +372,7 @@ class ObjectWrapper(object):
             service = detect
         elif isinstance(detect, ovirtsdk4.List):
             list = detect
-        elif isinstance(detect, collections.Iterable) and not isinstance(detect, (str, unicode)):
+        elif isinstance(detect, collections.Iterable) and not isinstance(detect, str):
             list = detect
         else:
             return detect
@@ -385,11 +384,11 @@ class ObjectWrapper(object):
         wrapper = None
         if service is not None:
             service_class = native_type(service)
-            if service_wrappers.has_key(service_class):
+            if service_class in service_wrappers:
                 wrapper = service_wrappers[service_class]
         elif type is not None:
             type_class = native_type(type)
-            if type_wrappers.has_key(type_class):
+            if type_class in type_wrappers:
                 wrapper = type_wrappers[type_class]
         if wrapper is not None:
             if issubclass(wrapper, ListObjectWrapper):
@@ -459,7 +458,7 @@ class ObjectWrapper(object):
                 next_wrapper = self.api.wrap(next_type)
                 if next_wrapper is not None and hasattr(next_wrapper, 'export'):
                     return next_wrapper.export(path[1:])
-                elif isinstance(next_wrapper, collections.Iterable) and not isinstance(next_wrapper, (str, unicode)):
+                elif isinstance(next_wrapper, collections.Iterable) and not isinstance(next_wrapper, str):
                     # yes, a string is iterable in python, not funny
                     buf = ""
                     for i in next_type:
@@ -533,12 +532,12 @@ class ListObjectWrapper(ObjectWrapper):
             if 'search' in inspect.getargspec(self.service.list)[0]:
                 # Check if 'list' method support search(look for search parameter):
                 if search is None and len(search_args) > 0:
-                    search = ' and '.join('{}={}'.format(k, v) for k, v in search_args.iteritems())
+                    search = ' and '.join('{}={}'.format(k, v) for k, v in list(search_args.items()))
                 res = self.service.list(search=search, **list_args)
             else:
                 res = [
                     e for e in self.service.list() if len([
-                        k for k, v in kwargs.items() if getattr(e, k, None) == v
+                        k for k, v in list(kwargs.items()) if getattr(e, k, None) == v
                     ]) == len(kwargs)
                 ]
             return res

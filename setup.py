@@ -16,7 +16,7 @@ setup(
     license = "Apache",
     keywords = "CLI oVirt virtualization",
     install_requires=[
-        'ovirt-engine-sdk-python', 'PyYaml', 'ipaddress'
+        'ovirt-engine-sdk-python', 'PyYaml', 'ipaddress', 'six', 'configparser'
     ],
     url = "https://github.com/fbacchella/ovirtcmd",
     packages=find_packages(),

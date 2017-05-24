@@ -135,7 +135,7 @@ class UpgradeCheck(ovlib.verb.Verb):
 
     def to_str(self, value):
         if isinstance(value, List):
-            for i in map(lambda x: self.api.wrap(x), value):
+            for i in [self.api.wrap(x) for x in value]:
                 return i.description
         else:
             return str(self.api.wrap(value))
@@ -188,7 +188,7 @@ class ReInstall(ovlib.verb.Verb):
             if p in ssh_old_params and ssh_old_params[p] is not None:
                 ssh_new_params[p] = ssh_old_params[p]
 
-        print ssh_new_params
+        print(ssh_new_params)
         action = params.Action(ssh=params.SSH(**ssh_new_params),
                                host=params.Host(override_iptables=kwargs.pop('override_iptables', True)))
         self.broker.install(action)
@@ -212,10 +212,10 @@ class Reboot(ovlib.verb.Verb):
             try:
                 self.broker = self.contenaire.get(id=self.broker.id)
                 current_last_boot = get_uptime(self.broker)
-                print "%s %s" % (last_boot, current_last_boot)
+                print("%s %s" % (last_boot, current_last_boot))
                 #self.broker.activate()
             except RequestError as e:
-                print e.detail
+                print(e.detail)
                 time.sleep(5)
         self.wait_for("up")
         return True
@@ -286,5 +286,5 @@ class Upgrade(ovlib.verb.Verb):
             return 0
 
 
-import create
-import bond
+from . import create
+from . import bond

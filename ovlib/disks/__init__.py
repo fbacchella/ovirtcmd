@@ -61,7 +61,7 @@ class DiskCreate(ovlib.verb.Create):
                 **kwargs):
         provisioned_size = parse_size(disk_size)
 
-        if isinstance(format, (str, unicode)):
+        if isinstance(format, str):
             format = DiskFormat[format.upper()]
 
         events_returned = []

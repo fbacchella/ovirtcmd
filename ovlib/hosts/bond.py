@@ -34,8 +34,8 @@ class Bond(ovlib.verb.Verb):
         parser.add_option("-b", "--bond_name", dest="bond_name", default="bond0")
 
     def execute(self, bond_name='bond0', mtu=None, interfaces=[], bond_options={}, *args, **kwargs):
-        nics = map(lambda x: HostNic(name=x, mtu=mtu), interfaces)
-        bond_options = map(lambda (x, y): Option(name=x, value=y), bond_options.iteritems())
+        nics = [HostNic(name=x, mtu=mtu) for x in interfaces]
+        bond_options = [Option(name=x_y[0], value=x_y[1]) for x_y in iter(bond_options.items())]
         bonding = Bonding(slaves=nics, options=bond_options)
         bonded_if = HostNic(name=bond_name, bonding=bonding, mtu=mtu)
         bonded_na = []

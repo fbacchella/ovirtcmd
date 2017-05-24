@@ -1,5 +1,4 @@
 import ovlib.verb
-import urllib
 import tempfile
 import os
 import time
@@ -271,6 +270,6 @@ class Migrating(ovlib.verb.Verb):
             time.sleep(5)
 
 
-import autoinstall
-import create
-import remove
+from . import autoinstall
+from . import create
+from . import remove
