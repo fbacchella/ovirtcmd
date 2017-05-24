@@ -36,7 +36,7 @@ class Context(object):
         'password': None,
         'ca_file': '/etc/pki/ovirt-engine/ca.pem',
         'insecure': False,
-        'kerberos': False,
+        'kerberos': None,
         'debug': False,
         'log': None,
     }
@@ -52,14 +52,19 @@ class Context(object):
 
         config_api = {}
         config_logging = {}
+        config_kerberos = {}
+
         if len(config.sections()) != 0:
             for (k, v) in config.items("api"):
                 config_api[k] = v
 
-            for (k, v) in config.items("logging"):
-                config_logging[k] = v
+            if config.has_section('logging'):
+                config_logging = {k: v for k, v in config.items('logging')}
 
-        for attr_name in self.api_connect_settings.keys():
+            if config.has_section('kerberos'):
+                config_kerberos = {k: v for k,v in config.items('kerberos')}
+
+        for attr_name in Context.api_connect_settings.keys():
             if attr_name in kwargs:
                 self.api_connect_settings[attr_name] = kwargs.pop(attr_name)
                 # given in the command line
@@ -69,9 +74,24 @@ class Context(object):
                 if attr_name in booleans:
                     self.api_connect_settings[attr_name] = config.getboolean('api', attr_name)
 
+        if config_kerberos.get('keytab', None) is not None:
+            import gssapi
+            import os
+
+            ccache = config_kerberos.get('ccache', None)
+            keytab = config_kerberos.get('keytab', None)
+            kname = config_kerberos.get('principal', None)
+            if kname is not None:
+                kname = gssapi.Name(kname)
+
+            gssapi.creds.Credentials(name=kname, usage='initiate', store={'ccache': ccache, 'client_keytab': keytab})
+            os.environ['KRB5CCNAME'] = ccache
+            if self.api_connect_settings['kerberos'] is None:
+                self.api_connect_settings['kerberos'] = True
+
         if self.api_connect_settings['url'] == None:
             raise ConfigurationError('incomplete configuration, oVirt url not found')
-        if self.api_connect_settings['username'] == None and self.api_connect_settings['kerberos'] == None:
+        if self.api_connect_settings['username'] is None and self.api_connect_settings['kerberos'] is None:
             raise ConfigurationError('not enought authentication informations')
 
         if config_logging.get('filters', None) is not None:
