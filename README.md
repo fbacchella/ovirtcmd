@@ -1,18 +1,11 @@
 ovcmd
 =====
 
-A CLI tool to manage an ovirt server.
+OvCmd is a CLI tool and sdk to manage an ovirt server.
 
-It's written in python and uses the [python SDK from ovirt](http://www.ovirt.org/develop/release-management/features/infra/python-sdk/) version 4
+It's written in python and uses the [python SDK from ovirt](http://www.ovirt.org/develop/release-management/features/infra/python-sdk/) version 4.
 
-Howto install venv
-
-    virtualenv-2.7 venv
-    . ./venv/bin/activate
-    pip install --upgrade pip
-    pip uninstall pycurl
-    PYCURL_SSL_LIBRARY=openssl easy_install pycurl
-    easy_install ovirt-engine-sdk-python PyYaml ipaddress
+More documentation about the sdk can be found at http://ovirt.github.io/ovirt-engine-sdk/master/ or
 
 Usage
 =====
@@ -26,8 +19,7 @@ The general command line is
 
     ovcmd [args] noun [args] verb [args]
 
-The section 'noun' match a generic Ovirt object that can be managed using
-ovcmd.
+The section 'noun' match a generic Ovirt object that can be managed using OvCmd.
 
 For each noun, there is a set of verbs that can apply to it. Each args section
 apply to the preceding term. So `ovcmd -c someting vm` is different from `ovcmd vm -c someting`.
@@ -35,8 +27,98 @@ apply to the preceding term. So `ovcmd -c someting vm` is different from `ovcmd 
 To get a list of noun that can be used, try `ovcmd -h`. For a list ov verb that
 can be used with an object, try `ovcmd <noun> -h`.
 
-The verbs are usually taken from the python sdk, but not all are implemented
-and some are added.
+The verbs are usually taken from the python sdk, but not all are implemented and some are added.
+
+Config file
+===========
+
+ovcmd use a `ini` file to store settings, a example is given in `sample_config.ini`.
+
+It the environnement variable `OVCONFIG` is given, it will be used to find the config file.
+
+
+Generic options
+===============
+
+The generic options for all noun and verbs are
+
+
+  -h, --help            show this help message and exit
+  -c CONFIG_FILE, --config=CONFIG_FILE
+                        an alternative config file
+  -d, --debug           The debug level
+
+
+Noun options
+============
+
+Usually a noun option take a filter option that can define on what object it applies.
+
+  -h, --help            show this help message and exit
+  -i ID, --id=ID        object ID
+  -n NAME, --name=NAME  object tag 'Name'
+  -s SEARCH, --search=SEARCH
+                        Filter using a search expression
+
+The option id and name obvioulsy return single object. But search can return many. Usually verb will then fail but some 
+(like export or list) will operate on each of them.
+
+Templates
+=========
+
+Some command that take a import number of arguments like `ovcmd vm create` can take a template as an argument.
+
+A template is a yaml file that provides many settings, they usually duplicate
+command line settings, but they can be more detailled. A template can used variables
+written as ${variable_name}.
+
+To use a template, give the argument `-T template_file` to the file and each variables is declared
+with `-V variable_name value`.
+
+For example, to create a vm, one can use the template `vm_create.yaml` with
+
+    ovcmd vm create -T vm_create.yaml -V memory 2G -V cores 4 -V cluster cluster01 -V ostype rhel_7x64
+
+Exporting
+=========
+
+Many nouns support the export verb, to generate an xml dump of it's setting.
+
+To export sub entries, this verb can take an argument being the sub object name to export.
+
+For example if one exports an host, the command will dump:
+
+    $ ./ovcmd host -n host_name export
+    <Host href="/api/hosts/db240f83-9266-4892-a6d2-8ac406cadfb1" id="db240f83-9266-4892-a6d2-8ac406cadfb1">
+        <actions>
+        ...
+        </actions>
+        <name>host_name</name>
+        <comment></comment>
+        <link href="/api/hosts/db240f83-9266-4892-a6d2-8ac406cadfb1/storage" rel="storage"/>
+        <link href="/api/hosts/db240f83-9266-4892-a6d2-8ac406cadfb1/nics" rel="nics"/>
+        <link href="/api/hosts/db240f83-9266-4892-a6d2-8ac406cadfb1/numanodes" rel="numanodes"/>
+        <link href="/api/hosts/db240f83-9266-4892-a6d2-8ac406cadfb1/tags" rel="tags"/>
+        <link href="/api/hosts/db240f83-9266-4892-a6d2-8ac406cadfb1/permissions" rel="permissions"/>
+        ...
+    </Host>
+
+To get the nics sub entrie, the command needs to be
+
+    $ ./ovcmd host -n host_name export nics
+    <HostNIC href="/api/hosts/db240f83-9266-4892-a6d2-8ac406cadfb1/nics/958c40cd-9ddb-4548-8bd8-79f454021c35" id="958c40cd-9ddb-4548-8bd8-79f454021c35">
+        ...
+    </HostNIC>
+    ...
+
+The sub entry option can be repeated:
+
+    $ ./ovcmd system export summary vms active
+    40
+
+Associated with filter, it can extract the names of all virtual machine running on a given hosts:
+
+    ./ovcmd vm -s 'host=host01' export name
 
 Scripting
 ---------
@@ -52,27 +134,27 @@ Scripting is explained with more details at [Scripting in ovirtcmd](https://gith
 
 A sample script then looks like:
 
-    mac_pool = context.macpool(name="pool_name")
+    mac_pool = context.macpool.get(name="pool_name")
     if mac_pool is None:
         mac_pool = context.macpool().create(name="pool_name", range=('00:1A:4A:16:02:01', '00:1A:4A:16:02:FE'))
 
     dc = context.datacenter(name="dc_name")
     if dc is None:
-        dc = context.datacenter().create(name="dc_name", local=False, storage_format="v3", macpool=mac_pool)
+        dc = context.datacenter.create(name="dc_name", local=False, storage_format="v3", macpool=mac_pool)
 
 
     cluster = context.cluster(name="cl_name")
     if cluster is None:
-        cluster = context.cluster().create(name="cl_name}", cpu_type="Intel Haswell-noTSX Family", datacenter=dc,
+        cluster = context.cluster.create(name="cl_name}", cpu_type="Intel Haswell-noTSX Family", datacenter=dc,
                              memory_policy={'guaranteed': True, 'overcommit': 100, 'transparent_hugepages': False},
                              ballooning_enabled=True)
 
 Or to get a dump of some elements:
 
-    for i in context.cluster().list():
+    for i in context.cluster.list():
         print i.export()
 
-    for i in context.host().list():
+    for i in context.host.list():
         for j in i.export("nics"):
             print j
 
@@ -113,66 +195,22 @@ A sample that create a bunch of VM:
                                 )
         vms[name] = new_vm
 
-Config file
-===========
+Kerberos support
+----------------
 
-ovcmd use a `ini` file to store settings, a example is given in `sample_config.ini`/
+The ovirt's sdk natively support kerberos, but OvCmd add improved support of keytab. It's configured in [kerberos] section
+in the ini file:
 
-It the environnement variable `OVCONFIG` is given, it will be used to find the config file.
+    [kerberos]
+    ccache=
+    keytab=
+    principal=
 
+It allows OvCmd to load a kerberos identity from a custom keytab, using a custom principal. The ccache define where tickets will
+be stored and can use alternative credential cache, for more information see [MIT's ccache types](http://web.mit.edu/Kerberos/krb5-latest/doc/basic/ccache_def.html#ccache-types).
 
-Templates
-=========
+It uses [Python's GSSAPI](https://pypi.python.org/pypi/gssapi) but it's imported only if need, so installation is not mandatory.
 
-Some command that take a import number of arguments like `ovcmd vm create` can take a template as an argument.
-
-A template is a yaml file that provides many settings, they usually duplicate
-command line settings, but they can be smarter too. A template can used variables
-written as ${variable_name}.
-
-To use a template, give the argument `-T template_file` to the file and each variables is declared
-with `-V variable_name value`.
-
-For example, to create a vm, one can use the template `vm_create.yaml` with
-
-    ovcmd vm create -T vm_create.yaml -V memory 2G -V cores 4 -V cluster cluster01 -V ostype rhel_7x64
-
-Exporting
-=========
-
-Many noun support the export verb, to generate an xml dump of it's setting.
-
-To export sub entries, this verb can take an argument being the sub object name to export.
-
-For example if one exports an host, the command will dump:
-
-    $ ./ovcmd host -n host_name export
-    <Host href="/api/hosts/db240f83-9266-4892-a6d2-8ac406cadfb1" id="db240f83-9266-4892-a6d2-8ac406cadfb1">
-        <actions>
-        ...
-        </actions>
-        <name>host_name</name>
-        <comment></comment>
-        <link href="/api/hosts/db240f83-9266-4892-a6d2-8ac406cadfb1/storage" rel="storage"/>
-        <link href="/api/hosts/db240f83-9266-4892-a6d2-8ac406cadfb1/nics" rel="nics"/>
-        <link href="/api/hosts/db240f83-9266-4892-a6d2-8ac406cadfb1/numanodes" rel="numanodes"/>
-        <link href="/api/hosts/db240f83-9266-4892-a6d2-8ac406cadfb1/tags" rel="tags"/>
-        <link href="/api/hosts/db240f83-9266-4892-a6d2-8ac406cadfb1/permissions" rel="permissions"/>
-        ...
-    </Host>
-
-To get the nics sub entrie, the command needs to be
-
-    $ ./ovcmd host -n host_name export nics
-    <HostNIC href="/api/hosts/db240f83-9266-4892-a6d2-8ac406cadfb1/nics/958c40cd-9ddb-4548-8bd8-79f454021c35" id="958c40cd-9ddb-4548-8bd8-79f454021c35">
-        ...
-    </HostNIC>
-    ...
-
-The sub entry option can be repeated:
-
-    $ ./ovcmd system export summary vms active
-    40
 
 List of Nouns
 =============
@@ -311,7 +349,7 @@ is:
 
 Used to start the upgrade of a server. It can refresh the upgrade status using `-r`. If a host 
 is not already in maintenance status, it will put it in that mode, waiting for it to finish
-migration of the vm. It's default is to wait for the end of the upgrade and leave the host in 
+migration of the all vms. It's default is to wait for the end of the upgrade and leave the host in 
 maintenance state.
 
     Options:
