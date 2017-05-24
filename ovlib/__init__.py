@@ -105,6 +105,7 @@ def join_default(val, default):
         if key not in val:
             val[key] = default[key]
 
+
 units = {
     'T': 1099511627776,
     'G': 1073741824,
@@ -504,7 +505,7 @@ class ListObjectWrapper(ObjectWrapper):
     def get(self, **kwargs):
         res = self._do_query(**kwargs)
         if len(res) == 0:
-            raise OVLibError("no object found matching the search")
+            raise OVLibErrorNotFound("no object found matching the search")
         elif len(res) > 1:
             raise OVLibError("Too many objects found matching the search")
         else:

@@ -1,6 +1,6 @@
 import ovlib.verb
 
-from ovlib import Dispatcher, ListObjectWrapper, ObjectWrapper, command, dispatcher, wrapper, EventsCode
+from ovlib import Dispatcher, ListObjectWrapper, ObjectWrapper, command, dispatcher, wrapper, EventsCode, OVLibErrorNotFound
 
 from ovirtsdk4.types import Event
 from ovirtsdk4.services import EventService, EventsService
@@ -38,10 +38,10 @@ class EventWrapper(ObjectWrapper):
 class EventsWrapper(ListObjectWrapper):
 
     def get_last(self):
-        found_events = self.get(max=1)
-        if len(found_events) > 0:
-            return int(found_events[0].id)
-        else:
+        try:
+            found_events = self.get(max=1)
+            return int(found_events.id)
+        except OVLibErrorNotFound:
             return 0
 
 
