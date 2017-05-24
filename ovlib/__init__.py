@@ -486,7 +486,7 @@ class ObjectWrapper(object):
                 time.sleep(wait)
 
     def __str__(self):
-        return "%s<%s>" % (type(self).__name__, "" if self.type is None else self.type.href)
+        return "%s<%s>" % (type(self).__name__, "" if self.service is None else self.service._path[1:])
 
     def refresh(self):
         self.type = self.api.follow_link(self.type)
@@ -552,7 +552,7 @@ class ListObjectWrapper(ObjectWrapper):
         return buf
 
     def __str__(self):
-        return "%s<%s>" % (type(self).__name__, "" if self.service is None else self.service._path)
+        return "%s<%s>" % (type(self).__name__, "" if self.service is None else self.service._path[1:])
 
 
 import ovlib.events
