@@ -443,7 +443,7 @@ class ObjectWrapper(object):
                 writer = xml.XmlWriter(buf, indent=True)
                 self.writerClass.write_one(self.type, writer)
                 writer.flush()
-                return buf.getvalue()
+                return buf.getvalue().decode('utf-8', 'replace')
             finally:
                 if writer is not None:
                     writer.close()
@@ -458,7 +458,7 @@ class ObjectWrapper(object):
                 next_wrapper = self.api.wrap(next_type)
                 if next_wrapper is not None and hasattr(next_wrapper, 'export'):
                     return next_wrapper.export(path[1:])
-                elif isinstance(next_wrapper, collections.Iterable) and not isinstance(next_wrapper, str):
+                elif isinstance(next_wrapper, collections.Iterable) and not isinstance(next_wrapper, (str, bytes)):
                     # yes, a string is iterable in python, not funny
                     buf = ""
                     for i in next_type:
