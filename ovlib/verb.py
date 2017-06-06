@@ -47,7 +47,7 @@ class Verb(object):
         if value is True:
             return "success"
         else:
-            return value
+            return str(value)
 
     def get(self, lister, **kwargs):
         return lister.get(**kwargs)
@@ -95,6 +95,9 @@ class XmlExport(RepeterVerb):
     def execute(self, *args):
         for i in self.object:
             yield i.export(args).strip()
+
+    def to_str(self, item):
+        return item
 
 
 class Statistics(Verb):
