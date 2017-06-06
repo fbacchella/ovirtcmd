@@ -4,6 +4,7 @@ import os
 import sys
 import optparse
 import ovlib
+import collections
 from ovlib.context import Context, ConfigurationError
 from ovlib.template import VariableOption, load_template
 import ovirtsdk4
@@ -15,7 +16,7 @@ def print_run_phrase(ov_object, verb, object_options={}, object_args=[]):
         print("invalid phrase '%s %s'" % (ov_object.object_name, verb))
         return 255
     # If execute return a generator, iterate other it
-    if executed.__class__.__name__ == 'generator':
+    if isinstance(executed, collections.Iterable) and not isinstance(executed, (str, bytes)):
         for s in executed:
             if s != None:
                 string = cmd.to_str(s)
