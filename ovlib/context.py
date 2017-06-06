@@ -125,9 +125,10 @@ class Context(object):
 
     def resolve_service_href(self, href):
         absolute_href = urljoin(self.api.url, href)
-        # the second replace is to remove the first / in the path
+        # The first replace remove the root of ovirt location
+        # The second replace is to remove the first / in the path
         service_path = absolute_href.replace(self.api.url, "").replace("/", "", 1)
-        new_service = self.api.service(service_path.encode('ascii','ignore'))
+        new_service = self.api.service(service_path)
         return new_service
 
     def service(self, path):
