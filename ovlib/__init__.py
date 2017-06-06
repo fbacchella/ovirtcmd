@@ -202,9 +202,10 @@ class Dispatcher(object):
         if cmd:
             (verb_options, verb_args) = cmd.parse(object_args)
 
-            # transform options to a dict and removed undeclared arguments or empty static enumerations
+            # transform options to a dict and removed undeclared arguments or empty enumerations
+            # but keep empty string
             verb_options = {k: v for k, v in list(vars(verb_options).items())
-                            if v is not None and (not isinstance(v, (list, tuple, buffer, xrange, dict)) or len(v) != 0)}
+                            if v is not None and (isinstance(v, str) or not hasattr(v, '__len__') or len(v) != 0)}
             return self.execute_phrase(cmd, object_options, verb_options, verb_args)
         else:
             raise OVLibError("unknown verb %s" % verb)
