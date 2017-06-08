@@ -35,9 +35,9 @@ class Autoinstall(Verb):
         self.object.update(
             types.Vm(
                 os=types.OperatingSystem(
-                    kernel=kernel,
-                    initrd = initrd,
-                    cmdline=cmdline
+                    kernel=kernel.strip(),
+                    initrd = initrd.strip(),
+                    cmdline=cmdline.strip()
             )
         ))
 
