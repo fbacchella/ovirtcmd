@@ -100,12 +100,15 @@ class Context(object):
             for f in filters:
                 self.filter |= CurlDebugType[f.upper()]
 
+        # ovirt-sdk4 want's a logger, we don't care
+        if self.api_connect_settings['debug']:
+            self.api_connect_settings['log'] = True
+
 
     def connect(self):
         self.api = ovirtsdk4.Connection(**self.api_connect_settings)
-        if self.api_connect_settings['debug'] and self.api_connect_settings['log'] is None:
-            self.api._curl.setopt(pycurl.VERBOSE, 1)
-            self.api._curl.setopt(pycurl.DEBUGFUNCTION, self._curl_debug)
+        if self.api_connect_settings['debug'] and self.api_connect_settings['log'] is True:
+            self.api._curl_debug = self._curl_debug
 
         self.follow_link = self.api.follow_link
         self.connected = True
@@ -144,7 +147,6 @@ class Context(object):
         """
         This is the implementation of the cURL debug callback.
         """
-
         prefix = {pycurl.INFOTYPE_TEXT: '   ' if CurlDebugType.TEXT & self.filter else False,
                   pycurl.INFOTYPE_HEADER_IN: '<  ' if CurlDebugType.HEADER & self.filter else False,
                   pycurl.INFOTYPE_HEADER_OUT: '>  ' if CurlDebugType.HEADER & self.filter else False,
@@ -160,14 +162,18 @@ class Context(object):
         # some as arrays of bytes, so we need to check the type of the
         # provided data and convert it to strings before trying to
         # manipulate it with the "replace", "strip" and "split" methods:
-        if not debug_type == pycurl.INFOTYPE_SSL_DATA_IN and not pycurl.INFOTYPE_SSL_DATA_OUT:
-            text = data.decode('utf-8') if type(data) == bytes else data
-        else:
-            text = data.decode('string_escape') if type(data) == bytes else data
+        text = data.decode('utf_8', errors='replace') if type(data) == bytes else str(data)
 
+        # raw binary, ensure they are restricted to ascii subset, and don't split on lf or cr
+        if debug_type == pycurl.INFOTYPE_SSL_DATA_IN or debug_type == pycurl.INFOTYPE_SSL_DATA_OUT:
+            lines = [text.encode('ascii', errors='replace')]
+        else:
+            lines = [x for x in text.replace('\r\n', '\n').split('\n') if len(x) > 0]
+
+        #print(type(data), type(text))
         # Split the debug data into lines and send a debug message for
         # each line:
-        lines = [x for x in text.replace('\r\n', '\n').split('\n') if len(x) > 0]
+
         for line in lines:
             print("%s%s" % (prefix,line))
 
