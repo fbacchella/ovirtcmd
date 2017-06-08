@@ -1,11 +1,20 @@
 #!/usr/bin/env python
 
 import os
+import sys
+sys.version_info
 from setuptools import setup, find_packages
 
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
+install_requires = [
+        # ovirt-engine-sdk-python 4.1.4 is badly broken
+        ('ovirt-engine-sdk-python' '>4.1.4'), 'PyYaml', 'six'
+    ]
+
+if sys.version_info < (3,):
+    install_requires += ['ipaddress', 'configparser']
 
 setup(
     name = "oVirtCmd",
@@ -15,10 +24,7 @@ setup(
     description = "Command line tool to manage oVirt.",
     license = "Apache",
     keywords = "CLI oVirt virtualization",
-    install_requires=[
-        # ovirt-engine-sdk-python 4.1.4 is badly broken
-        ('ovirt-engine-sdk-python' '==4.1.3'), 'PyYaml', 'ipaddress', 'six', 'configparser'
-    ],
+    install_requires = install_requires,
     url = "https://github.com/fbacchella/ovirtcmd",
     packages=find_packages(),
     scripts=['ovcmd'],
