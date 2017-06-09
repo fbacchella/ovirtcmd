@@ -331,10 +331,10 @@ def event_waiter(api, object_filter, events, wait_for=[], break_on=[], timeout=1
         search = '%s and %s' % (object_filter, " or ".join(["type=%s" % x for x in set(wait_for + break_on)]))
         if time.time() > end_of_wait:
             raise OVLibError("Timeout will waiting for events", value={'ids': wait_for})
-        founds = api.events.list(
+        founds = list(api.events.list(
             from_= last_event,
             search=search,
-        )
+        ))
         if len(founds) > 0:
             last_event = int(founds[-1].id)
             for j in founds:
