@@ -100,6 +100,21 @@ class VmGraphicsConsoleWrapper(ObjectWrapper):
         vvfile.close()
         return vvfile_path
 
+    def get_ticket(self):
+        ticket = self.api.wrap(self.ticket())
+        console_info = {
+            'address': self.address,
+            'password': ticket.value,
+            'port': self.port,
+            'secure_port': self.tls_port,
+        }
+        if self.protocol == GraphicsType.SPICE:
+            url = "spice://{address}:{port}/?password={password}&tls-port={secure_port}".format(**console_info)
+        elif self.protocol == GraphicsType.VNC:
+            url = "vnc://:{password}@{address}:{port}".format(**console_info)
+
+        return url
+
 
 @wrapper(service_class=VmGraphicsConsolesService)
 class VmGraphicsConsolesWrapper(ListObjectWrapper):
@@ -119,10 +134,14 @@ class VmsWrapper(ListObjectWrapper):
 @wrapper(writer_class=VmWriter, type_class=Vm, service_class=VmService, other_attributes=['os'], other_methods=['suspend'])
 class VmWrapper(ObjectWrapper):
 
-    def get_graphic_console(self, console):
-        graphics_consoles_service = self.service.graphics_consoles_service()
-        graphics_console = graphics_consoles_service.list()[console]
-        return graphics_consoles_service.console_service(graphics_console.id)
+    def get_graphic_console(self, protocol=GraphicsType.SPICE, console_protocol="spice"):
+        if self.status != VmStatus.UP and self.status != VmStatus.POWERING_UP:
+            raise OVLibError("No console available, not started")
+        for c in self.graphics_consoles.list():
+            if protocol == c.protocol:
+                return c
+
+        raise OVLibError("No matching console found")
 
 
 @wrapper(service_class=VmNicsService)
@@ -165,14 +184,15 @@ class VmStart(ovlib.verb.Verb):
 
     def fill_parser(self, parser):
         parser.add_option("-c", "--console", dest="console", help="Launch a console", default=False, action="store_true")
-        parser.add_option("-C", "--console_device", dest="console_device", help="Console number", default=0, type=int)
+        parser.add_option("-C", "--console_protocol", dest="console_protocol", help="Console protocol (VNC or Spice)", default="spice")
         parser.add_option("--cloud_init", dest="use_cloud_init", help="Use cloud init", default=False, action="store_true")
 
-    def execute(self, console=False, console_device=0, use_cloud_init=False):
+    def execute(self, console=False, console_protocol='spice', use_cloud_init=False):
         self.object.start(use_cloud_init=use_cloud_init)
         if console:
             self.object.wait_for(VmStatus.POWERING_UP)
-            return self.object.get_vv_file(console_device)
+            protocol = GraphicsType[console_protocol.upper()]
+            return self.object.get_graphic_console(protocol).get_vv_file()
         else:
             return None
 
@@ -198,42 +218,19 @@ class VmSuspend(ovlib.verb.Verb):
 class RemoteDisplay(ovlib.verb.Verb):
 
     def fill_parser(self, parser):
-        parser.add_option("-c", "--c", dest="console_number", help="Console number", default=-1, type=int)
         parser.add_option("-p", "--p", dest="console_protocol", help="Console Protocol", default="spice")
 
-    def execute(self, console_number=-1, console_protocol="spice"):
-        self.object.wait_for(VmStatus.UP)
-        consoles_service = self.object.graphics_consoles
-        if console_number > 0:
-            protocol = None
-        else:
-            protocol = GraphicsType[console_protocol.upper()]
-        i = 0
-        for c in consoles_service.list():
-            if i == console_number or protocol == c.protocol:
-                return self.getinfo(c)
-            i += 1
-
-        raise OVLibError("No matching console found")
+    def execute(self, console_protocol="spice"):
+        protocol = GraphicsType[console_protocol.upper()]
+        console = self.object.get_graphic_console(protocol)
+        return self.getinfo(console)
 
 
 @command(VmDispatcher, verb='ticket')
 class Ticket(RemoteDisplay):
 
     def getinfo(self, console):
-        ticket = self.api.wrap(console.ticket())
-        console_info = {
-            'address': console.address,
-            'password': ticket.value,
-            'port': console.port,
-            'secure_port': console.tls_port,
-        }
-        if console.protocol == GraphicsType.SPICE:
-            url = "spice://{address}:{port}/?password={password}&tls-port={secure_port}".format(**console_info)
-        elif console.protocol == GraphicsType.VNC:
-            url = "vnc://:{password}@{address}:{port}".format(**console_info)
-
-        return url
+        return console.get_ticket()
 
 
 @command(VmDispatcher, verb='viewer')
