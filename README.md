@@ -61,22 +61,20 @@ Generic options
 
 The generic options for all noun and verbs are
 
-
-  -h, --help            show this help message and exit
-  -c CONFIG_FILE, --config=CONFIG_FILE
-                        an alternative config file
-  -d, --debug           The debug level
-
+    -h, --help            show this help message and exit
+    -c CONFIG_FILE, --config=CONFIG_FILE
+                          an alternative config file
+    -d, --debug           The debug level
 
 Noun options
 ============
 
 Usually a noun option take a filter option that can define on what object it applies.
 
-  -h, --help            show this help message and exit
-  -i ID, --id=ID        object ID
-  -n NAME, --name=NAME  object tag 'Name'
-  -s SEARCH, --search=SEARCH
+    -h, --help            show this help message and exit
+    -i ID, --id=ID        object ID
+    -n NAME, --name=NAME  object tag 'Name'
+    -s SEARCH, --search=SEARCH
                         Filter using a search expression
 
 The option id and name obvioulsy return single object. But search can return many. Usually verb will then fail but some 
@@ -267,7 +265,7 @@ Know verbs are
 
  * autoinstall
  * statistics
- * console
+ * viewer
  * list
  * create
  * stop
@@ -302,7 +300,7 @@ autoinstallation command. It then wait for the installation to finish and restar
 It's used to generate a URL to connect to the console of a virtual machine. It resolve the IP and port information and
 also generate a ticket.
 
-#### console
+#### viewer
 
 Generate a file that can be open by a [SPICE viewer](https://www.spice-space.org/page/Main_Page) to connect to a console.
 
