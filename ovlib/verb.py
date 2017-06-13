@@ -152,3 +152,19 @@ class Update(Verb):
 
     def execute(self, *args, **kwargs):
         return self.object.update()
+
+
+class WaitFor(Verb):
+    verb = "waitfor"
+
+    def fill_parser(self, parser):
+        parser.add_option("-s", "--status", dest="status", help="The status to wait for")
+
+    def execute(self, status=None):
+        if status is None:
+            raise OVLibError("No status given to wait")
+        if hasattr(type(self.object.status), status.upper()):
+            self.object.wait_for(getattr(type(self.object.status), status.upper()))
+            return True
+        else:
+            raise OVLibError("Unknown status %s" % status)

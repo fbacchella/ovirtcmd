@@ -179,6 +179,11 @@ class VmExport(ovlib.verb.XmlExport):
     pass
 
 
+@command(VmDispatcher)
+class VmWaitFor(ovlib.verb.WaitFor):
+    pass
+
+
 @command(VmDispatcher, verb='start')
 class VmStart(ovlib.verb.Verb):
 
