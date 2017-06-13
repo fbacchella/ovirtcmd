@@ -477,10 +477,12 @@ class ObjectWrapper(object):
                 raise OVLibError("Attribute %s missing in %s" % (next, self))
 
     def wait_for(self, status, wait=1):
+        if not isinstance(status, collections.Iterable):
+            status = (status, )
         while True:
             self.type = self.api.follow_link(self.type)
             self.dirty = False
-            if self.status == status:
+            if self.status in status:
                 return
             else:
                 time.sleep(wait)

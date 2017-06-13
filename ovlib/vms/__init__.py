@@ -220,12 +220,17 @@ class VmSuspend(ovlib.verb.Verb):
         if not async:
             self.object.wait_for(VmStatus.SUSPENDED)
 
+
 class RemoteDisplay(ovlib.verb.Verb):
 
     def fill_parser(self, parser):
-        parser.add_option("-p", "--p", dest="console_protocol", help="Console Protocol", default="spice")
+        parser.add_option("-p", "--protocol", dest="console_protocol", help="Console Protocol", default="spice")
+        parser.add_option("-w", "--wait", dest="wait", help="Wait for VM to be in a suitable state", default=False, action='store_true')
 
-    def execute(self, console_protocol="spice"):
+    def execute(self, console_protocol="spice", wait=False):
+        if wait:
+            if self.object.status != VmStatus.POWERING_UP or self.object.status != VmStatus.UP:
+                self.object.wait_for((VmStatus.POWERING_UP, VmStatus.UP))
         protocol = GraphicsType[console_protocol.upper()]
         console = self.object.get_graphic_console(protocol)
         return self.getinfo(console)
