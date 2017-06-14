@@ -85,9 +85,9 @@ Templates
 
 Some command that take a import number of arguments like `ovcmd vm create` can take a template as an argument.
 
-A template is a yaml file that provides many settings, they usually duplicate
-command line settings, but they can be more detailled. A template can used variables
-written as ${variable_name}`.
+A template is a yaml file that provides many settings, they usually duplicate command line settings, but they can be more
+detailled. A template can used variables written as `${variable_name}`. If written as `${variable_name:default}`, the 
+default value will be used instead of the template failing if the variable is not defined.
 
 To use a template, give the argument `-T template_file` to the file and each variables is declared
 with `-V variable_name value`.
@@ -120,7 +120,7 @@ For example if one exports an host, the command will dump:
         ...
     </Host>
 
-To get the nics sub entrie, the command needs to be
+To get the nics sub entry, the command needs to be
 
     $ ./ovcmd host -n host_name export nics
     <HostNIC href="/api/hosts/db240f83-9266-4892-a6d2-8ac406cadfb1/nics/958c40cd-9ddb-4548-8bd8-79f454021c35" id="958c40cd-9ddb-4548-8bd8-79f454021c35">

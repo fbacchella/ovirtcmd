@@ -7,7 +7,7 @@ import collections
 from enum import IntEnum
 from contextlib import contextmanager
 
-from ovlib.template import load_template, DotTemplate
+from ovlib.template import load_template
 
 import ovirtsdk4.writers
 import ovirtsdk4.types

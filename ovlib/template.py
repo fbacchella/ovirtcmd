@@ -1,11 +1,10 @@
 from __future__ import print_function
 
-import string
 import yaml
 import sys
 import optparse
 import ovlib
-
+import re
 
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
@@ -13,17 +12,7 @@ except ImportError:
     from yaml import Loader, Dumper
 
 
-# a template that allows . in variables name
-class DotTemplate(string.Template):
-    pattern = r"""
-    \$(?:
-      {(?P<braced>[_a-z][_a-z0-9\.]*)}     |   # delimiter and a braced identifier
-      (?P<escaped>^$)                      |   # Escape sequence of two delimiters
-      (?P<named>^$)                        |   # delimiter and a Python identifier
-      (?P<invalid>^$)                          # Other ill-formed delimiter exprs
-    )
-    """
-
+template_pattern = re.compile("""\${(?P<named>.+?)(?::(?P<default>.*?))?}""")
 
 # A dictionary that resolve string using a template and variables
 class TemplateDict(dict):
@@ -50,10 +39,23 @@ class TemplateDict(dict):
 
     def resolve(self, value):
         if isinstance(value, str):
-            try:
-                return DotTemplate(value).substitute(self.variables)
-            except KeyError as e:
-                raise ovlib.OVLibError("unknwon variable '%s' in template '%s'"% (e.message, value), {'variable': e.message, 'template':value}, e)
+            # Taken from string.Template, but added default value
+            def convert(mo):
+                named = mo.group('named')
+                default = mo.group('default')
+                if default is not None:
+                    val = self.variables.get(named, default)
+                elif named in self.variables:
+                    # it failes if
+                    val = self.variables[named]
+                else:
+                    raise ovlib.OVLibError("unknwon variable '%s' in template '%s'" % (named, value),
+                                           {'variable': named, 'template': value})
+                # We use this idiom instead of str() because the latter will
+                # fail if val is a Unicode containing non-ASCII characters.
+                return '%s' % (val,)
+
+            return template_pattern.sub(convert, value)
         elif isinstance(value, (list, tuple)):
             return [self.resolve(x) for x in value]
         elif isinstance(value, dict):
