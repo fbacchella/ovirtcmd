@@ -224,7 +224,6 @@ class VmSuspend(ovlib.verb.Verb):
 class RemoteDisplay(ovlib.verb.Verb):
 
     def fill_parser(self, parser):
-        parser.add_option("-p", "--protocol", dest="console_protocol", help="Console Protocol", default="spice")
         parser.add_option("-w", "--wait", dest="wait", help="Wait for VM to be in a suitable state", default=False, action='store_true')
 
     def execute(self, console_protocol="spice", wait=False):
@@ -238,6 +237,10 @@ class RemoteDisplay(ovlib.verb.Verb):
 
 @command(VmDispatcher, verb='ticket')
 class Ticket(RemoteDisplay):
+
+    def fill_parser(self, parser):
+        super(Ticket, self).fill_parser(parser)
+        parser.add_option("-p", "--protocol", dest="console_protocol", help="Console Protocol", default="spice")
 
     def getinfo(self, console):
         return console.get_ticket()
