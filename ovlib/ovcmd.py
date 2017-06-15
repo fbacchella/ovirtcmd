@@ -37,15 +37,16 @@ def print_run_phrase(ov_object, verb, object_options={}, object_args=[]):
     return 255
 
 
-def do_eval(script, context_options={}, variables={}, environments=[]):
-    # needed because dict.update is using shortcuts and don't works on subclass of dict
-    class UpdateDict(dict):
-        def update(self, other=None, **kwargs):
-            if other is not None:
-                for k in other:
-                    self[k] = other[k]
-            super(UpdateDict, self).update(kwargs)
+# needed because dict.update is using shortcuts and don't works on subclass of dict
+class UpdateDict(dict):
+    def update(self, other=None, **kwargs):
+        if other is not None:
+            for k in other:
+                self[k] = other[k]
+        super(UpdateDict, self).update(kwargs)
 
+
+def do_eval(script, context_options={}, variables={}, environments=[]):
     new_locals = UpdateDict(variables)
     for e in environments:
         new_locals.update(load_template(e, new_locals))
