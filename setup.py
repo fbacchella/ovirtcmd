@@ -18,7 +18,7 @@ if sys.version_info < (3,):
 
 setup(
     name = "oVirtCmd",
-    version = "0.0.2",
+    version = "0.3",
     author = "Fabrice Bacchella",
     author_email = "fabrice.bacchella@3ds.com",
     description = "Command line tool to manage oVirt.",
@@ -27,7 +27,13 @@ setup(
     install_requires = install_requires,
     url = "https://github.com/fbacchella/ovirtcmd",
     packages=find_packages(),
-    scripts=['ovcmd'],
+    entry_points={
+        "console_scripts": [
+            "ovcmd=ovlib.ovcmd:main_wrap",
+            "ovcmd%s=ovlib.ovcmd:main_wrap" % sys.version[:1],
+            "ovcmd%s=ovlib.ovcmd:main_wrap" % sys.version[:3],
+        ],
+    },
     long_description=read('README.md'),
     classifiers=[
         "Development Status :: 3 - Alpha",
@@ -36,6 +42,7 @@ setup(
         "Classifier: Operating System :: OS Independent",
         "Environment :: Console",
         "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 3",
     ],
     platforms=["Posix", "MacOS X"],
 )
