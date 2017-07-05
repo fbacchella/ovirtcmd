@@ -142,8 +142,10 @@ def main():
                 print("The action \"%s %s\" failed with \n    %s" % (dispatcher.object_name, verb, e.error_message))
                 return 251
             except (ovirtsdk4.Error) as e:
-                if e.fault is not None:
-                    details = e.fault.detail[1:-1]
+                if e.code == 404:
+                    details = "object not found"
+                elif e.fault is not None:
+                    details = e.fault.detail
                 else:
                     details = "%s" % e
                 print("The action \"%s %s\" failed with: %s" % (dispatcher.object_name, verb, details))

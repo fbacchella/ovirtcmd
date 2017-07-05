@@ -213,10 +213,7 @@ class Dispatcher(object):
 
     def execute_phrase(self, cmd, object_options={}, verb_options={}, verb_args=[]):
         if cmd.object is None:
-            try:
-                cmd.object = cmd.get(self._lister, **object_options)
-            except ovirtsdk4.Error as e:
-                raise OVLibError(e.message)
+            cmd.object = cmd.get(self._lister, **object_options)
 
         if cmd.validate():
             if cmd.uses_template():
