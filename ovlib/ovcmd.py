@@ -132,10 +132,13 @@ def main():
                 sys.exit(status)
             except (ovlib.OVLibError) as e:
                 print("The action \"%s %s\" failed with \n    %s" % (dispatcher.object_name, verb, e.error_message))
-                print(e.value)
                 return 251
             except (ovirtsdk4.Error) as e:
-                print("The action \"%s %s\" failed with: %s" % (dispatcher.object_name, verb, e.fault.detail[1:-1]))
+                if e.fault is not None:
+                    details = e.fault.detail[1:-1]
+                else:
+                    details = "%s" % e
+                print("The action \"%s %s\" failed with: %s" % (dispatcher.object_name, verb, details))
                 return 252
             finally:
                 if context is not None:
