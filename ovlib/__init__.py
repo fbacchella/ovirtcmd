@@ -557,6 +557,7 @@ class ListObjectWrapper(ObjectWrapper):
         return "%s<%s>" % (type(self).__name__, "" if self.service is None else self.service._path[1:])
 
 
+import ovlib.common
 import ovlib.events
 import ovlib.vms
 import ovlib.datacenters
