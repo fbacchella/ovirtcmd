@@ -9,9 +9,6 @@ from ovlib.system import SystemWrapper
 
 from six.moves.urllib.parse import urljoin
 
-# The api settings that store boolean values
-booleans = frozenset(['debug', 'insecure', 'kerberos'])
-
 
 class CurlDebugType(IntEnum):
     TEXT = 1
@@ -22,14 +19,17 @@ class CurlDebugType(IntEnum):
 
 class ConfigurationError(Exception):
     def __init__(self, value):
-        self.value = value
-        self.error_message = "missing configuration setting %s in api section" % value
+        super(Exception, self).__init__(value)
+        self.error_message = value
 
     def __str__(self):
-        return repr(self.value)
+        return self.value.__str__
 
 
 class Context(object):
+    # The api settings that store boolean values
+    booleans = frozenset(['debug', 'insecure', 'kerberos'])
+
     api_connect_settings = {
         'url': None,
         'username': None,
@@ -71,7 +71,7 @@ class Context(object):
             elif attr_name in config_api:
                 # given in the config file
                 self.api_connect_settings[attr_name] = config_api[attr_name]
-                if attr_name in booleans:
+                if attr_name in Context.booleans:
                     self.api_connect_settings[attr_name] = config.getboolean('api', attr_name)
 
         if config_kerberos.get('keytab', None) is not None:
@@ -107,6 +107,8 @@ class Context(object):
 
     def connect(self):
         self.api = ovirtsdk4.Connection(**self.api_connect_settings)
+        # Try to ensure that connexion is good
+        self.api.authenticate()
         if self.api_connect_settings['debug'] and self.api_connect_settings['log'] is True:
             self.api._curl_debug = self._curl_debug
 
