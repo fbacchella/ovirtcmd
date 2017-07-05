@@ -42,3 +42,14 @@ class UserList(ovlib.verb.List):
 class UserExport(ovlib.verb.XmlExport):
     pass
 
+
+@command(UserDispatcher, verb='permissions')
+class UserPermissions(ovlib.verb.Verb):
+    def execute(self, *args):
+        for i in self.object.permissions.list():
+            yield i
+
+    def to_str(self, permission):
+        return(permission.format_relative(self.object))
+
+
