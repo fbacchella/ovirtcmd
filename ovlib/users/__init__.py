@@ -11,7 +11,7 @@ class UsersWrapper(ListObjectWrapper):
     pass
 
 
-@wrapper(service_class=UserService, type_class=User, writer_class=UserWriter, other_attributes=['user_name'])
+@wrapper(service_class=UserService, type_class=User, writer_class=UserWriter, other_attributes=['user_name', 'principal'])
 class UserWrapper(ObjectWrapper):
     pass
 
@@ -35,7 +35,7 @@ class UserDispatcher(Dispatcher):
 
 @command(UserDispatcher)
 class UserList(ovlib.verb.List):
-    template = "{id!s} {user_name!s}"
+    template = "{id!s} {principal!s}"
 
 
 @command(UserDispatcher)
