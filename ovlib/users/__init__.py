@@ -11,7 +11,7 @@ class UsersWrapper(ListObjectWrapper):
     pass
 
 
-@wrapper(service_class=UserService, type_class=User, writer_class=UserWriter)
+@wrapper(service_class=UserService, type_class=User, writer_class=UserWriter, other_attributes=['user_name'])
 class UserWrapper(ObjectWrapper):
     pass
 
