@@ -5,10 +5,16 @@ import sys
 import optparse
 import ovlib
 import collections
+import codecs
 from ovlib.context import Context, ConfigurationError
 from ovlib.template import VariableOption, load_template
 import ovirtsdk4
 
+def safe_print(string):
+    """Ensure that string will print without error if it contains unprintable characters"""
+    encoded = codecs.encode(string, sys.stdout.encoding, 'replace')
+    decoded = codecs.decode(encoded, sys.stdout.encoding, 'replace')
+    print(decoded)
 
 def print_run_phrase(ov_object, verb, object_options={}, object_args=[]):
     (cmd, executed) = ov_object.run_phrase(verb, object_options, object_args)
@@ -21,14 +27,14 @@ def print_run_phrase(ov_object, verb, object_options={}, object_args=[]):
             if s != None:
                 string = cmd.to_str(s)
                 if string:
-                    print(string)
+                    safe_print(string)
                     sys.stdout.flush()
         return cmd.status()
     elif executed is not None and executed is not False:
         # Else if it return something, just print it
         string = cmd.to_str(executed)
         if string:
-            print(string)
+            safe_print(string)
         return cmd.status()
     elif executed is not None:
         # It return false, something went wrong
