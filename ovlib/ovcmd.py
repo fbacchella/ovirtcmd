@@ -15,8 +15,8 @@ def print_run_phrase(ov_object, verb, object_options={}, object_args=[]):
     if cmd is None:
         print("invalid phrase '%s %s'" % (ov_object.object_name, verb))
         return 255
-    # If execute return a generator, iterate other it
     if isinstance(executed, collections.Iterable) and not isinstance(executed, (str, bytes)):
+        # If execute return a generator, iterate other it
         for s in executed:
             if s != None:
                 string = cmd.to_str(s)
@@ -24,17 +24,19 @@ def print_run_phrase(ov_object, verb, object_options={}, object_args=[]):
                     print(string)
                     sys.stdout.flush()
         return cmd.status()
-    # Else if it return something, just print it
     elif executed is not None and executed is not False:
+        # Else if it return something, just print it
         string = cmd.to_str(executed)
         if string:
             print(string)
         return cmd.status()
-    #It return false, something went wrong
     elif executed is not None:
+        # It return false, something went wrong
         print("'%s %s' failed" % (ov_object.object_name, verb))
         return cmd.status()
-    return 255
+    else:
+        # It returned nothing, it should be OK.
+        return 0
 
 
 # needed because dict.update is using shortcuts and don't works on subclass of dict

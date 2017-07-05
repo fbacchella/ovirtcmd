@@ -198,15 +198,13 @@ class VmStart(ovlib.verb.Verb):
             self.object.wait_for(VmStatus.POWERING_UP)
             protocol = GraphicsType[console_protocol.upper()]
             return self.object.get_graphic_console(protocol).get_vv_file()
-        else:
-            return None
 
 
 @command(VmDispatcher, verb='stop')
 class VmStop(ovlib.verb.Verb):
 
     def execute(self, *args, **kwargs):
-        return self.object.stop()
+        self.object.stop()
 
 
 @command(VmDispatcher, verb='suspend')
