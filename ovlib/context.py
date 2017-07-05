@@ -46,6 +46,16 @@ class Context(object):
         self.connected = False
         self.api = None
 
+        explicit_user = 'passwordfile' in kwargs or 'username' in kwargs
+        explicit_kerberos = 'kerberos' in kwargs and kwargs.get('kerberos')
+        if explicit_user and explicit_kerberos:
+            raise ConfigurationError('both kerberos and login/password authentication')
+
+        if 'passwordfile' in kwargs:
+            passwordfilename = kwargs.pop('passwordfile')
+            with open(passwordfilename,'r') as passwordfilename:
+                kwargs['password'] = passwordfilename.read()
+
         config = ConfigParser()
         if config_file is not None:
             config.read(config_file, encoding='utf-8')
@@ -74,7 +84,13 @@ class Context(object):
                 if attr_name in Context.booleans:
                     self.api_connect_settings[attr_name] = config.getboolean('api', attr_name)
 
-        if config_kerberos.get('keytab', None) is not None:
+        if explicit_user:
+            self.api_connect_settings['kerberos'] = False
+        elif explicit_kerberos:
+            self.api_connect_settings['username'] = None
+            self.api_connect_settings['password'] = None
+
+        if config_api['kerberos'] and config_kerberos.get('keytab', None) is not None:
             import gssapi
             import os
 

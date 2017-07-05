@@ -74,6 +74,9 @@ def main():
     parser.disable_interspersed_args()
     parser.add_option("-c", "--config", dest="config_file", help="an alternative config file", default=default_config)
     parser.add_option("-d", "--debug", dest="debug", help="The debug level", action="store_true")
+    parser.add_option("--passwordfile", dest="passwordfile", help="Read the password from that file")
+    parser.add_option("-u", "--user", "--username", dest="username", help="User to authenticate")
+    parser.add_option("-k", "--kerberos", dest="kerberos", help="Uses kerberos authentication", action='store_true')
 
     (options, args) = parser.parse_args()
 
