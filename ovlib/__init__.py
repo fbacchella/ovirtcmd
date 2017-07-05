@@ -574,3 +574,4 @@ import ovlib.storages
 import ovlib.disks
 import ovlib.statistics
 import ovlib.jobs
+import ovlib.tasks
