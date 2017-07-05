@@ -71,7 +71,6 @@ def do_eval(script, context_options={}, variables={}, environments=[]):
 
 def main():
 
-    context = None
     default_config = None
     if 'OVCONFIG' in os.environ:
         default_config = os.environ['OVCONFIG']

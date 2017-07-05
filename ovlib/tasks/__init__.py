@@ -1,7 +1,7 @@
 import ovlib.verb
 from ovlib import Dispatcher, ObjectWrapper, ListObjectWrapper, command, dispatcher, wrapper
 
-from ovirtsdk4.types import JobStatus, Job
+from ovirtsdk4.types import Job
 from ovirtsdk4.writers import JobWriter
 from ovirtsdk4.services import JobsService, JobService
 
