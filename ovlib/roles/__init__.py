@@ -11,7 +11,7 @@ class PermitsWrapper(ListObjectWrapper):
     pass
 
 
-@wrapper(service_class=PermitService, type_class=Permit, writer_class=PermitWriter)
+@wrapper(service_class=PermitService, type_class=Permit, writer_class=PermitWriter, other_attributes=['administrative', 'role'])
 class PermitWrapper(ObjectWrapper):
     pass
 

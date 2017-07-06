@@ -262,7 +262,7 @@ def wrapper(writer_class=None, type_class=None, service_class=None, other_method
                 func.service_root = service_root
                 break
         func.methods = other_methods + ['remove', 'list', 'start', 'stop', 'update', 'add']
-        for attribute in other_attributes + ['status', 'name', 'id']:
+        for attribute in other_attributes + ['status', 'name', 'id', 'comment']:
             if not hasattr(func, attribute):
                 setattr(func, attribute, AttributeWrapper(attribute))
         if type_class is not None:
@@ -490,6 +490,9 @@ class ObjectWrapper(object):
     def refresh(self):
         self.type = self.api.follow_link(self.type)
         self.dirty = False
+
+    def get_type_name(self):
+        return type(self.type).__name__.lower()
 
 
 class ListObjectWrapper(ObjectWrapper):

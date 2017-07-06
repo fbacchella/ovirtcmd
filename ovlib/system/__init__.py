@@ -35,6 +35,13 @@ class SystemWrapper(ObjectWrapper):
     def export(self, path=[]):
         return self.api.wrap(self.service.get()).export(path)
 
+    def __str__(self):
+        return '(system)'
+
+    @property
+    def name(self):
+        return '(system)'
+
 
 @dispatcher(object_name="system", wrapper=SystemWrapper, list_wrapper=SystemWrapper)
 class SystemDispatcher(Dispatcher):

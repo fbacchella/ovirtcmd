@@ -1,5 +1,6 @@
 import ovlib.verb
 from ovlib import Dispatcher, ObjectWrapper, ListObjectWrapper, command, dispatcher, wrapper
+from ovlib.system import SystemWrapper
 
 from ovirtsdk4.types import User, SshPublicKey
 from ovirtsdk4.writers import UserWriter, SshPublicKeyWriter
@@ -46,7 +47,33 @@ class UserExport(ovlib.verb.XmlExport):
     pass
 
 
-@command(UserDispatcher, verb='permissions')
+@command(UserDispatcher, verb='permits')
+class UserPermits(ovlib.verb.Verb):
+    
+    def execute(self, *args):
+        permissions = {}
+        for i in self.object.permissions.list():
+            destination = i.get_destination()
+            if isinstance(destination, SystemWrapper):
+                key = destination.name
+            else:
+                key = "%s/%s" % (destination.get_type_name(), destination.name)
+            permissions[key] = set()
+            for j in self.api.wrap(i.role).permits.list():
+                permissions[key].add(j.name)
+        for k in sorted(permissions.keys()):
+            yield k,permissions[k]
+
+    def to_str(self, kv):
+        object = kv[0]
+        permits = kv[1]
+        buffer = "%s:\n" % object
+        for i in sorted(permits):
+            buffer += "  %s\n" % i
+        return buffer
+
+
+@command(UserDispatcher, verb='roles')
 class UserPermissions(ovlib.verb.Verb):
     def execute(self, *args):
         for i in self.object.permissions.list():
