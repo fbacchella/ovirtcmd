@@ -8,7 +8,12 @@ from ovirtsdk4.services import UserService, UsersService, SshPublicKeyService, S
 
 @wrapper(service_class=UsersService, service_root="users")
 class UsersWrapper(ListObjectWrapper):
-    pass
+
+    def list(self, name=None, **kwargs):
+        return super(UsersWrapper, self).list(usrname=name, **kwargs)
+
+    def get(self, name=None, id=None):
+        return super(UsersWrapper, self).get(usrname=name, id=id)
 
 
 @wrapper(service_class=UserService, type_class=User, writer_class=UserWriter, other_attributes=['user_name', 'principal'])
@@ -29,8 +34,6 @@ class SshPublicKeyWrapper(ObjectWrapper):
 @dispatcher(object_name="user", wrapper=UserWrapper, list_wrapper=UsersWrapper)
 class UserDispatcher(Dispatcher):
     pass
-    def get(self, name=None, id=None):
-        return super(UserDispatcher, self).get(login=name, id=id)
 
 
 @command(UserDispatcher)
