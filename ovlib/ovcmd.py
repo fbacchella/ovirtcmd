@@ -90,7 +90,7 @@ def main():
     #Extract the context options from the first level arguments
     context_args = {k: v for k, v in list(vars(options).items()) if v is not None}
 
-    if len(args) >= 2 and args[0] == 'eval':
+    if len(args) >= 1 and args[0] == 'eval':
         parser_eval = optparse.OptionParser(option_class=VariableOption, usage="ovcmd [options] script")
         parser_eval.add_option("-v", "--variable", dest="variables", action="store_variable", type="string", help="a variable, written as -V name value")
         parser_eval.add_option("-e", "--environment", dest="environments", action="append", default=[], help="Complementary environment")
