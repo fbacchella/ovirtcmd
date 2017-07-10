@@ -1,9 +1,20 @@
 import ovlib.verb
 from ovlib import Dispatcher, ObjectWrapper, ListObjectWrapper, command, dispatcher, wrapper
 
-from ovirtsdk4.types import DataCenter, Qos
-from ovirtsdk4.writers import DataCenterWriter, QosWriter
-from ovirtsdk4.services import DataCenterService, DataCentersService, QossService, QosService
+from ovirtsdk4.types import DataCenter, Qos, Network
+from ovirtsdk4.writers import DataCenterWriter, QosWriter, NetworkWriter
+from ovirtsdk4.services import DataCenterService, DataCentersService, QossService, QosService, DataCenterNetworkService, DataCenterNetworksService
+
+
+@wrapper(writer_class=NetworkWriter, type_class=Network, service_class=DataCenterNetworkService)
+class DataCenterNetworkWrapper(ObjectWrapper):
+    pass
+
+
+@wrapper(service_class=DataCenterNetworksService)
+class DataCenterNetworkWrapper(ListObjectWrapper):
+    pass
+
 
 @wrapper(writer_class=QosWriter, type_class=Qos, service_class=QosService)
 class QosWrapper(ObjectWrapper):
@@ -12,6 +23,7 @@ class QosWrapper(ObjectWrapper):
 @wrapper(service_class=QossService)
 class QossWrapper(ListObjectWrapper):
     pass
+
 
 @wrapper(writer_class=DataCenterWriter, type_class=DataCenter, service_class=DataCenterService)
 class DataCenterWrapper(ObjectWrapper):
