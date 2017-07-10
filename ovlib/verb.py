@@ -168,3 +168,18 @@ class WaitFor(Verb):
             return True
         else:
             raise OVLibError("Unknown status %s" % status)
+
+
+class Permission(Verb):
+    verb = "permissions"
+
+    def fill_parser(self, parser):
+        parser.add_option("-i", "--id", dest="id")
+        parser.add_option("-n", "--name", dest="name")
+        parser.add_option("-r", "--role", dest="role")
+        parser.add_option("-g", "--group", dest="group")
+        parser.add_option("-u", "--user", dest="user")
+
+    def execute(self, action, role=None, group=None, user=None):
+        if action == 'add':
+            return self.object.permissions.add(role=role, group=group, user=user)

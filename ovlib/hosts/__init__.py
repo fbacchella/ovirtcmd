@@ -286,5 +286,10 @@ class Upgrade(ovlib.verb.Verb):
             return 0
 
 
+@command(HostDispatcher)
+class VmPermission(ovlib.verb.Permission):
+    pass
+
+
 from . import create
 from . import bond

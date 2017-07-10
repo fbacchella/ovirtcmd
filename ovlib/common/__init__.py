@@ -1,10 +1,12 @@
-from ovlib import Dispatcher, ObjectWrapper, ListObjectWrapper, wrapper
+from ovlib import ObjectWrapper, ListObjectWrapper, wrapper, OVLibError, is_id
 
 from ovirtsdk4.types import Permission
 from ovirtsdk4.writers import PermissionWriter
 from ovirtsdk4.services import PermissionService, AssignedPermissionsService
 
 from ovlib.users import UserWrapper
+from ovlib.groups import GroupWrapper
+from ovlib.roles import RoleWrapper
 from ovlib.system import SystemWrapper
 
 @wrapper(service_class=PermissionService, type_class=Permission, writer_class=PermissionWriter,
@@ -54,4 +56,34 @@ class PermissionWrapper(ObjectWrapper):
 
 @wrapper(service_class=AssignedPermissionsService)
 class AssignedPermissionsWrapper(ListObjectWrapper):
-    pass
+
+    def add(self, role, user=None, group=None, wait=True):
+        if user is None and group is None:
+            raise OVLibError("Neither group or user given when adding permission")
+
+        if user is not None and group is not None:
+            raise OVLibError("Both group or user given when adding permission")
+
+        if role is not None and is_id(role):
+            role = self.api.roles.get(id=role).type
+        elif isinstance(role, str):
+            role = self.api.roles.get(name=role).type
+        elif isinstance(role, RoleWrapper):
+            role = role.type
+
+        if user is not None and is_id(user):
+            user = self.api.users.get(id=user).type
+        elif isinstance(user, str):
+            user = self.api.users.get(name=user).type
+        elif isinstance(user, UserWrapper):
+            user = user.type
+
+        if group is not None and is_id(group):
+            group = self.api.groups.get(id=group).type
+        elif isinstance(group, str):
+            group = self.api.groups.get(name=group).type
+        elif isinstance(group, GroupWrapper):
+            group = group.type
+
+        return self.api.wrap(self.service.add(Permission(role=role, user=user, group=group), wait=wait))
+
