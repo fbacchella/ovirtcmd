@@ -2,11 +2,25 @@ import time
 import ovlib.verb
 
 from ovirtsdk4 import List
-from ovirtsdk4.types import Host, HostStatus, HostNic, NetworkAttachment, IpAddressAssignment, VmSummary, Ssh
-from ovirtsdk4.services import HostService, HostsService, NetworkAttachmentService, NetworkAttachmentsService, HostNicsService, HostNicService
-from ovirtsdk4.writers import HostWriter, HostNicWriter, NetworkAttachmentWriter, IpAddressAssignmentWriter, VmSummaryWriter, SshWriter
+from ovirtsdk4.types import Host, HostStatus, HostNic, NetworkAttachment, IpAddressAssignment, VmSummary, Ssh, HostStorage, VolumeGroup, LogicalUnit
+from ovirtsdk4.services import HostService, HostsService, NetworkAttachmentService, NetworkAttachmentsService, HostNicsService, HostNicService, HostStorageService
+from ovirtsdk4.writers import HostWriter, HostNicWriter, NetworkAttachmentWriter, IpAddressAssignmentWriter, VmSummaryWriter, SshWriter, HostStorageWriter, VolumeGroupWriter, LogicalUnitWriter
 
 from ovlib import wrapper, ObjectWrapper, ListObjectWrapper, Dispatcher, dispatcher, command, event_waiter, EventsCode
+
+@wrapper(type_class=LogicalUnit, writer_class=LogicalUnitWriter, other_attributes=['logical_units'])
+class LogicalUnitWrapper(ObjectWrapper):
+    pass
+
+
+@wrapper(type_class=VolumeGroup, writer_class=VolumeGroupWriter, other_attributes=['logical_units'])
+class VolumeGroupWrapper(ObjectWrapper):
+    pass
+
+
+@wrapper(type_class=HostStorage, service_class=HostStorageService, writer_class=HostStorageWriter, other_methods=['list'], other_attributes=['volume_group'])
+class HostStorageWrapper(ObjectWrapper):
+    pass
 
 
 @wrapper(writer_class=SshWriter,
@@ -57,7 +71,7 @@ class NetworkAttachmentWrapper(ObjectWrapper):
          service_class=HostService,
          other_methods=['deactivate', 'activate', 'fence', 'upgrade', 'upgrade_check', 'unregistered_storage_domains_discover',
                         'setup_networks', 'commit_net_config'],
-         other_attributes=['update_available', 'network_attachments'])
+         other_attributes=['update_available', 'network_attachments', 'cluster'])
 class HostWrapper(ObjectWrapper):
 
     def upgrade_check(self, async=True):
