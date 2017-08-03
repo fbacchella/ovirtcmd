@@ -1,10 +1,10 @@
 import time
 
-from ovirtsdk4 import types
+from ovirtsdk4 import types, Error
 
 from ovlib.vms import VmDispatcher
-from ovlib import command, parse_size, is_id, event_waiter, EventsCode
-from ovlib.verb import Verb
+from ovlib import command, parse_size, is_id, event_waiter, EventsCode, OVLibError
+from ovlib.verb import Create
 
 os_settings = {
     'rhel_7x64': {
@@ -19,10 +19,7 @@ os_settings = {
 }
 
 @command(VmDispatcher, verb='create')
-class VmCreate(Verb):
-
-    def uses_template(self):
-        return True
+class VmCreate(Create):
 
     def fill_parser(self, parser):
         parser.add_option("-n", "--name", dest="name", help="VM name", default=None)
@@ -34,8 +31,9 @@ class VmCreate(Verb):
         parser.add_option("--ostype", dest="ostype", help="Server type", default=None)
         parser.add_option("--network", dest="networks", help="networks", default=[], action='append')
         parser.add_option("--disk", dest="disks", help="disk", default=[], action='append')
+        parser.add_option("--roles", dest="roles", help="roles to create (role:[u|g]:name_or_id)", default=[], action='append')
 
-    def validate(self):
+    def uses_template(self):
         return True
 
     def execute(self, **kwargs):
@@ -43,13 +41,13 @@ class VmCreate(Verb):
         cluster = None
         if 'memory' in kwargs:
             kwargs['memory'] = parse_size(kwargs['memory'])
-        if 'memory_policy' not in kwargs:
+        if 'memory_policy' in kwargs:
             kwargs['memory_policy'] = types.MemoryPolicy(guaranteed=kwargs['memory'], ballooning=False)
         if 'cluster' in kwargs:
             cluster = self.api.clusters.get(name=kwargs.pop('cluster'))
             kwargs['cluster'] = types.Cluster(id=cluster.id)
         if 'template' in kwargs:
-            kwargs['template'] = types.Template(id=self.get(self.api.templates, kwargs.pop('template')).id)
+            kwargs['template'] = types.Template(id=self.api.templates.get(name=kwargs.pop('template')).id)
         if 'time_zone' in kwargs:
             kwargs['time_zone'] = types.TimeZone(name=kwargs['time_zone'])
         if 'bios' in kwargs:
@@ -112,7 +110,7 @@ class VmCreate(Verb):
         if not 'small_icon' in kwargs:
             kwargs['small_icon'] = osi.small_icon
 
-        storage_domain_common = kwargs.pop('storage_domain', None)
+        storage_domain_default = kwargs.pop('storage_domain', None)
         disk_interface = kwargs.pop('disk_interface', settings.get('disk_interface', None))
 
         disks = []
@@ -123,21 +121,20 @@ class VmCreate(Verb):
                 'interface': disk_interface,
                 'format': types.DiskFormat.RAW,
                 'sparse': False,
-                'storage_domain': storage_domain_common,
-                'suffix': 'sys' if len(disks) == 0 else len(disks),
+                'storage_domain': storage_domain_default,
                 # first disk is the boot and system disk
+                'suffix': 'sys' if len(disks) == 0 else len(disks),
                 'bootable': True if len(disks) == 0 else False,
             }
 
-            #If a id to an existing disk was given
             if is_id(disk_information):
+                # If a id to an existing disk was given
                 disk_args = {'id': disk_information}
             elif isinstance(disk_information, (str, list, tuple)):
                 if isinstance(disk_information, str):
                     disk_information_array = disk_information.split(",")
                 else:
                     disk_information_array = disk_information
-
                 if len(disk_information_array) > 0:
                     disk_args['provisioned_size'] = disk_information_array[0]
                 if len(disk_information_array) > 1 and len(disk_information_array[1]) > 0:
@@ -158,7 +155,6 @@ class VmCreate(Verb):
 
             storage_domain = disk_args.pop('storage_domain', None)
             if storage_domain is not None and not 'storage_domain' in disk_args:
-                #storage_domain = self.get(self.api.storagedomains, storage_domain)
                 disk_args['storage_domains'] = [types.StorageDomain(name=storage_domain)]
 
             disk_name_suffix = disk_args.pop('suffix', None)
@@ -198,6 +194,33 @@ class VmCreate(Verb):
             nics.append(types.Nic(**net_args))
             waiting_events += [EventsCode.NETWORK_ACTIVATE_VM_INTERFACE_SUCCESS]
 
+        # Role is either given as the string role:[u|g]:name_or_id
+        # Or a dict: {'role': name_or_id, 'group': name_or_id, 'user: name_or_id} with 'group' and 'user' mutually exclusive
+        roles = []
+        for role_info in kwargs.pop('roles', []):
+            user = None
+            group = None
+            if isinstance(role_info, str):
+                (role, type, information) = role_info.split(":")
+                if len(information) == 0:
+                    continue
+                if type[0].lower() == 'u':
+                    user = information
+                elif type[0].lower() == 'g':
+                    group = information
+                else:
+                    raise OVLibError("Invalid role defintion line given: %s" % role_info)
+            elif isinstance(role_info, dict) and len(role_info) == 2:
+                role = role_info['role']
+                user = role_info.get('user', None)
+                group = role_info.get('group', None)
+            else:
+                raise OVLibError("Invalid role defintion given: %s" % role_info)
+
+            role_kwargs = {'role': role, 'user': user, 'group': group}
+            roles.append(role_kwargs)
+        print(roles)
+
         events_returned = []
         with event_waiter(self.api, "vm.name=%s" % kwargs['name'], events_returned,
                           wait_for=waiting_events,
@@ -206,9 +229,25 @@ class VmCreate(Verb):
                                     EventsCode.USER_ADD_DISK_TO_VM_FINISHED_FAILURE,
                                     EventsCode.NETWORK_ACTIVATE_VM_INTERFACE_FAILURE],
                           verbose=True):
+            # Create the VM
             newvm = self.api.wrap(self.api.vms.add(types.Vm(**kwargs)))
+            futurs = []
             for x in nics:
-                newvm.nics.add(x)
+                try:
+                    futurs.append(newvm.nics.add(x, wait=False))
+                except Error as e:
+                    raise OVLibError('Unable to add nic to new VM')
             for x in disks:
-                newvm.disk_attachments.add(x)
+                try:
+                    futurs.append(newvm.disk_attachments.add(x, wait=False))
+                except Error as e:
+                    raise OVLibError('Unable to add disk to new VM')
+            for x in roles:
+                futurs.append(newvm.permissions.add(wait=False, **x))
+            for f in futurs:
+                try:
+                    f.wait()
+                except Error as e:
+                    raise OVLibError('Unable to add disk to new VM')
+
         return newvm
