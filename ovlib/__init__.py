@@ -507,7 +507,16 @@ class ListObjectWrapper(ObjectWrapper):
             service = api.service(self.__class__.service_root)
         super(ListObjectWrapper, self).__init__(api, service=service)
 
-    def get(self, **kwargs):
+    def get(self, *args, **kwargs):
+        # If one arg was given, try to detect what is is and add it to kwargs
+        if (len(args) == 1):
+            if isinstance(args[0], self.wrapper):
+                return args[0]
+            elif is_id(args[0]):
+                kwargs['id'] = args[0]
+            elif isinstance(args[0], str):
+                kwargs['name'] = args[0]
+            return self.get(**kwargs)
         res = self._do_query(**kwargs)
         if len(res) == 0:
             raise OVLibErrorNotFound("no object found matching the search")
