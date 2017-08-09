@@ -88,9 +88,9 @@ class Create(ovlib.verb.Create):
     def execute(self, *args, **kwargs):
         macpool = kwargs.pop('macpool', None)
         if macpool is not None:
-            kwargs['mac_pool'] = self.get('macpools', macpool)
+            kwargs['mac_pool'] = self.api.macpools.get(macpool)
 
-        return self.contenaire.add(params.DataCenter(**kwargs))
+        return self.api.datacenters.create(**kwargs)
 
 
 @command(DataCenterDispatcher)
