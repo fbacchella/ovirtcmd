@@ -200,3 +200,16 @@ class AddProfile(ovlib.verb.Verb):
         if kwargs.get('name', None) is None:
             kwargs['name'] = qos.name
         return self.broker.diskprofiles.add(DiskProfile(**kwargs), )
+
+
+@command(StorageDomainDispatcher, verb="refresh_luns")
+class RefreshLuns(ovlib.verb.Verb):
+
+    def execute(self, *args, **kwargs):
+        storage = self.api.wrap(self.object.storage)
+        lu = self.api.wrap(storage.volume_group.logical_units)
+        to_refresh=[]
+        for i in lu:
+            to_refresh.append(i.type)
+        return self.object.refresh_luns(logical_units=to_refresh)
+
