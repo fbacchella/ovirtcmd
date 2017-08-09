@@ -257,10 +257,16 @@ class Console(RemoteDisplay):
 
 
 @command(VmDispatcher, verb='migrating')
-class Migrating(ovlib.verb.Verb):
+class Migrating(ovlib.verb.RepeterVerb):
 
     def validate(self):
         return True
+
+    def get(self, lister, **kwargs):
+        def get_migrating():
+            return lister.list(status='migratingfrom', **kwargs)
+        self.get_migrating = get_migrating
+        return super().get(lister, status='migratingfrom', **kwargs)
 
     def fill_parser(self, parser):
         parser.add_option("-f", "--follow", dest="follow", help="Follows status", default=False, action="store_true")
@@ -271,7 +277,8 @@ class Migrating(ovlib.verb.Verb):
         again = True
         while again:
             again = False
-            for vm in self.object:
+            yield "------"
+            for vm in self.get_migrating():
                 if vm.status == VmStatus.MIGRATING:
                     stat = self.api.wrap(vm.statistics)
                     migration = stat.get(name='migration.progress')
