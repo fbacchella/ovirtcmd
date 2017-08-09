@@ -12,7 +12,13 @@ class ClusterWrapper(ObjectWrapper):
 
 @wrapper(service_class=ClustersService, service_root="clusters")
 class ClustersWrapper(ListObjectWrapper):
-    pass
+    def creation_mapping(self, cpu_type=None, cpu=None, **kwargs):
+        if cpu_type is not None and cpu is None:
+            kwargs['cpu'] = Cpu(
+                architecture = Architecture.X86_64,
+                type = cpu_type,
+            )
+        return kwargs
 
 
 @dispatcher(object_name="cluster", wrapper=ClusterWrapper, list_wrapper=ClustersWrapper)

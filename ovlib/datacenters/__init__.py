@@ -1,7 +1,7 @@
 import ovlib.verb
 from ovlib import Dispatcher, ObjectWrapper, ListObjectWrapper, command, dispatcher, wrapper
 
-from ovirtsdk4.types import DataCenter, Qos, Network
+from ovirtsdk4.types import DataCenter, Qos, Network, StorageFormat
 from ovirtsdk4.writers import DataCenterWriter, QosWriter, NetworkWriter
 from ovirtsdk4.services import DataCenterService, DataCentersService, QossService, QosService, DataCenterNetworkService, DataCenterNetworksService
 
@@ -30,13 +30,23 @@ class DataCenterWrapper(ObjectWrapper):
     pass
 
 
-@wrapper(service_class=DataCentersService, service_root="datacenters")
+@wrapper(service_class=DataCentersService, service_root="datacenters"
+)
 class DataCentersWrapper(ListObjectWrapper):
-    pass
+    def creation_mapping(self, mac_pool=None, **kwargs):
+        if isinstance(mac_pool, str):
+            kwargs['mac_pool'] = self.api.macpools.get(kwargs['mac_pool'])
+        else:
+            kwargs['mac_pool'] = mac_pool
+        return kwargs
 
-@dispatcher(object_name="datacenter", wrapper=DataCenterWrapper, list_wrapper=DataCentersWrapper)
+
+@dispatcher(object_name="datacenter", wrapper=DataCenterWrapper, list_wrapper=DataCentersWrapper, name_type_mapping={
+            'storage_format': StorageFormat
+        })
 class DataCenterDispatcher(Dispatcher):
     pass
+
 
 @command(DataCenterDispatcher)
 class List(ovlib.verb.List):

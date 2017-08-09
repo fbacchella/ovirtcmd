@@ -1,19 +1,30 @@
-import ovlib.verb
+from numbers import Number
 
+import ovlib.verb
 from ovlib import Dispatcher, ObjectWrapper, ListObjectWrapper, command, dispatcher, wrapper
 
-from ovirtsdk4.types import Network
+from ovirtsdk4.types import Network, Vlan, NetworkUsage
 from ovirtsdk4.services import NetworkService, NetworksService
 from ovirtsdk4.writers import NetworkWriter
 
 
 @wrapper(service_class=NetworksService, service_root="networks")
 class NetworksWrapper(ListObjectWrapper):
-    pass
+
+    def creation_mapping(self, vlan=None, **kwargs):
+        if vlan is not None:
+            if isinstance(vlan, str):
+                kwargs['vlan'] = Vlan(id=vlan)
+            elif isinstance(vlan, Number):
+                kwargs['vlan'] = Vlan(id='%d' % vlan)
+            else:
+                kwargs['vlan'] = vlan
+        return kwargs
 
 @wrapper(writer_class=NetworkWriter, type_class=Network, service_class=NetworkService)
 class NetworkWrapper(ObjectWrapper):
     pass
+
 
 @dispatcher(object_name="network", wrapper=NetworkWrapper, list_wrapper=NetworksWrapper)
 class NetworkDispatcher(Dispatcher):

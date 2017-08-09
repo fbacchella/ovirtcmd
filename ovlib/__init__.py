@@ -3,8 +3,8 @@ import inspect
 import io
 import time
 import collections
+from enum import Enum, IntEnum, EnumMeta
 
-from enum import IntEnum
 from contextlib import contextmanager
 
 from ovlib.template import load_template
@@ -153,12 +153,15 @@ def command(dispatcher_class, verb=None):
         return command_class
     return decorator
 
-def dispatcher(object_name, wrapper, list_wrapper):
+def dispatcher(object_name, wrapper, list_wrapper, name_type_mapping={}):
     def decorator(dispatcher_class):
         dispatcher_class.object_name = object_name
         dispatcher_class.list_wrapper = list_wrapper
+        dispatcher_class.list_wrapper.type_class = wrapper.typeClass
         dispatcher_class.wrapper = wrapper
+        list_wrapper.wrapper = wrapper
         dispatchers[object_name] = dispatcher_class()
+        list_wrapper.name_type_mapping = name_type_mapping
         return dispatcher_class
     return decorator
 
@@ -552,6 +555,23 @@ class ListObjectWrapper(ObjectWrapper):
             if next_wrapper is not None:
                 buf += "%s" % next_wrapper.export(path)
         return buf
+
+    def create(self, wait=False, **kwargs):
+        for (k,v) in kwargs.items():
+            if isinstance(v, ObjectWrapper):
+                kwargs[k] = v.type
+            elif isinstance(v, str) and k in self.name_type_mapping:
+                destination_type = self.name_type_mapping[k]
+                if isinstance(destination_type, EnumMeta):
+                    print("%s %s %s" % (k, v, destination_type))
+                    kwargs[k] = destination_type[v]
+        kwargs = self.creation_mapping(**kwargs)
+
+        new_type = self.type_class(**kwargs)
+        added = self.add(new_type)
+
+    def creation_mapping(self, **kwargs):
+        return kwargs
 
     def __str__(self):
         return "%s<%s>" % (type(self).__name__, "" if self.service is None else self.service._path[1:])
