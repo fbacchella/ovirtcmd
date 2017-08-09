@@ -16,7 +16,7 @@ class OperatingSystemsInfoWrapper(ListObjectWrapper):
     pass
 
 
-@dispatcher(object_name="os", wrapper=OperatingSystemInfoWriter, list_wrapper=OperatingSystemsInfoWrapper)
+@dispatcher(object_name="os", wrapper=OperatingSystemInfoWrapper, list_wrapper=OperatingSystemsInfoWrapper)
 class OperatingSystemInfoDispatcher(Dispatcher):
     pass
 

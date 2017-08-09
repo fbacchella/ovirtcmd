@@ -1,11 +1,27 @@
 import ovlib.verb
 from ovlib import Dispatcher, ObjectWrapper, command, dispatcher, wrapper, ListObjectWrapper
 
-from ovirtsdk4.types import Cluster
-from ovirtsdk4.writers import ClusterWriter
-from ovirtsdk4.services import ClustersService, ClusterService
+from ovirtsdk4.types import Cluster, Cpu, Architecture, Network
+from ovirtsdk4.writers import ClusterWriter, NetworkWriter
+from ovirtsdk4.services import ClustersService, ClusterService, ClusterNetworksService, ClusterNetworkService
 
-@wrapper(writer_class=ClusterWriter, type_class=Cluster, service_class=ClusterService, other_attributes=['data_center', 'networks'])
+
+@wrapper(writer_class=NetworkWriter, type_class=Network, service_class=ClusterNetworkService, other_attributes=[])
+class ClusterNetwork(ObjectWrapper):
+    pass
+
+
+@wrapper(service_class=ClusterNetworksService)
+class ClusterNetworksWrapper(ListObjectWrapper):
+    pass
+
+
+@dispatcher(object_name="cluster", wrapper=ClusterNetwork, list_wrapper=ClusterNetworksWrapper)
+class ClusterNetworkDispatcher(Dispatcher):
+    pass
+
+
+@wrapper(writer_class=ClusterWriter, type_class=Cluster, service_class=ClusterService, other_attributes=[])
 class ClusterWrapper(ObjectWrapper):
     pass
 

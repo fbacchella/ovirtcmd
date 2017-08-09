@@ -131,7 +131,7 @@ class VmsWrapper(ListObjectWrapper):
     pass
 
 
-@wrapper(writer_class=VmWriter, type_class=Vm, service_class=VmService, other_attributes=['os'], other_methods=['suspend'])
+@wrapper(writer_class=VmWriter, type_class=Vm, service_class=VmService, other_attributes=['os', 'memory', 'ip'], other_methods=['suspend'])
 class VmWrapper(ObjectWrapper):
 
     def get_graphic_console(self, protocol=GraphicsType.SPICE, console_protocol="spice"):
@@ -181,6 +181,11 @@ class VmExport(ovlib.verb.XmlExport):
 
 @command(VmDispatcher)
 class VmWaitFor(ovlib.verb.WaitFor):
+    pass
+
+
+@command(VmDispatcher)
+class VmPermission(ovlib.verb.Permission):
     pass
 
 

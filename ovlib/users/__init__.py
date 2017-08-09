@@ -10,11 +10,11 @@ from ovirtsdk4.services import UserService, UsersService, SshPublicKeyService, S
 @wrapper(service_class=UsersService, service_root="users")
 class UsersWrapper(ListObjectWrapper):
 
-    def list(self, name=None, **kwargs):
-        return super(UsersWrapper, self).list(usrname=name, **kwargs)
+    def list(self, *args, name=None, **kwargs):
+        return super(UsersWrapper, self).list(*args, usrname=name, **kwargs)
 
-    def get(self, name=None, id=None):
-        return super(UsersWrapper, self).get(usrname=name, id=id)
+    def get(self, *args, name=None, **kwargs):
+        return super(UsersWrapper, self).get(*args, usrname=name, **kwargs)
 
 
 @wrapper(service_class=UserService, type_class=User, writer_class=UserWriter, other_attributes=['user_name', 'principal'])
@@ -49,7 +49,7 @@ class UserExport(ovlib.verb.XmlExport):
 
 @command(UserDispatcher, verb='permits')
 class UserPermits(ovlib.verb.Verb):
-    
+
     def execute(self, *args):
         permissions = {}
         for i in self.object.permissions.list():

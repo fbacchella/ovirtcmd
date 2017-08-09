@@ -26,7 +26,7 @@ class JobsWrapper(ListObjectWrapper):
     pass
 
 
-@dispatcher(object_name="job", wrapper=JobWriter, list_wrapper=JobsWrapper)
+@dispatcher(object_name="job", wrapper=JobWrapper, list_wrapper=JobsWrapper)
 class JobDispatcher(Dispatcher):
     pass
 
