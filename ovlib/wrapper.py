@@ -189,11 +189,11 @@ class ObjectWrapper(object):
     def export(self, path=[]):
         buf = None
         writer = None
-        if len(path) == 0 and self.writerClass is not None:
+        if len(path) == 0 and self.writer_class is not None:
             try:
                 buf = io.BytesIO()
                 writer = xml.XmlWriter(buf, indent=True)
-                self.writerClass.write_one(self.type, writer)
+                self.writer_class.write_one(self.type, writer)
                 writer.flush()
                 return buf.getvalue().decode('utf-8', 'replace')
             finally:
