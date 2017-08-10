@@ -31,7 +31,7 @@ class VmCreate(Create):
         parser.add_option("--ostype", dest="ostype", help="Server type", default=None)
         parser.add_option("--network", dest="networks", help="networks", default=[], action='append')
         parser.add_option("--disk", dest="disks", help="disk", default=[], action='append')
-        parser.add_option("--roles", dest="roles", help="roles to create (role:[u|g]:name_or_id)", default=[], action='append')
+        parser.add_option("--role", dest="roles", help="roles to create (role:[u|g]:name_or_id)", default=[], action='append')
 
     def uses_template(self):
         return True
