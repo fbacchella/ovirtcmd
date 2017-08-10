@@ -578,7 +578,7 @@ class ListObjectWrapper(ObjectWrapper):
                 buf += "%s" % next_wrapper.export(path)
         return buf
 
-    def create(self, wait=False, **kwargs):
+    def create(self, wait=True, **kwargs):
         for (k,v) in kwargs.items():
             if isinstance(v, ObjectWrapper):
                 kwargs[k] = v.type
@@ -590,7 +590,9 @@ class ListObjectWrapper(ObjectWrapper):
         kwargs = self.creation_mapping(**kwargs)
 
         new_type = self.type_class(**kwargs)
-        added = self.add(new_type)
+        added = self.api.wrap(self.add(new_type, wait=wait))
+        return added
+
 
     def creation_mapping(self, **kwargs):
         return kwargs
