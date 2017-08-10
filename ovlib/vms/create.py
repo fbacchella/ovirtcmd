@@ -2,8 +2,10 @@ import time
 
 from ovirtsdk4 import types, Error
 
+from ovlib import parse_size, is_id, OVLibError
+from ovlib.eventslib import EventsCode, event_waiter
+from ovlib.dispatcher import dispatcher, command, Dispatcher
 from ovlib.vms import VmDispatcher
-from ovlib import command, parse_size, is_id, event_waiter, EventsCode, OVLibError
 from ovlib.verb import Create
 
 os_settings = {

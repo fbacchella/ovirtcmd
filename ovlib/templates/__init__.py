@@ -1,5 +1,7 @@
 import ovlib.verb
-from ovlib import Dispatcher, ObjectWrapper, command, dispatcher, wrapper, ListObjectWrapper
+
+from ovlib.dispatcher import dispatcher, command, Dispatcher
+from ovlib.wrapper import ObjectWrapper, ListObjectWrapper, wrapper
 
 from ovirtsdk4.types import Template, TemplateVersion
 from ovirtsdk4.writers import TemplateVersionWriter, TemplateWriter

@@ -6,7 +6,9 @@ from ovirtsdk4.types import Host, HostStatus, HostNic, NetworkAttachment, IpAddr
 from ovirtsdk4.services import HostService, HostsService, NetworkAttachmentService, NetworkAttachmentsService, HostNicsService, HostNicService, HostStorageService
 from ovirtsdk4.writers import HostWriter, HostNicWriter, NetworkAttachmentWriter, IpAddressAssignmentWriter, VmSummaryWriter, SshWriter, HostStorageWriter, VolumeGroupWriter, LogicalUnitWriter
 
-from ovlib import wrapper, ObjectWrapper, ListObjectWrapper, Dispatcher, dispatcher, command, event_waiter, EventsCode
+from ovlib.eventslib import EventsCode, event_waiter
+from ovlib.dispatcher import dispatcher, command, Dispatcher
+from ovlib.wrapper import ObjectWrapper, ListObjectWrapper, wrapper
 
 @wrapper(type_class=LogicalUnit, writer_class=LogicalUnitWriter, other_attributes=['logical_units'])
 class LogicalUnitWrapper(ObjectWrapper):
@@ -97,6 +99,7 @@ class HostsWrapper(ListObjectWrapper):
 @dispatcher(object_name = "host", wrapper=HostWrapper, list_wrapper=HostsWrapper)
 class HostDispatcher(Dispatcher):
     pass
+
 
 @command(HostDispatcher)
 class HostStatistics(ovlib.verb.Statistics):

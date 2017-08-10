@@ -1,5 +1,6 @@
 import ovlib.verb
-from ovlib import Dispatcher, ObjectWrapper, ListObjectWrapper, command, dispatcher, wrapper
+from ovlib.dispatcher import dispatcher, command, Dispatcher
+from ovlib.wrapper import ObjectWrapper, ListObjectWrapper, wrapper
 
 from ovirtsdk4.types import DataCenter, Qos, Network, StorageFormat
 from ovirtsdk4.writers import DataCenterWriter, QosWriter, NetworkWriter
@@ -56,6 +57,7 @@ class List(ovlib.verb.List):
 @command(DataCenterDispatcher)
 class XmlExport(ovlib.verb.XmlExport):
     pass
+
 
 @command(DataCenterDispatcher)
 class Delete(ovlib.verb.RemoveForce):

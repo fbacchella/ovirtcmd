@@ -1,8 +1,9 @@
-from ovlib import ObjectWrapper, ListObjectWrapper, wrapper, OVLibError, is_id
-
 from ovirtsdk4.types import Permission
 from ovirtsdk4.writers import PermissionWriter
 from ovirtsdk4.services import PermissionService, AssignedPermissionsService
+
+from ovlib import OVLibError, is_id
+from ovlib.wrapper import wrapper, ObjectWrapper, ListObjectWrapper
 
 from ovlib.users import UserWrapper
 from ovlib.groups import GroupWrapper

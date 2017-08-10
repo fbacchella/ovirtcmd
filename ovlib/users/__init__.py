@@ -1,5 +1,6 @@
 import ovlib.verb
-from ovlib import Dispatcher, ObjectWrapper, ListObjectWrapper, command, dispatcher, wrapper
+from ovlib.dispatcher import dispatcher, command, Dispatcher
+from ovlib.wrapper import ObjectWrapper, ListObjectWrapper, wrapper
 from ovlib.system import SystemWrapper
 
 from ovirtsdk4.types import User, SshPublicKey

@@ -3,7 +3,9 @@ import tempfile
 import os
 import time
 
-from ovlib import Dispatcher, ObjectWrapper, ListObjectWrapper, command, dispatcher, wrapper, OVLibError
+from ovlib import OVLibError
+from ovlib.dispatcher import dispatcher, command, Dispatcher
+from ovlib.wrapper import ObjectWrapper, ListObjectWrapper, wrapper
 
 from ovirtsdk4.types import Vm, VmStatus, Nic, OperatingSystem, Display, DiskAttachment, TimeZone, \
     CpuType, Cpu, Cdrom, ReportedDevice, HostDevice, \

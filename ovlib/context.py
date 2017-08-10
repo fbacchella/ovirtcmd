@@ -5,6 +5,7 @@ from enum import IntEnum
 import ovirtsdk4
 
 import ovlib
+from ovlib.wrapper import ObjectWrapper
 from ovlib.system import SystemWrapper
 
 from six.moves.urllib.parse import urljoin
@@ -159,7 +160,10 @@ class Context(object):
         return self.api.service(path)
 
     def wrap(self, sdk_object):
-        return ovlib.ObjectWrapper.make_wrapper(self, sdk_object)
+        return ObjectWrapper.make_wrapper(self, sdk_object)
+
+    def debug(self, *args, **kwargs):
+        print(args[0])
 
     def _curl_debug(self, debug_type, data):
         """

@@ -1,5 +1,6 @@
 import ovlib.verb
-from ovlib import Dispatcher, ObjectWrapper, ListObjectWrapper, command, dispatcher, wrapper
+from ovlib.dispatcher import dispatcher, command, Dispatcher
+from ovlib.wrapper import ObjectWrapper, wrapper
 
 from ovirtsdk4.services import SystemService
 from ovirtsdk4.writers import ApiWriter, ProductInfoWriter, ApiSummaryWriter, ApiSummaryItemWriter

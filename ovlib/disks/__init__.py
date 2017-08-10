@@ -1,6 +1,9 @@
 import ovlib.verb
 
-from ovlib import Dispatcher, ListObjectWrapper, ObjectWrapper, command, dispatcher, wrapper, parse_size, event_waiter, EventsCode
+from ovlib import parse_size
+from ovlib.eventslib import EventsCode, event_waiter
+from ovlib.dispatcher import dispatcher, command, Dispatcher
+from ovlib.wrapper import ObjectWrapper, ListObjectWrapper, wrapper
 
 from ovirtsdk4.types import Disk,  DiskFormat, StorageDomain, DiskAttachment, DiskInterface
 from ovirtsdk4.services import DiskService, DisksService

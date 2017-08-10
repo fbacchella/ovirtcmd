@@ -1,7 +1,7 @@
 from ovirtsdk4 import types
 
 from ovlib.vms import VmDispatcher
-from ovlib import command
+from ovlib.dispatcher import command
 from ovlib.verb import Verb
 
 @command(VmDispatcher, verb='autoinstall')

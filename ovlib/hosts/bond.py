@@ -1,7 +1,8 @@
 import ovlib.verb
 import ipaddress
 
-from ovlib import wrapper, ObjectWrapper, command
+from ovlib.dispatcher import command
+from ovlib.wrapper import ObjectWrapper, wrapper
 from ovlib.hosts import HostDispatcher
 
 from ovirtsdk4.types import Bonding, Option, HostNic, NetworkAttachment

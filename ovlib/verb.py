@@ -2,8 +2,8 @@ import optparse
 import string
 
 from ovlib.template import VariableOption
-from ovlib import OVLibError, ObjectWrapper
-from ovirtsdk4 import types
+from ovlib import OVLibError
+from ovlib.wrapper import ObjectWrapper
 
 
 # Find the best implementation available on this platform

@@ -3,7 +3,7 @@ import ovlib.verb
 from ovirtsdk4.types import VmStatus
 
 from ovlib.vms import VmDispatcher
-from ovlib import command
+from ovlib.dispatcher import command
 
 @command(VmDispatcher)
 class Remove(ovlib.verb.Remove):

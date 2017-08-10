@@ -1,6 +1,9 @@
 import ovlib.verb
 
-from ovlib import Dispatcher, ListObjectWrapper, ObjectWrapper, command, dispatcher, wrapper, EventsCode, OVLibErrorNotFound
+from ovlib import OVLibErrorNotFound
+from ovlib.eventslib import EventsCode
+from ovlib.dispatcher import dispatcher, command, Dispatcher
+from ovlib.wrapper import ObjectWrapper, ListObjectWrapper, wrapper
 
 from ovirtsdk4.types import Event
 from ovirtsdk4.services import EventService, EventsService

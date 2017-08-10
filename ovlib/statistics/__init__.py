@@ -2,7 +2,7 @@ from ovirtsdk4.types import Statistic, Value
 from ovirtsdk4.services import StatisticService, StatisticsService
 from ovirtsdk4.writers import StatisticWriter, ValueWriter
 
-from ovlib import wrapper, ObjectWrapper, ListObjectWrapper
+from ovlib.wrapper import ObjectWrapper, ListObjectWrapper, wrapper
 
 @wrapper(writer_class=StatisticWriter,
          type_class=Statistic,
