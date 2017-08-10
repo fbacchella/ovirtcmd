@@ -132,10 +132,6 @@ class Context(object):
         self.follow_link = self.api.follow_link
         self.connected = True
 
-
-        # needed because there is no list generator for system
-        setattr(self, 'system', SystemWrapper(self))
-
     def disconnect(self):
         if self.connected:
             self.api.close()
@@ -151,6 +147,9 @@ class Context(object):
         for (dispatcher_name, dispatcher_wrapper) in list(ovlib.dispatchers.items()):
             if hasattr(dispatcher_wrapper, 'list_wrapper') and hasattr(dispatcher_wrapper.list_wrapper, 'service_root'):
                 self.register_root_service(dispatcher_wrapper.list_wrapper)
+        # needed because there is no list generator for system
+        setattr(self, 'system', SystemWrapper(self))
+
 
     def resolve_service_href(self, href):
         absolute_href = urljoin(self.api.url, href)
