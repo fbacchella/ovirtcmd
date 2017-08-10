@@ -3,9 +3,9 @@ oVirtCmd
 
 oVirtCmd is a CLI tool and sdk to manage an ovirt server.
 
-It's written in python and uses the [python SDK from ovirt](http://www.ovirt.org/develop/release-management/features/infra/python-sdk/) version 4.
+It's written in python and uses the [python SDK from ovirt](https://ovirt.prod.exalead.com/ovirt-engine/apidoc//) version 4.
 
-More documentation about the sdk can be found at [ovirtsdk4 doc](http://ovirt.github.io/ovirt-engine-sdk/master/) or 
+More documentation about the sdk can be found at [the python sdk doc](http://ovirt.github.io/ovirt-engine-sdk/master/) or 
 [REST API GUIDE for RHV 4.1](https://access.redhat.com/documentation/en-us/red_hat_virtualization/4.1/html/rest_api_guide/)
 
 Howto install in a virtualenv
