@@ -6,8 +6,8 @@ from ovirtsdk4.writers import ClusterWriter, NetworkWriter
 from ovirtsdk4.services import ClustersService, ClusterService, ClusterNetworksService, ClusterNetworkService
 
 
-@wrapper(writer_class=NetworkWriter, type_class=Network, service_class=ClusterNetworkService, other_attributes=[])
-class ClusterNetwork(ObjectWrapper):
+@wrapper(writer_class=NetworkWriter, type_class=Network, service_class=ClusterNetworkService, other_attributes=['vlan'])
+class ClusterNetworkWrapper(ObjectWrapper):
     pass
 
 
@@ -16,7 +16,7 @@ class ClusterNetworksWrapper(ListObjectWrapper):
     pass
 
 
-@dispatcher(object_name="cluster", wrapper=ClusterNetwork, list_wrapper=ClusterNetworksWrapper)
+@dispatcher(object_name="cluster", wrapper=ClusterNetworkWrapper, list_wrapper=ClusterNetworksWrapper)
 class ClusterNetworkDispatcher(Dispatcher):
     pass
 

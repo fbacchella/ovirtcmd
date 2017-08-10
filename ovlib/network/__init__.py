@@ -3,9 +3,14 @@ from numbers import Number
 import ovlib.verb
 from ovlib import Dispatcher, ObjectWrapper, ListObjectWrapper, command, dispatcher, wrapper
 
-from ovirtsdk4.types import Network, Vlan, NetworkUsage
+from ovirtsdk4.types import Network, Vlan
 from ovirtsdk4.services import NetworkService, NetworksService
-from ovirtsdk4.writers import NetworkWriter
+from ovirtsdk4.writers import NetworkWriter, VlanWriter
+
+
+@wrapper(writer_class=VlanWriter, type_class=Vlan)
+class VlanWrapper(ObjectWrapper):
+    pass
 
 
 @wrapper(service_class=NetworksService, service_root="networks")
@@ -21,7 +26,8 @@ class NetworksWrapper(ListObjectWrapper):
                 kwargs['vlan'] = vlan
         return kwargs
 
-@wrapper(writer_class=NetworkWriter, type_class=Network, service_class=NetworkService)
+
+@wrapper(writer_class=NetworkWriter, type_class=Network, service_class=NetworkService, other_attributes=['vlan', 'mtu'])
 class NetworkWrapper(ObjectWrapper):
     pass
 
