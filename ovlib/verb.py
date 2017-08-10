@@ -135,11 +135,7 @@ class RemoveForce(Remove):
 
 
     def execute(self, *args, **kwargs):
-        action_params = types.Action(
-            # force a True/False content
-            force=kwargs['force'] is True,
-        )
-        return self.object.delete(action_params)
+        return self.object.remove(**kwargs)
 
 
 class Update(Verb):
