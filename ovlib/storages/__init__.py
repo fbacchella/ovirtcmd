@@ -4,16 +4,22 @@ import ovlib.verb
 from ovlib.dispatcher import dispatcher, command, Dispatcher
 from ovlib.wrapper import ObjectWrapper, ListObjectWrapper, wrapper
 
-from ovirtsdk4.types import StorageDomain, Qos, DiskProfile, HostStorage, StorageType, StorageDomainType, StorageFormat
-from ovirtsdk4.writers import StorageDomainWriter
+from ovirtsdk4.types import StorageDomain, Qos, DiskProfile, HostStorage, StorageType, StorageDomainType, StorageFormat, LogicalUnit
+from ovirtsdk4.writers import StorageDomainWriter, LogicalUnitWriter
 from ovirtsdk4.services import StorageDomainsService, StorageDomainService
 
 
-@wrapper(writer_class=StorageDomainWriter, type_class=StorageDomain, service_class=StorageDomainService)
+@wrapper(writer_class=LogicalUnitWriter, type_class=LogicalUnit, other_attributes=[])
+class LogicalUnitWrapper(ObjectWrapper):
+    pass
+
+
+@wrapper(writer_class=StorageDomainWriter, type_class=StorageDomain, service_class=StorageDomainService, other_methods=['refresh_luns'], other_attributes=['storage'])
 class StorageDomainWrapper(ObjectWrapper):
     pass
 
-@wrapper(service_class=StorageDomainsService, service_root="storagedomains")
+
+@wrapper(service_class=StorageDomainsService, service_root="storagedomains", name_type_mapping={'type': StorageDomainType, 'storage': HostStorage})
 class StorageDomainsWrapper(ListObjectWrapper):
     pass
 
@@ -96,7 +102,7 @@ def extract_storage_infos(host, source):
         storage_info['address'] = source.pop('storage_address', None)
         if 'type' in storage_info and 'type_' not in storage_info:
             storage_info['type_'] = storage_info.pop('type')
-        storage = params.Storage(**storage_info)
+        storage = Storage(**storage_info)
     elif isinstance(source, params.Storage):
         storage = storage
 

@@ -10,6 +10,7 @@ import ovirtsdk4.types
 
 from ovirtsdk4 import xml
 from ovirtsdk4.service import Future
+from ovirtsdk4.services import HostService
 
 from ovlib import OVLibError, OVLibErrorNotFound, is_id
 
@@ -175,16 +176,18 @@ class ObjectWrapper(object):
             if hasattr(self.service, method) and not hasattr(self, method):
                 setattr(self, method, method_wrapper(self, self.service, method))
 
-        if self.service is not None:
-            for method in dir(self.service):
-                if method.endswith("s_service") and not method.startswith("_") and not method == "qos_service":
-                    service_name = method.replace("_service", "")
-                    if not hasattr(self, service_name):
-                        try:
-                            services_method = getattr(self.service, method)()
-                            setattr(self, service_name, self.api.wrap(services_method))
-                        except OVLibError:
-                            setattr(self, service_name, getattr(self.service, method)())
+        for method in dir(self.service):
+            if method.startswith("_"): continue
+            if method == "qos_service": continue
+            if method == 'storage_service' and not isinstance(self.service, HostService): continue
+            if (method.endswith("s_service") or method == 'storage_service'):
+                service_name = method.replace("_service", "")
+                if not hasattr(self, service_name):
+                    try:
+                        services_method = getattr(self.service, method)()
+                        setattr(self, service_name, self.api.wrap(services_method))
+                    except OVLibError:
+                        setattr(self, service_name, getattr(self.service, method)())
 
     def export(self, path=[]):
         buf = None

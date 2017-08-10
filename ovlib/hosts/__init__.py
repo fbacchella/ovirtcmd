@@ -2,9 +2,13 @@ import time
 import ovlib.verb
 
 from ovirtsdk4 import List
-from ovirtsdk4.types import Host, HostStatus, HostNic, NetworkAttachment, IpAddressAssignment, VmSummary, Ssh, HostStorage, VolumeGroup, LogicalUnit
-from ovirtsdk4.services import HostService, HostsService, NetworkAttachmentService, NetworkAttachmentsService, HostNicsService, HostNicService, HostStorageService
-from ovirtsdk4.writers import HostWriter, HostNicWriter, NetworkAttachmentWriter, IpAddressAssignmentWriter, VmSummaryWriter, SshWriter, HostStorageWriter, VolumeGroupWriter, LogicalUnitWriter
+from ovirtsdk4.types import Host, HostStatus, HostNic, NetworkAttachment, IpAddressAssignment, VmSummary, VolumeGroup, LogicalUnit, PowerManagement,\
+    Ssh, SshAuthenticationMethod,\
+    HostStorage
+from ovirtsdk4.services import HostService, HostsService, NetworkAttachmentService, NetworkAttachmentsService, HostNicsService, HostNicService,\
+    HostStorageService, StorageService
+from ovirtsdk4.writers import HostWriter, HostNicWriter, NetworkAttachmentWriter, IpAddressAssignmentWriter, VmSummaryWriter, SshWriter, VolumeGroupWriter, LogicalUnitWriter,\
+    HostStorageWriter
 
 from ovlib.eventslib import EventsCode, event_waiter
 from ovlib.dispatcher import dispatcher, command, Dispatcher
@@ -20,9 +24,16 @@ class VolumeGroupWrapper(ObjectWrapper):
     pass
 
 
-@wrapper(type_class=HostStorage, service_class=HostStorageService, writer_class=HostStorageWriter, other_methods=['list'], other_attributes=['volume_group'])
+@wrapper(type_class=HostStorage, writer_class=HostStorageWriter, service_class=StorageService, other_attributes=['logical_units', 'type'])
 class HostStorageWrapper(ObjectWrapper):
     pass
+
+
+@wrapper(service_class=HostStorageService, other_attributes=['volume_group'])
+class HostStoragesWrapper(ListObjectWrapper):
+    # it's not a real list, hide the default one
+    def list(self, *args, **kwargs):
+        return self.service.list(*args, **kwargs)
 
 
 @wrapper(writer_class=SshWriter,
@@ -94,7 +105,24 @@ class HostWrapper(ObjectWrapper):
 
 @wrapper(service_class=HostsService, service_root = "hosts")
 class HostsWrapper(ListObjectWrapper):
-    pass
+
+    def creation_mapping(self, power_management=None, ssh_public_key=None, **kwargs):
+        if isinstance(power_management, dict):
+            power_management['enabled'] = True
+            power_management['kdump_detection'] = power_management.pop('kdump_detection', True)
+            if 'type' in power_management:
+                agent_info={}
+                type = power_management.pop('type')
+                #power_management['type_'] = type
+                #agent_info['type_'] = type
+                power_management['agents'] = {}
+                #power_management['agents'].add_agent(params.Agent(**agent_info))
+            kwargs['power_management'] = PowerManagement(**power_management)
+        if ssh_public_key is True:
+            kwargs['root_password'] = None
+            kwargs['ssh'] = Ssh(authentication_method=SshAuthenticationMethod.PUBLICKEY)
+        return kwargs
+
 
 @dispatcher(object_name = "host", wrapper=HostWrapper, list_wrapper=HostsWrapper)
 class HostDispatcher(Dispatcher):
