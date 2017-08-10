@@ -5,7 +5,7 @@ def command(dispatcher_class, verb=None):
     def decorator(command_class):
         if verb is not None:
             command_class.verb = verb
-        dispatchers[dispatcher_class.object_name].add_command(command_class)
+        dispatchers[dispatcher_class.object_name].verbs[command_class.verb] = command_class
         return command_class
     return decorator
 
@@ -20,7 +20,8 @@ def dispatcher(object_name, wrapper, list_wrapper, name_type_mapping={}):
         dispatcher_class.name_type_mapping = name_type_mapping
         wrapper.dispatcher = dispatcher_class
         list_wrapper.dispatcher = dispatcher_class
-        dispatchers[object_name] = dispatcher_class()
+        setattr(dispatcher_class, 'verbs', {})
+        dispatchers[object_name] = dispatcher_class
 
         return dispatcher_class
     return decorator
@@ -29,7 +30,6 @@ def dispatcher(object_name, wrapper, list_wrapper, name_type_mapping={}):
 class Dispatcher(object):
 
     def __init__(self):
-        self.verbs = {}
         self._api = None
 
     def add_command(self, new_command):
@@ -97,6 +97,6 @@ class Dispatcher(object):
     @api.setter
     def api(self, api):
         self._api = api
-        self._lister = self.__class__.list_wrapper(api)
+        self._lister = api.register_root_service(self.__class__.list_wrapper)
 
 

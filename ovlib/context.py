@@ -132,18 +132,25 @@ class Context(object):
         self.follow_link = self.api.follow_link
         self.connected = True
 
-        # Generated all the needed accessors for root services, as defined using dispatchers
-        for (dispatcher_name, dispatcher_wrapper) in list(ovlib.dispatchers.items()):
-            if hasattr(dispatcher_wrapper, 'list_wrapper') and hasattr(dispatcher_wrapper.list_wrapper, 'service_root'):
-                services_name = dispatcher_wrapper.list_wrapper.service_root
-                if not hasattr(self, services_name):
-                    setattr(self, services_name, dispatcher_wrapper.list_wrapper(self))
+
         # needed because there is no list generator for system
         setattr(self, 'system', SystemWrapper(self))
 
     def disconnect(self):
         if self.connected:
             self.api.close()
+
+    def register_root_service(self, service_class):
+        services_name = service_class.service_root
+        if not hasattr(self, services_name):
+            setattr(self, services_name, service_class(self))
+        return getattr(self, services_name)
+
+    def generate_services(self):
+        # Generated all the needed accessors for root services, as defined using dispatchers
+        for (dispatcher_name, dispatcher_wrapper) in list(ovlib.dispatchers.items()):
+            if hasattr(dispatcher_wrapper, 'list_wrapper') and hasattr(dispatcher_wrapper.list_wrapper, 'service_root'):
+                self.register_root_service(dispatcher_wrapper.list_wrapper)
 
     def resolve_service_href(self, href):
         absolute_href = urljoin(self.api.url, href)

@@ -16,10 +16,10 @@ def safe_print(string):
     decoded = codecs.decode(encoded, sys.stdout.encoding, 'replace')
     print(decoded)
 
-def print_run_phrase(ov_object, verb, object_options={}, object_args=[]):
-    (cmd, executed) = ov_object.run_phrase(verb, object_options, object_args)
+def print_run_phrase(dispatcher, verb, object_options={}, object_args=[]):
+    (cmd, executed) = dispatcher.run_phrase(verb, object_options, object_args)
     if cmd is None:
-        print("invalid phrase '%s %s'" % (ov_object.object_name, verb))
+        print("invalid phrase '%s %s'" % (dispatcher.object_name, verb))
         return 255
     if isinstance(executed, collections.Iterable) and not isinstance(executed, (str, bytes)):
         # If execute return a generator, iterate other it
@@ -38,7 +38,7 @@ def print_run_phrase(ov_object, verb, object_options={}, object_args=[]):
         return cmd.status()
     elif executed is not None:
         # It return false, something went wrong
-        print("'%s %s' failed" % (ov_object.object_name, verb))
+        print("'%s %s' failed" % (dispatcher.object_name, verb))
         return cmd.status()
     else:
         # It returned nothing, it should be OK.
@@ -61,6 +61,7 @@ def do_eval(script, context_options={}, variables={}, environments=[]):
     new_locals.update(variables)
     context = Context(**context_options)
     context.connect()
+    context.generate_services()
     new_locals['context'] = context
     new_locals['parse_size'] = ovlib.parse_size
     try:
@@ -106,11 +107,10 @@ def main():
 
         object_name = args.pop(0)
         if object_name in ovlib.dispatchers:
-            dispatcher = ovlib.dispatchers[object_name]
+            dispatcher = ovlib.dispatchers[object_name]()
         else:
             print(('unknown object: %s' % object_name))
             return 253
-
         #The object parser
         parser_object = optparse.OptionParser()
         parser_object.disable_interspersed_args()
