@@ -158,11 +158,14 @@ def dispatcher(object_name, wrapper, list_wrapper, name_type_mapping={}):
     def decorator(dispatcher_class):
         dispatcher_class.object_name = object_name
         dispatcher_class.list_wrapper = list_wrapper
-        dispatcher_class.list_wrapper.type_class = wrapper.typeClass
+        dispatcher_class.list_wrapper.type_class = wrapper.type_class
         dispatcher_class.wrapper = wrapper
         list_wrapper.wrapper = wrapper
+        dispatcher_class.name_type_mapping = name_type_mapping
+        wrapper.dispatcher = dispatcher_class
+        list_wrapper.dispatcher = dispatcher_class
         dispatchers[object_name] = dispatcher_class()
-        list_wrapper.name_type_mapping = name_type_mapping
+
         return dispatcher_class
     return decorator
 
@@ -258,8 +261,8 @@ class AttributeWrapper(object):
 
 def wrapper(writer_class=None, type_class=None, service_class=None, other_methods = [], other_attributes = [], service_root=None):
     def decorator(func):
-        func.writerClass = writer_class
-        func.typeClass = type_class
+        func.writer_class = writer_class
+        func.type_class = type_class
         func.service_class = service_class
         for clazz in inspect.getmro(func):
             if clazz == ListObjectWrapper:
@@ -500,6 +503,27 @@ class ObjectWrapper(object):
             else:
                 time.sleep(wait)
 
+    def _wrap_call(self, method_name, wait=True, **kwargs):
+        for (k,v) in kwargs.items():
+            if isinstance(v, ObjectWrapper):
+                kwargs[k] = v.type
+            elif isinstance(v, str) and k in self.dispatcher.name_type_mapping:
+                destination_type = self.dispatcher.name_type_mapping[k]
+                if isinstance(destination_type, EnumMeta):
+                    print("%s %s %s" % (k, v, destination_type))
+                    kwargs[k] = destination_type[v]
+        kwargs = self.call_mapping(**kwargs)
+
+        new_type = self.type_class(**kwargs)
+        method = getattr(self.service, method_name)
+        return self.api.wrap(method(new_type, wait=wait))
+
+    def call_mapping(self, **kwargs):
+        return kwargs
+
+    def update(self, **kwargs):
+        return self._wrap_call('update', **kwargs)
+
     def __str__(self):
         return "%s<%s>" % (type(self).__name__, "" if self.service is None else self.service._path[1:])
 
@@ -578,24 +602,8 @@ class ListObjectWrapper(ObjectWrapper):
                 buf += "%s" % next_wrapper.export(path)
         return buf
 
-    def create(self, wait=True, **kwargs):
-        for (k,v) in kwargs.items():
-            if isinstance(v, ObjectWrapper):
-                kwargs[k] = v.type
-            elif isinstance(v, str) and k in self.name_type_mapping:
-                destination_type = self.name_type_mapping[k]
-                if isinstance(destination_type, EnumMeta):
-                    print("%s %s %s" % (k, v, destination_type))
-                    kwargs[k] = destination_type[v]
-        kwargs = self.creation_mapping(**kwargs)
-
-        new_type = self.type_class(**kwargs)
-        added = self.api.wrap(self.add(new_type, wait=wait))
-        return added
-
-
-    def creation_mapping(self, **kwargs):
-        return kwargs
+    def add(self, **kwargs):
+        return self._wrap_call('add', **kwargs)
 
     def __str__(self):
         return "%s<%s>" % (type(self).__name__, "" if self.service is None else self.service._path[1:])
