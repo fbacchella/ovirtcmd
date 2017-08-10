@@ -13,7 +13,8 @@ import ovirtsdk4.writers
 import ovirtsdk4.types
 import ovirtsdk4
 
-from ovirtsdk4 import xml, List
+from ovirtsdk4 import xml
+from ovirtsdk4.service import Future
 
 class OVLibError(Exception):
     def __init__(self, error_message, value={}, exception=None):
@@ -318,6 +319,16 @@ class IteratorObjectWrapper(object):
                 buf += str(i) + "\n"
         return buf
 
+class FuturWrapper(object):
+
+    def __init__(self, context, futur):
+        self.futur = futur
+        self.context = context
+
+    def wait(self):
+        content = self.futur.wait()
+        return self.context.wrap(content)
+
 
 @contextmanager
 def event_waiter(api, object_filter, events, wait_for=[], break_on=[], timeout=1000, wait=1, verbose=False):
@@ -375,6 +386,8 @@ class ObjectWrapper(object):
             list = detect
         elif isinstance(detect, collections.Iterable) and not isinstance(detect, str):
             list = detect
+        elif isinstance(detect, Future):
+            return FuturWrapper(api, detect)
         else:
             return detect
         if service is None:
