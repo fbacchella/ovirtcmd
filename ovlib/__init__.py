@@ -2,6 +2,7 @@ import re
 
 from ovlib.template import load_template
 
+
 class OVLibError(Exception):
     def __init__(self, error_message, value={}, exception=None):
         self.value = value
@@ -20,11 +21,6 @@ class OVLibErrorNotFound(OVLibError):
     pass
 
 
-class ExecutorWrapper(Exception):
-    def __init__(self, executor):
-        self.executor = executor
-
-
 def join_default(val, default):
     for key in default:
         if key not in val:
@@ -39,7 +35,7 @@ units = {
     'k': 1024,
     '': 1,
 }
-size_re = re.compile('(\\d+)([TGMKk]?)');
+size_re = re.compile('(\\d+)([TGMKk]?)')
 
 
 def parse_size(input_size, out_suffix="", default_suffix=None):
@@ -69,7 +65,6 @@ def is_id(try_id):
 
 
 dispatchers = { }
-
 
 
 import ovlib.common

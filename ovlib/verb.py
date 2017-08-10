@@ -5,7 +5,6 @@ from ovlib.template import VariableOption
 from ovlib import OVLibError
 from ovlib.wrapper import ObjectWrapper
 
-
 # Find the best implementation available on this platform
 try:
     from io import StringIO

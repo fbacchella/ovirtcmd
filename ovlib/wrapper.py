@@ -13,6 +13,7 @@ from ovirtsdk4.service import Future
 
 from ovlib import OVLibError, OVLibErrorNotFound, is_id
 
+
 type_wrappers={}
 service_wrappers={}
 writers={}
@@ -90,6 +91,7 @@ class IteratorObjectWrapper(object):
             else:
                 buf += str(i) + "\n"
         return buf
+
 
 class FuturWrapper(object):
 

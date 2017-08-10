@@ -1,5 +1,6 @@
 from ovlib import OVLibError, load_template, dispatchers
 
+
 def command(dispatcher_class, verb=None):
     def decorator(command_class):
         if verb is not None:
@@ -7,6 +8,7 @@ def command(dispatcher_class, verb=None):
         dispatchers[dispatcher_class.object_name].add_command(command_class)
         return command_class
     return decorator
+
 
 def dispatcher(object_name, wrapper, list_wrapper, name_type_mapping={}):
     def decorator(dispatcher_class):
