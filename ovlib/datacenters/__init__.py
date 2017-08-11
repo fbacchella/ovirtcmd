@@ -1,21 +1,20 @@
 import ovlib.verb
 from ovlib.dispatcher import dispatcher, command, Dispatcher
 from ovlib.wrapper import ObjectWrapper, ListObjectWrapper, wrapper
+from ovlib.network import NetworkWrapper, NetworksWrapper
 
-from ovirtsdk4.types import DataCenter, Qos, Network, StorageFormat
-from ovirtsdk4.writers import DataCenterWriter, QosWriter, NetworkWriter
+from ovirtsdk4.types import DataCenter, Qos, StorageFormat
+from ovirtsdk4.writers import DataCenterWriter, QosWriter
 from ovirtsdk4.services import DataCenterService, DataCentersService, QossService, QosService, DataCenterNetworkService, DataCenterNetworksService
 
 
-@wrapper(writer_class=NetworkWriter, type_class=Network, service_class=DataCenterNetworkService,
-         name_type_mapping={'network': Network})
-class DataCenterNetworkWrapper(ObjectWrapper):
+@wrapper(service_class=DataCenterNetworkService)
+class DataCenterNetworkWrapper(NetworkWrapper):
     pass
 
 
-@wrapper(service_class=DataCenterNetworksService,
-         name_type_mapping={'network': Network})
-class DataCenterNetworkWrapper(ListObjectWrapper):
+@wrapper(service_class=DataCenterNetworksService)
+class DataCenterNetworksWrapper(NetworksWrapper):
     pass
 
 

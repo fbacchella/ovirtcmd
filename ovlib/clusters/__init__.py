@@ -1,19 +1,20 @@
 import ovlib.verb
 from ovlib.dispatcher import dispatcher, command, Dispatcher
 from ovlib.wrapper import ObjectWrapper, ListObjectWrapper, wrapper
+from ovlib.network import NetworkWrapper, NetworksWrapper
 
-from ovirtsdk4.types import Cluster, Cpu, Architecture, Network
-from ovirtsdk4.writers import ClusterWriter, NetworkWriter
+from ovirtsdk4.types import Cluster
+from ovirtsdk4.writers import ClusterWriter
 from ovirtsdk4.services import ClustersService, ClusterService, ClusterNetworksService, ClusterNetworkService
 
 
-@wrapper(writer_class=NetworkWriter, type_class=Network, service_class=ClusterNetworkService, other_attributes=['vlan'])
-class ClusterNetworkWrapper(ObjectWrapper):
+@wrapper(service_class=ClusterNetworkService)
+class ClusterNetworkWrapper(NetworkWrapper):
     pass
 
 
 @wrapper(service_class=ClusterNetworksService)
-class ClusterNetworksWrapper(ListObjectWrapper):
+class ClusterNetworksWrapper(NetworksWrapper):
     pass
 
 
@@ -31,13 +32,6 @@ class ClusterWrapper(ObjectWrapper):
          name_type_mapping={'cluster': Cluster})
 class ClustersWrapper(ListObjectWrapper):
     pass
-    #def creation_mapping(self, cpu_type=None, cpu=None, **kwargs):
-    #    if cpu_type is not None and cpu is None:
-    #        kwargs['cpu'] = Cpu(
-    #            architecture = Architecture.X86_64,
-    #            type = cpu_type,
-    #        )
-    #    return kwargs
 
 
 @dispatcher(object_name="cluster", wrapper=ClusterWrapper, list_wrapper=ClustersWrapper)

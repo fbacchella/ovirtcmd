@@ -34,18 +34,44 @@ class AttributeWrapper(object):
 
 def wrapper(writer_class=None, type_class=None, service_class=None, other_methods = [], other_attributes = [], service_root=None, name_type_mapping={}):
     def decorator(func):
-        func.writer_class = writer_class
-        func.type_class = type_class
-        func.service_class = service_class
-        func.name_type_mapping = name_type_mapping
-        for clazz in inspect.getmro(func):
-            if clazz == ListObjectWrapper:
-                func.service_root = service_root
-                break
-        func.methods = other_methods + ['remove', 'list', 'start', 'stop', 'update', 'add']
-        for attribute in other_attributes + ['status', 'name', 'id', 'comment']:
-            if not hasattr(func, attribute):
+        parent_class = func.__bases__[0]
+        if writer_class is not None:
+            func.writer_class = writer_class
+        elif hasattr(parent_class, 'writer_class'):
+            func.writer_class = parent_class.writer_class
+        if type_class is not None:
+            func.type_class = type_class
+        elif hasattr(parent_class, 'type_class'):
+            func.type_class = parent_class.type_class
+        if service_class is not None:
+            func.service_class = service_class
+        elif hasattr(parent_class, 'service_class'):
+            func.service_class = parent_class.service_class
+        func.name_type_mapping = {}
+        if hasattr(parent_class, 'name_type_mapping'):
+            func.name_type_mapping.update(parent_class.name_type_mapping)
+        func.name_type_mapping.update(name_type_mapping)
+
+        # check if it inherits of ListObjectWrapper
+        if ListObjectWrapper in inspect.getmro(func):
+            func.service_root = service_root
+
+        # Analyzing methods
+        func.methods = []
+        func.methods += other_methods
+        if hasattr(parent_class, 'methods'):
+            func.methods += filter(lambda x: x not in func.methods, parent_class.methods)
+        func.methods += filter(lambda x: x not in func.methods, ['remove', 'list', 'start', 'stop', 'update', 'add'])
+
+        # Analyzing attributes
+        func.attributes = []
+        func.attributes += other_attributes
+        if hasattr(parent_class, 'other_attributes'):
+            func.attributes += filter(lambda x: x not in func.attributes, parent_class.attributes)
+        func.attributes += filter(lambda x: x not in func.attributes, ['status', 'name', 'id', 'comment'])
+        for attribute in func.attributes:
                 setattr(func, attribute, AttributeWrapper(attribute))
+
         if type_class is not None:
             type_wrappers[type_class] = func
         if service_class is not None:

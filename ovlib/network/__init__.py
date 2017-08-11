@@ -14,7 +14,7 @@ class VlanWrapper(ObjectWrapper):
     pass
 
 
-@wrapper(service_class=NetworksService, service_root="networks")
+@wrapper(service_class=NetworksService, service_root="networks", name_type_mapping={'network': Network})
 class NetworksWrapper(ListObjectWrapper):
 
     def creation_mapping(self, vlan=None, **kwargs):
