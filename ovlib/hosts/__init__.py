@@ -2,13 +2,15 @@ import time
 import ovlib.verb
 
 from ovirtsdk4 import List
-from ovirtsdk4.types import Host, HostStatus, HostNic, NetworkAttachment, IpAddressAssignment, VmSummary, VolumeGroup, LogicalUnit, PowerManagement,\
-    Ssh, SshAuthenticationMethod,\
-    HostStorage
-from ovirtsdk4.services import HostService, HostsService, NetworkAttachmentService, NetworkAttachmentsService, HostNicsService, HostNicService,\
-    HostStorageService, StorageService
-from ovirtsdk4.writers import HostWriter, HostNicWriter, NetworkAttachmentWriter, IpAddressAssignmentWriter, VmSummaryWriter, SshWriter, VolumeGroupWriter, LogicalUnitWriter,\
-    HostStorageWriter
+from ovirtsdk4.types import Host, HostStatus, \
+    HostNic, NetworkAttachment, IpAddressAssignment, MacPool, \
+    VmSummary, VolumeGroup, LogicalUnit, PowerManagement, \
+    Ssh, SshAuthenticationMethod, \
+    HostStorage, StorageDomain, StorageType
+from ovirtsdk4.services import HostService, HostsService, NetworkAttachmentService, NetworkAttachmentsService, HostNicsService, HostNicService, \
+    HostStorageService, StorageService, AttachedStorageDomainService, AttachedStorageDomainsService
+from ovirtsdk4.writers import HostWriter, HostNicWriter, NetworkAttachmentWriter, IpAddressAssignmentWriter, VmSummaryWriter, SshWriter, VolumeGroupWriter, LogicalUnitWriter, \
+    HostStorageWriter, StorageDomainWriter
 
 from ovlib.eventslib import EventsCode, event_waiter
 from ovlib.dispatcher import dispatcher, command, Dispatcher
@@ -19,12 +21,15 @@ class LogicalUnitWrapper(ObjectWrapper):
     pass
 
 
-@wrapper(type_class=VolumeGroup, writer_class=VolumeGroupWriter, other_attributes=['logical_units'])
+@wrapper(type_class=VolumeGroup, writer_class=VolumeGroupWriter, other_attributes=['logical_units'],
+         name_type_mapping={'logical_units': LogicalUnit})
 class VolumeGroupWrapper(ObjectWrapper):
     pass
 
 
-@wrapper(type_class=HostStorage, writer_class=HostStorageWriter, service_class=StorageService, other_attributes=['logical_units', 'type'])
+@wrapper(type_class=HostStorage, writer_class=HostStorageWriter, service_class=StorageService,
+         other_attributes=['logical_units', 'type'],
+         name_type_mapping={'type': StorageType, 'volume_group': VolumeGroup})
 class HostStorageWrapper(ObjectWrapper):
     pass
 
@@ -66,6 +71,19 @@ class HostNicsWrapper(ListObjectWrapper):
     pass
 
 
+@wrapper(service_class=AttachedStorageDomainsService)
+class AttachedStorageDomainsWrapper(ListObjectWrapper):
+    pass
+
+
+@wrapper(writer_class=StorageDomainWriter,
+         type_class=StorageDomain,
+         service_class=AttachedStorageDomainService,
+         other_attributes=[])
+class AttachedStorageDomainWrapper(ObjectWrapper):
+    pass
+
+
 @wrapper(service_class=NetworkAttachmentsService)
 class NetworkAttachmentsWrapper(ListObjectWrapper):
     pass
@@ -84,7 +102,8 @@ class NetworkAttachmentWrapper(ObjectWrapper):
          service_class=HostService,
          other_methods=['deactivate', 'activate', 'fence', 'upgrade', 'upgrade_check', 'unregistered_storage_domains_discover',
                         'setup_networks', 'commit_net_config'],
-         other_attributes=['update_available', 'network_attachments', 'cluster'])
+         other_attributes=['update_available', 'network_attachments', 'cluster'],
+         name_type_mapping={'mac_pool': MacPool})
 class HostWrapper(ObjectWrapper):
 
     def upgrade_check(self, async=True):

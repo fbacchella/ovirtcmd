@@ -10,14 +10,12 @@ def command(dispatcher_class, verb=None):
     return decorator
 
 
-def dispatcher(object_name, wrapper, list_wrapper, name_type_mapping={}):
+def dispatcher(object_name, wrapper, list_wrapper):
     def decorator(dispatcher_class):
         dispatcher_class.object_name = object_name
         dispatcher_class.list_wrapper = list_wrapper
-        dispatcher_class.list_wrapper.type_class = wrapper.type_class
         dispatcher_class.wrapper = wrapper
         list_wrapper.wrapper = wrapper
-        dispatcher_class.name_type_mapping = name_type_mapping
         wrapper.dispatcher = dispatcher_class
         list_wrapper.dispatcher = dispatcher_class
         setattr(dispatcher_class, 'verbs', {})

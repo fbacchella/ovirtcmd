@@ -28,7 +28,8 @@ class NetworksWrapper(ListObjectWrapper):
         return kwargs
 
 
-@wrapper(writer_class=NetworkWriter, type_class=Network, service_class=NetworkService, other_attributes=['vlan', 'mtu'])
+@wrapper(writer_class=NetworkWriter, type_class=Network, service_class=NetworkService, other_attributes=['vlan', 'mtu'],
+         name_type_mapping={'network': Network})
 class NetworkWrapper(ObjectWrapper):
     pass
 

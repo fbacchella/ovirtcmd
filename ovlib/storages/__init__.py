@@ -4,7 +4,8 @@ import ovlib.verb
 from ovlib.dispatcher import dispatcher, command, Dispatcher
 from ovlib.wrapper import ObjectWrapper, ListObjectWrapper, wrapper
 
-from ovirtsdk4.types import StorageDomain, Qos, DiskProfile, HostStorage, StorageType, StorageDomainType, StorageFormat, LogicalUnit
+from ovirtsdk4.types import StorageDomain, Qos, DiskProfile, HostStorage, StorageType, StorageDomainType, StorageFormat, LogicalUnit, \
+    Host
 from ovirtsdk4.writers import StorageDomainWriter, LogicalUnitWriter
 from ovirtsdk4.services import StorageDomainsService, StorageDomainService
 
@@ -19,7 +20,8 @@ class StorageDomainWrapper(ObjectWrapper):
     pass
 
 
-@wrapper(service_class=StorageDomainsService, service_root="storagedomains", name_type_mapping={'type': StorageDomainType, 'storage': HostStorage})
+@wrapper(service_class=StorageDomainsService, service_root="storagedomains",
+         name_type_mapping={'type': StorageDomainType, 'storage': HostStorage, 'storage_format': 'StorageFormat', 'host': Host})
 class StorageDomainsWrapper(ListObjectWrapper):
     pass
 

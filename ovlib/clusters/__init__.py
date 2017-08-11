@@ -27,15 +27,17 @@ class ClusterWrapper(ObjectWrapper):
     pass
 
 
-@wrapper(service_class=ClustersService, service_root="clusters")
+@wrapper(service_class=ClustersService, service_root="clusters",
+         name_type_mapping={'cluster': Cluster})
 class ClustersWrapper(ListObjectWrapper):
-    def creation_mapping(self, cpu_type=None, cpu=None, **kwargs):
-        if cpu_type is not None and cpu is None:
-            kwargs['cpu'] = Cpu(
-                architecture = Architecture.X86_64,
-                type = cpu_type,
-            )
-        return kwargs
+    pass
+    #def creation_mapping(self, cpu_type=None, cpu=None, **kwargs):
+    #    if cpu_type is not None and cpu is None:
+    #        kwargs['cpu'] = Cpu(
+    #            architecture = Architecture.X86_64,
+    #            type = cpu_type,
+    #        )
+    #    return kwargs
 
 
 @dispatcher(object_name="cluster", wrapper=ClusterWrapper, list_wrapper=ClustersWrapper)

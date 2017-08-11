@@ -3,12 +3,14 @@ import io
 import time
 import collections
 from enum import EnumMeta
+import inspect
 
 import ovirtsdk4
 import ovirtsdk4.writers
 import ovirtsdk4.types
 
-from ovirtsdk4 import xml
+from ovirtsdk4 import xml, Struct
+from ovirtsdk4.types import Identified
 from ovirtsdk4.service import Future
 from ovirtsdk4.services import HostService
 
@@ -30,11 +32,12 @@ class AttributeWrapper(object):
         return getattr(obj.type, self.name)
 
 
-def wrapper(writer_class=None, type_class=None, service_class=None, other_methods = [], other_attributes = [], service_root=None):
+def wrapper(writer_class=None, type_class=None, service_class=None, other_methods = [], other_attributes = [], service_root=None, name_type_mapping={}):
     def decorator(func):
         func.writer_class = writer_class
         func.type_class = type_class
         func.service_class = service_class
+        func.name_type_mapping = name_type_mapping
         for clazz in inspect.getmro(func):
             if clazz == ListObjectWrapper:
                 func.service_root = service_root
@@ -188,6 +191,8 @@ class ObjectWrapper(object):
                         setattr(self, service_name, self.api.wrap(services_method))
                     except OVLibError:
                         setattr(self, service_name, getattr(self.service, method)())
+            elif method == 'add':
+                self.add = self._add
 
     def export(self, path=[]):
         buf = None
@@ -241,23 +246,38 @@ class ObjectWrapper(object):
             else:
                 time.sleep(wait)
 
-    def _wrap_call(self, method_name, wait=True, **kwargs):
-        for (k,v) in kwargs.items():
-            if isinstance(v, ObjectWrapper):
-                kwargs[k] = v.type
-            elif isinstance(v, str) and k in self.dispatcher.name_type_mapping:
-                destination_type = self.dispatcher.name_type_mapping[k]
-                if isinstance(destination_type, EnumMeta):
-                    print("%s %s %s" % (k, v, destination_type))
-                    kwargs[k] = destination_type[v]
-        kwargs = self.call_mapping(**kwargs)
+    @staticmethod
+    def _map_dict(name_type_mapping, d):
+        return {k: ObjectWrapper._transform_arg_type(name_type_mapping, k, v) for k, v in d.items()}
 
-        new_type = self.type_class(**kwargs)
+    @staticmethod
+    def _transform_arg_type(name_type_mapping, k, v):
+        name_type = name_type_mapping.get(k, None)
+        name_type_wrapper = type_wrappers.get(name_type)
+        if isinstance(v, ObjectWrapper):
+            t = v.type
+        elif isinstance(v, str) and isinstance(name_type, EnumMeta):
+            t = name_type[v]
+        elif isinstance(v, dict) and name_type_wrapper is not None:
+            t =  name_type_mapping[k](**ObjectWrapper._map_dict(name_type_wrapper.name_type_mapping, v))
+        elif isinstance(v, collections.Iterable) and not isinstance(v, str) and not isinstance(v, dict):
+            t = list(map(lambda x: ObjectWrapper._transform_arg_type(name_type_mapping, k, x), v))
+        else:
+            t = v
+        print(k, v, t, name_type, name_type_wrapper)
+        return t
+
+    def _wrap_call(self, method_name, wait=True, **kwargs):
+        kwargs = ObjectWrapper._map_dict(self.name_type_mapping, kwargs)
+        kwargs = self.call_mapping(**kwargs)
         method = getattr(self.service, method_name)
-        return self.api.wrap(method(new_type, wait=wait))
+        return self.api.wrap(method(wait=wait, **kwargs))
 
     def call_mapping(self, **kwargs):
         return kwargs
+
+    def _add(self, **kwargs):
+        return self._wrap_call('add', **kwargs)
 
     def update(self, **kwargs):
         return self._wrap_call('update', **kwargs)
@@ -339,9 +359,6 @@ class ListObjectWrapper(ObjectWrapper):
             if next_wrapper is not None:
                 buf += "%s" % next_wrapper.export(path)
         return buf
-
-    def add(self, **kwargs):
-        return self._wrap_call('add', **kwargs)
 
     def __str__(self):
         return "%s<%s>" % (type(self).__name__, "" if self.service is None else self.service._path[1:])

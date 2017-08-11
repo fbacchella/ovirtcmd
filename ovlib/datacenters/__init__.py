@@ -7,12 +7,14 @@ from ovirtsdk4.writers import DataCenterWriter, QosWriter, NetworkWriter
 from ovirtsdk4.services import DataCenterService, DataCentersService, QossService, QosService, DataCenterNetworkService, DataCenterNetworksService
 
 
-@wrapper(writer_class=NetworkWriter, type_class=Network, service_class=DataCenterNetworkService)
+@wrapper(writer_class=NetworkWriter, type_class=Network, service_class=DataCenterNetworkService,
+         name_type_mapping={'network': Network})
 class DataCenterNetworkWrapper(ObjectWrapper):
     pass
 
 
-@wrapper(service_class=DataCenterNetworksService)
+@wrapper(service_class=DataCenterNetworksService,
+         name_type_mapping={'network': Network})
 class DataCenterNetworkWrapper(ListObjectWrapper):
     pass
 
@@ -26,25 +28,20 @@ class QossWrapper(ListObjectWrapper):
     pass
 
 
-@wrapper(writer_class=DataCenterWriter, type_class=DataCenter, service_class=DataCenterService)
+@wrapper(writer_class=DataCenterWriter, type_class=DataCenter, service_class=DataCenterService,
+         name_type_mapping={'storage_format': StorageFormat,})
 class DataCenterWrapper(ObjectWrapper):
     pass
 
 
-@wrapper(service_class=DataCentersService, service_root="datacenters"
+@wrapper(service_class=DataCentersService, service_root="datacenters",
+         name_type_mapping={'data_center': DataCenter}
 )
 class DataCentersWrapper(ListObjectWrapper):
-    def creation_mapping(self, mac_pool=None, **kwargs):
-        if isinstance(mac_pool, str):
-            kwargs['mac_pool'] = self.api.macpools.get(kwargs['mac_pool'])
-        else:
-            kwargs['mac_pool'] = mac_pool
-        return kwargs
+    pass
 
 
-@dispatcher(object_name="datacenter", wrapper=DataCenterWrapper, list_wrapper=DataCentersWrapper, name_type_mapping={
-            'storage_format': StorageFormat
-        })
+@dispatcher(object_name="datacenter", wrapper=DataCenterWrapper, list_wrapper=DataCentersWrapper)
 class DataCenterDispatcher(Dispatcher):
     pass
 
