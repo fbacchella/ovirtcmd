@@ -5,9 +5,14 @@ from contextlib import contextmanager
 
 from ovlib import OVLibError
 
-
+# See
+# https://bugzilla.redhat.com/show_bug.cgi?id=1453170
+# and
+# https://github.com/oVirt/ovirt-engine/blob/master/backend/manager/modules/common/src/main/java/org/ovirt/engine/core/common/AuditLogType.java
 class EventsCode(IntEnum):
     UNDEFINED = -1
+    # When a host is up
+    VDS_DETECTED = 13
     VDS_NO_SELINUX_ENFORCEMENT = 25
     IRS_DISK_SPACE_LOW = 26
     USER_RUN_VM = 32
