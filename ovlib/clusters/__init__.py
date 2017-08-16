@@ -3,7 +3,7 @@ from ovlib.dispatcher import dispatcher, command, Dispatcher
 from ovlib.wrapper import ObjectWrapper, ListObjectWrapper, wrapper
 from ovlib.network import NetworkWrapper, NetworksWrapper
 
-from ovirtsdk4.types import Cluster
+from ovirtsdk4.types import Cluster, Cpu, Architecture
 from ovirtsdk4.writers import ClusterWriter
 from ovirtsdk4.services import ClustersService, ClusterService, ClusterNetworksService, ClusterNetworkService
 
@@ -23,7 +23,8 @@ class ClusterNetworkDispatcher(Dispatcher):
     pass
 
 
-@wrapper(writer_class=ClusterWriter, type_class=Cluster, service_class=ClusterService, other_attributes=[])
+@wrapper(writer_class=ClusterWriter, type_class=Cluster, service_class=ClusterService, other_attributes=[],
+         name_type_mapping={'cpu': Cpu})
 class ClusterWrapper(ObjectWrapper):
     pass
 

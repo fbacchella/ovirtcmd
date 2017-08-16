@@ -15,13 +15,15 @@ class LogicalUnitWrapper(ObjectWrapper):
     pass
 
 
-@wrapper(writer_class=StorageDomainWriter, type_class=StorageDomain, service_class=StorageDomainService, other_methods=['refresh_luns'], other_attributes=['storage'])
+@wrapper(writer_class=StorageDomainWriter, type_class=StorageDomain, service_class=StorageDomainService,
+         other_methods=['refresh_luns'], other_attributes=['storage'],
+         name_type_mapping={'storage_domain': StorageDomain, 'storage': HostStorage, 'type': StorageDomainType})
 class StorageDomainWrapper(ObjectWrapper):
     pass
 
 
 @wrapper(service_class=StorageDomainsService, service_root="storagedomains",
-         name_type_mapping={'type': StorageDomainType, 'storage': HostStorage, 'storage_format': 'StorageFormat', 'host': Host})
+         name_type_mapping={'type': StorageDomainType, 'storage': HostStorage, 'storage_format': 'StorageFormat', 'host': Host, 'storage_domain': StorageDomain, 'storage': HostStorage})
 class StorageDomainsWrapper(ListObjectWrapper):
     pass
 

@@ -1,20 +1,54 @@
 import time
 import ovlib.verb
+from ovlib.storages import StorageDomainWrapper
 
 from ovirtsdk4 import List
 from ovirtsdk4.types import Host, HostStatus, \
     HostNic, NetworkAttachment, IpAddressAssignment, MacPool, \
     VmSummary, VolumeGroup, LogicalUnit, PowerManagement, \
-    Ssh, SshAuthenticationMethod, \
-    HostStorage, StorageDomain, StorageType
+    HostStorage, StorageType, Ssh, \
+    PmProxy, PmProxyType, FenceType, FencingPolicy, Agent, HardwareInformation
 from ovirtsdk4.services import HostService, HostsService, NetworkAttachmentService, NetworkAttachmentsService, HostNicsService, HostNicService, \
-    HostStorageService, StorageService, AttachedStorageDomainService, AttachedStorageDomainsService
-from ovirtsdk4.writers import HostWriter, HostNicWriter, NetworkAttachmentWriter, IpAddressAssignmentWriter, VmSummaryWriter, SshWriter, VolumeGroupWriter, LogicalUnitWriter, \
-    HostStorageWriter, StorageDomainWriter
+    HostStorageService, StorageService, AttachedStorageDomainService, AttachedStorageDomainsService, \
+    FenceAgentService, FenceAgentsService
+from ovirtsdk4.writers import HostWriter, HostNicWriter, NetworkAttachmentWriter, IpAddressAssignmentWriter, VmSummaryWriter, VolumeGroupWriter, LogicalUnitWriter, \
+    HostStorageWriter, \
+    PowerManagementWriter, FencingPolicyWriter, AgentWriter, HardwareInformationWriter
 
 from ovlib.eventslib import EventsCode, event_waiter
 from ovlib.dispatcher import dispatcher, command, Dispatcher
 from ovlib.wrapper import ObjectWrapper, ListObjectWrapper, wrapper
+
+
+@wrapper(type_class=HardwareInformation, writer_class=HardwareInformation, other_attributes=['product_name'])
+class HardwareInformationWrapper(ObjectWrapper):
+    pass
+
+
+@wrapper(type_class=FencingPolicy, writer_class=FencingPolicyWriter)
+class FencingPolicyWrapper(ObjectWrapper):
+    pass
+
+
+@wrapper(service_class=FenceAgentService, type_class=Agent, writer_class=AgentWriter)
+class FenceAgentWrapper(ObjectWrapper):
+    pass
+
+
+@wrapper(service_class=FenceAgentsService, name_type_mapping={'agent': Agent})
+class FenceAgentsWrapper(ListObjectWrapper):
+    pass
+
+
+@wrapper(type_class=PmProxy, name_type_mapping={'type': PmProxyType})
+class PmProxyWrapper(ObjectWrapper):
+    pass
+
+
+@wrapper(type_class=PowerManagement, writer_class=PowerManagementWriter, name_type_mapping={'pm_proxies': PmProxy})
+class PowerManagementWrapper(ObjectWrapper):
+    pass
+
 
 @wrapper(type_class=LogicalUnit, writer_class=LogicalUnitWriter, other_attributes=['logical_units'])
 class LogicalUnitWrapper(ObjectWrapper):
@@ -39,12 +73,6 @@ class HostStoragesWrapper(ListObjectWrapper):
     # it's not a real list, hide the default one
     def list(self, *args, **kwargs):
         return self.service.list(*args, **kwargs)
-
-
-@wrapper(writer_class=SshWriter,
-         type_class=Ssh)
-class SshWrapper(ObjectWrapper):
-    pass
 
 
 @wrapper(writer_class=VmSummaryWriter,
@@ -76,11 +104,9 @@ class AttachedStorageDomainsWrapper(ListObjectWrapper):
     pass
 
 
-@wrapper(writer_class=StorageDomainWriter,
-         type_class=StorageDomain,
-         service_class=AttachedStorageDomainService,
+@wrapper(service_class=AttachedStorageDomainService,
          other_attributes=[])
-class AttachedStorageDomainWrapper(ObjectWrapper):
+class AttachedStorageDomainWrapper(StorageDomainWrapper):
     pass
 
 
@@ -102,8 +128,8 @@ class NetworkAttachmentWrapper(ObjectWrapper):
          service_class=HostService,
          other_methods=['deactivate', 'activate', 'fence', 'upgrade', 'upgrade_check', 'unregistered_storage_domains_discover',
                         'setup_networks', 'commit_net_config'],
-         other_attributes=['update_available', 'network_attachments', 'cluster'],
-         name_type_mapping={'mac_pool': MacPool})
+         other_attributes=['update_available', 'network_attachments', 'cluster', 'hardware_information'],
+         name_type_mapping={'mac_pool': MacPool, 'power_management': PowerManagement, 'ssh': Ssh, 'pm_proxies': PmProxy})
 class HostWrapper(ObjectWrapper):
 
     def upgrade_check(self, async=True):
@@ -122,25 +148,10 @@ class HostWrapper(ObjectWrapper):
             return self.service.upgrade_check()
 
 
-@wrapper(service_class=HostsService, service_root = "hosts")
+@wrapper(service_class=HostsService, service_root = "hosts",
+         name_type_mapping={'host': Host, 'power_management': PowerManagement, 'ssh': Ssh})
 class HostsWrapper(ListObjectWrapper):
-
-    def creation_mapping(self, power_management=None, ssh_public_key=None, **kwargs):
-        if isinstance(power_management, dict):
-            power_management['enabled'] = True
-            power_management['kdump_detection'] = power_management.pop('kdump_detection', True)
-            if 'type' in power_management:
-                agent_info={}
-                type = power_management.pop('type')
-                #power_management['type_'] = type
-                #agent_info['type_'] = type
-                power_management['agents'] = {}
-                #power_management['agents'].add_agent(params.Agent(**agent_info))
-            kwargs['power_management'] = PowerManagement(**power_management)
-        if ssh_public_key is True:
-            kwargs['root_password'] = None
-            kwargs['ssh'] = Ssh(authentication_method=SshAuthenticationMethod.PUBLICKEY)
-        return kwargs
+    pass
 
 
 @dispatcher(object_name = "host", wrapper=HostWrapper, list_wrapper=HostsWrapper)

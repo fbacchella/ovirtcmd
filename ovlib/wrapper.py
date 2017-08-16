@@ -290,17 +290,12 @@ class ObjectWrapper(object):
             t = list(map(lambda x: ObjectWrapper._transform_arg_type(name_type_mapping, k, x), v))
         else:
             t = v
-        print(k, v, t, name_type, name_type_wrapper)
         return t
 
     def _wrap_call(self, method_name, wait=True, **kwargs):
         kwargs = ObjectWrapper._map_dict(self.name_type_mapping, kwargs)
-        kwargs = self.call_mapping(**kwargs)
         method = getattr(self.service, method_name)
         return self.api.wrap(method(wait=wait, **kwargs))
-
-    def call_mapping(self, **kwargs):
-        return kwargs
 
     def _add(self, **kwargs):
         return self._wrap_call('add', **kwargs)

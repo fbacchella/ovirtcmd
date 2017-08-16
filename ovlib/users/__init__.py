@@ -3,9 +3,16 @@ from ovlib.dispatcher import dispatcher, command, Dispatcher
 from ovlib.wrapper import ObjectWrapper, ListObjectWrapper, wrapper
 from ovlib.system import SystemWrapper
 
-from ovirtsdk4.types import User, SshPublicKey
-from ovirtsdk4.writers import UserWriter, SshPublicKeyWriter
+from ovirtsdk4.types import User, SshPublicKey, Ssh, SshAuthenticationMethod
+from ovirtsdk4.writers import UserWriter, SshPublicKeyWriter, SshWriter
 from ovirtsdk4.services import UserService, UsersService, SshPublicKeyService, SshPublicKeysService
+
+
+@wrapper(writer_class=SshWriter,
+         type_class=Ssh,
+         name_type_mapping={'authentication_method': SshAuthenticationMethod})
+class SshWrapper(ObjectWrapper):
+    pass
 
 
 @wrapper(service_class=UsersService, service_root="users")
