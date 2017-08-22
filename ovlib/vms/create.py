@@ -1,10 +1,8 @@
-import time
-
 from ovirtsdk4 import types, Error
 
 from ovlib import parse_size, is_id, OVLibError
 from ovlib.eventslib import EventsCode, event_waiter
-from ovlib.dispatcher import dispatcher, command, Dispatcher
+from ovlib.dispatcher import command
 from ovlib.vms import VmDispatcher
 from ovlib.verb import Create
 
@@ -31,19 +29,20 @@ class VmCreate(Create):
         parser.add_option("--pxe", dest="boot_pxe", help="Can boot pxe", default=True, action="store_false")
         parser.add_option("--cpu", dest="cpu", help="Number of cpu", default=None)
         parser.add_option("--ostype", dest="ostype", help="Server type", default=None)
-        parser.add_option("--network", dest="networks", help="networks", default=[], action='append')
-        parser.add_option("--disk", dest="disks", help="disk", default=[], action='append')
+        parser.add_option("--network", dest="networks", help="networks (network/vnicprofile?)", default=[], action='append')
+        parser.add_option("--disk", dest="disks", help="disk (size,suffix?,storage_domain?)", default=[], action='append')
         parser.add_option("--role", dest="roles", help="roles to create (role:[u|g]:name_or_id)", default=[], action='append')
 
     def uses_template(self):
         return True
 
     def execute(self, **kwargs):
+        self.api.generate_services()
         waiting_events = [EventsCode.USER_ADD_VM]
         cluster = None
         if 'memory' in kwargs:
             kwargs['memory'] = parse_size(kwargs['memory'])
-        if 'memory_policy' in kwargs:
+        if 'memory_policy' not in kwargs:
             kwargs['memory_policy'] = types.MemoryPolicy(guaranteed=kwargs['memory'], ballooning=False)
         if 'cluster' in kwargs:
             cluster = self.api.clusters.get(name=kwargs.pop('cluster'))
@@ -121,8 +120,8 @@ class VmCreate(Create):
             disk_args = {
                 'provisioned_size': 0,
                 'interface': disk_interface,
-                'format': types.DiskFormat.RAW,
-                'sparse': False,
+                'format': types.DiskFormat.COW,
+                'sparse': True,
                 'storage_domain': storage_domain_default,
                 # first disk is the boot and system disk
                 'suffix': 'sys' if len(disks) == 0 else len(disks),
@@ -188,11 +187,20 @@ class VmCreate(Create):
 
             net_name = net_args.pop('network', None)
             if net_name is not None:
-                net_args['network'] = dc.networks.get(name=net_name).type
-
+                net_infos = net_name.split('/')
+                if len(net_infos) == 2:
+                    vnic_name = net_infos[1]
+                    net_name = net_infos[0]
+                else:
+                    vnic_name = net_name
+                    net_name = net_name
+                print(net_name,vnic_name)
+                network = dc.networks.get(name=net_name)
+                network = self.api.networks.get(network.id)
+                vnic = network.vnic_profiles.get(name=vnic_name)
+                net_args['vnic_profile'] = vnic.type
             if 'interface' in net_args and isinstance(net_args['interface'], str):
                 net_args['interface'] = types.NicInterface[net_args['interface']]
-
             nics.append(types.Nic(**net_args))
             waiting_events += [EventsCode.NETWORK_ACTIVATE_VM_INTERFACE_SUCCESS]
 
@@ -219,9 +227,15 @@ class VmCreate(Create):
             else:
                 raise OVLibError("Invalid role defintion given: %s" % role_info)
 
+            if role is not None:
+                role = self.api.roles.get(role)
+            if user is not None:
+                user = self.api.users.get(user)
+            if group is not None:
+                group = self.api.groups.get(group)
+
             role_kwargs = {'role': role, 'user': user, 'group': group}
             roles.append(role_kwargs)
-        print(roles)
 
         events_returned = []
         with event_waiter(self.api, "vm.name=%s" % kwargs['name'], events_returned,
@@ -232,7 +246,7 @@ class VmCreate(Create):
                                     EventsCode.NETWORK_ACTIVATE_VM_INTERFACE_FAILURE],
                           verbose=True):
             # Create the VM
-            newvm = self.api.wrap(self.api.vms.add(types.Vm(**kwargs)))
+            newvm = self.api.wrap(self.api.vms.add(vm=kwargs))
             futurs = []
             for x in nics:
                 try:
@@ -243,13 +257,15 @@ class VmCreate(Create):
                 try:
                     futurs.append(newvm.disk_attachments.add(x, wait=False))
                 except Error as e:
-                    raise OVLibError('Unable to add disk to new VM')
+                    print(e)
+                    raise OVLibError('Unable to add disk to new VM', exception=e)
             for x in roles:
-                futurs.append(newvm.permissions.add(wait=False, **x))
+                futurs.append(newvm.permissions.add(wait=False, permission=x))
             for f in futurs:
                 try:
                     f.wait()
                 except Error as e:
-                    raise OVLibError('Unable to add disk to new VM')
+                    print(e)
+                    raise OVLibError('Futur failure with new VM: ' % e, exception=e)
 
         return newvm
