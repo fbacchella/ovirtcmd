@@ -133,6 +133,9 @@ class FuturWrapper(object):
         content = self.futur.wait()
         return self.context.wrap(content)
 
+    def __str__(self):
+        return "%s" % (self.futur)
+
 
 class ObjectWrapper(object):
     """This object wrapper the writer, the type and the service in a single object than can access all of that"""
@@ -280,28 +283,36 @@ class ObjectWrapper(object):
     def _transform_arg_type(name_type_mapping, k, v):
         name_type = name_type_mapping.get(k, None)
         name_type_wrapper = type_wrappers.get(name_type)
-        if isinstance(v, ObjectWrapper):
+        if v is None:
+            t = None
+        elif isinstance(v, ObjectWrapper):
             t = v.type
         elif isinstance(v, str) and isinstance(name_type, EnumMeta):
             t = name_type[v]
+        elif isinstance(v, str) and hasattr(name_type, 'name'):
+            t = name_type(name=v)
         elif isinstance(v, dict) and name_type_wrapper is not None:
-            t =  name_type_mapping[k](**ObjectWrapper._map_dict(name_type_wrapper.name_type_mapping, v))
+            try:
+                mapped_kwargs = ObjectWrapper._map_dict(name_type_wrapper.name_type_mapping, v)
+                t = name_type_mapping[k](**mapped_kwargs)
+            except TypeError as e:
+                raise OVLibError("Incomplete type mapping for %s(%s): %s" % (name_type_mapping[k], mapped_kwargs, e), exception=e)
         elif isinstance(v, collections.Iterable) and not isinstance(v, str) and not isinstance(v, dict):
             t = list(map(lambda x: ObjectWrapper._transform_arg_type(name_type_mapping, k, x), v))
         else:
             t = v
         return t
 
-    def _wrap_call(self, method_name, wait=True, **kwargs):
+    def _wrap_call(self, method_name, *args, wait=True, **kwargs):
         kwargs = ObjectWrapper._map_dict(self.name_type_mapping, kwargs)
         method = getattr(self.service, method_name)
-        return self.api.wrap(method(wait=wait, **kwargs))
+        return self.api.wrap(method(*args, wait=wait, **kwargs))
 
-    def _add(self, **kwargs):
-        return self._wrap_call('add', **kwargs)
+    def _add(self, *args, **kwargs):
+        return self._wrap_call('add', *args, **kwargs)
 
-    def update(self, **kwargs):
-        return self._wrap_call('update', **kwargs)
+    def update(self, *args, **kwargs):
+        return self._wrap_call('update', *args, **kwargs)
 
     def __str__(self):
         return "%s<%s>" % (type(self).__name__, "" if self.service is None else self.service._path[1:])
@@ -326,7 +337,7 @@ class ListObjectWrapper(ObjectWrapper):
     def get(self, *args, **kwargs):
         # If one arg was given, try to detect what is is and add it to kwargs
         if (len(args) == 1):
-            if isinstance(args[0], self.wrapper):
+            if hasattr(self, 'wrapper') and isinstance(args[0], self.wrapper):
                 return args[0]
             elif is_id(args[0]):
                 kwargs['id'] = args[0]
