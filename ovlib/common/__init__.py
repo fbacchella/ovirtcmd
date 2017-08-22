@@ -1,6 +1,6 @@
-from ovirtsdk4.types import Permission
-from ovirtsdk4.writers import PermissionWriter
-from ovirtsdk4.services import PermissionService, AssignedPermissionsService
+from ovirtsdk4.types import Permission, Role, Group, User
+from ovirtsdk4.writers import PermissionWriter, RoleWriter
+from ovirtsdk4.services import PermissionService, AssignedPermissionsService, RoleService, RolesService
 
 from ovlib import OVLibError, is_id
 from ovlib.wrapper import wrapper, ObjectWrapper, ListObjectWrapper
@@ -10,8 +10,19 @@ from ovlib.groups import GroupWrapper
 from ovlib.roles import RoleWrapper
 from ovlib.system import SystemWrapper
 
+@wrapper(type_class=Role, writer_class=RoleWriter, service_class=RoleService)
+class RoleWrapper(ObjectWrapper):
+    pass
+
+
+@wrapper(service_class=RolesService)
+class RolesWrapper(ListObjectWrapper):
+    pass
+
+
 @wrapper(service_class=PermissionService, type_class=Permission, writer_class=PermissionWriter,
-         other_attributes=['cluster', 'comment', 'data_center', 'description', 'disk', 'group', 'host', 'role', 'storage_domain', 'template', 'user', 'vm', 'vm_pool'])
+         other_attributes=['cluster', 'comment', 'data_center', 'description', 'disk', 'group', 'host', 'role', 'storage_domain', 'template', 'user', 'vm', 'vm_pool'],
+         name_type_mapping={'role': Role, 'group': Group, 'user': User})
 class PermissionWrapper(ObjectWrapper):
     def __str__(self):
         return self.format_relative()
@@ -55,7 +66,7 @@ class PermissionWrapper(ObjectWrapper):
         return destination
 
 
-@wrapper(service_class=AssignedPermissionsService)
+@wrapper(service_class=AssignedPermissionsService, name_type_mapping={'permission': Permission})
 class AssignedPermissionsWrapper(ListObjectWrapper):
 
     def add(self, role, user=None, group=None, wait=True):

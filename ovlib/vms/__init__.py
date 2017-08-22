@@ -8,8 +8,8 @@ from ovlib.dispatcher import dispatcher, command, Dispatcher
 from ovlib.wrapper import ObjectWrapper, ListObjectWrapper, wrapper
 
 from ovirtsdk4.types import Vm, VmStatus, Nic, OperatingSystem, Display, DiskAttachment, TimeZone, \
-    CpuType, Cpu, Cdrom, ReportedDevice, HostDevice, \
-    Ticket, GraphicsConsole, GraphicsType
+    CpuType, Cpu, Cdrom, ReportedDevice, HostDevice, Bios, BootMenu, \
+    Ticket, GraphicsConsole, GraphicsType, Architecture, VmType, Template, CpuTopology
 from ovirtsdk4.services import VmsService, VmService, \
     VmNicsService, VmNicService, \
     OperatingSystemService, VmGraphicsConsoleService, VmGraphicsConsolesService, \
@@ -20,7 +20,7 @@ from ovirtsdk4.services import VmsService, VmService, \
 from ovirtsdk4.writers import VmWriter, NicWriter, OperatingSystemWriter, DisplayWriter, \
     DiskAttachmentWriter, TimeZoneWriter, \
     CpuTypeWriter, CpuWriter, CdromWriter, ReportedDeviceWriter, HostDeviceWriter, \
-    GraphicsConsoleWriter, TicketWriter
+    GraphicsConsoleWriter, TicketWriter, BiosWriter, BootMenuWriter, CpuTopologyWriter
 
 
 @wrapper(writer_class=HostDeviceWriter, type_class=HostDevice, service_class=VmHostDeviceService)
@@ -58,7 +58,12 @@ class CpuTypeWrapper(ObjectWrapper):
     pass
 
 
-@wrapper(writer_class=CpuWriter, type_class=Cpu)
+@wrapper(writer_class=CpuTopologyWriter, type_class=CpuTopology)
+class CpuTopologyWrapper(ObjectWrapper):
+    pass
+
+
+@wrapper(writer_class=CpuWriter, type_class=Cpu, name_type_mapping={'architecture': Architecture, 'topology': CpuTopology})
 class CpuWrapper(ObjectWrapper):
     pass
 
@@ -80,6 +85,11 @@ class DiskAttachmentsWrapper(ListObjectWrapper):
 
 @wrapper(writer_class=TicketWriter, type_class=Ticket, other_attributes=['expiry', 'value'])
 class TicketWrapper(ObjectWrapper):
+    pass
+
+
+@wrapper(writer_class=OperatingSystemWriter, type_class=OperatingSystem)
+class OperatingSystemWrapper(ObjectWrapper):
     pass
 
 
@@ -128,12 +138,24 @@ class DisplayWrapper(ObjectWrapper):
     pass
 
 
-@wrapper(service_class=VmsService, service_root="vms")
+@wrapper(service_class=VmsService, service_root="vms", name_type_mapping={'vm': Vm})
 class VmsWrapper(ListObjectWrapper):
     pass
 
 
-@wrapper(writer_class=VmWriter, type_class=Vm, service_class=VmService, other_attributes=['os', 'memory', 'ip'], other_methods=['suspend'])
+@wrapper(writer_class=BiosWriter, type_class=Bios, name_type_mapping={'boot_menu': BootMenu})
+class BiosWrapper(ObjectWrapper):
+    pass
+
+
+@wrapper(writer_class=BootMenuWriter, type_class=BootMenu, name_type_mapping={})
+class BootMenuWrapper(ObjectWrapper):
+    pass
+
+
+@wrapper(writer_class=VmWriter, type_class=Vm, service_class=VmService,
+         other_attributes=['os', 'memory', 'ip'], other_methods=['suspend'],
+         name_type_mapping={'vm': Vm, 'bios': Bios, 'cpu': Cpu, 'os': OperatingSystem, 'time_zone': TimeZone, 'type': VmType, 'template': Template})
 class VmWrapper(ObjectWrapper):
 
     def get_graphic_console(self, protocol=GraphicsType.SPICE, console_protocol="spice"):

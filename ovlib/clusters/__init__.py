@@ -23,7 +23,7 @@ class ClusterNetworkDispatcher(Dispatcher):
     pass
 
 
-@wrapper(writer_class=ClusterWriter, type_class=Cluster, service_class=ClusterService, other_attributes=[],
+@wrapper(writer_class=ClusterWriter, type_class=Cluster, service_class=ClusterService, other_attributes=['data_center'],
          name_type_mapping={'cpu': Cpu})
 class ClusterWrapper(ObjectWrapper):
     pass

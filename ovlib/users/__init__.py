@@ -22,7 +22,12 @@ class UsersWrapper(ListObjectWrapper):
         return super(UsersWrapper, self).list(*args, usrname=name, **kwargs)
 
     def get(self, *args, name=None, **kwargs):
-        return super(UsersWrapper, self).get(*args, usrname=name, **kwargs)
+        # Single argument call, don't change it
+        if len(args) == 1 and name is None and len(kwargs) == 0:
+            return super(UsersWrapper, self).get(*args)
+        else:
+            return super(UsersWrapper, self).get(*args, usrname=name, **kwargs)
+
 
 
 @wrapper(service_class=UserService, type_class=User, writer_class=UserWriter, other_attributes=['user_name', 'principal'])
