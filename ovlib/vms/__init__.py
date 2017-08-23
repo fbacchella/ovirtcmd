@@ -7,18 +7,17 @@ from ovlib import OVLibError
 from ovlib.dispatcher import dispatcher, command, Dispatcher
 from ovlib.wrapper import ObjectWrapper, ListObjectWrapper, wrapper
 
-from ovirtsdk4.types import Vm, VmStatus, Nic, OperatingSystem, Display, DiskAttachment, TimeZone, \
+from ovirtsdk4.types import Vm, VmStatus, Nic, OperatingSystem, Display, TimeZone, \
     CpuType, Cpu, Cdrom, ReportedDevice, HostDevice, Bios, BootMenu, \
     Ticket, GraphicsConsole, GraphicsType, Architecture, VmType, Template, CpuTopology
 from ovirtsdk4.services import VmsService, VmService, \
     VmNicsService, VmNicService, \
     OperatingSystemService, VmGraphicsConsoleService, VmGraphicsConsolesService, \
-    DiskAttachmentService, DiskAttachmentsService, \
     VmCdromService, VmCdromsService, \
     VmReportedDeviceService, VmReportedDevicesService, \
     VmHostDeviceService, VmHostDevicesService
 from ovirtsdk4.writers import VmWriter, NicWriter, OperatingSystemWriter, DisplayWriter, \
-    DiskAttachmentWriter, TimeZoneWriter, \
+    TimeZoneWriter, \
     CpuTypeWriter, CpuWriter, CdromWriter, ReportedDeviceWriter, HostDeviceWriter, \
     GraphicsConsoleWriter, TicketWriter, BiosWriter, BootMenuWriter, CpuTopologyWriter
 
@@ -70,16 +69,6 @@ class CpuWrapper(ObjectWrapper):
 
 @wrapper(writer_class=TimeZoneWriter, type_class=TimeZone)
 class TimeZoneWrapper(ObjectWrapper):
-    pass
-
-
-@wrapper(writer_class=DiskAttachmentWriter, type_class=DiskAttachment, service_class=DiskAttachmentService, other_attributes=['active', 'disk'])
-class DiskAttachmentWrapper(ObjectWrapper):
-    pass
-
-
-@wrapper(service_class=DiskAttachmentsService)
-class DiskAttachmentsWrapper(ListObjectWrapper):
     pass
 
 

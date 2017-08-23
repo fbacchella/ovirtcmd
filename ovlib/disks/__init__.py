@@ -6,8 +6,19 @@ from ovlib.dispatcher import dispatcher, command, Dispatcher
 from ovlib.wrapper import ObjectWrapper, ListObjectWrapper, wrapper
 
 from ovirtsdk4.types import Disk,  DiskFormat, StorageDomain, DiskAttachment, DiskInterface
-from ovirtsdk4.services import DiskService, DisksService
-from ovirtsdk4.writers import DiskWriter
+from ovirtsdk4.services import DiskService, DisksService, DiskAttachmentService, DiskAttachmentsService
+from ovirtsdk4.writers import DiskWriter, DiskAttachmentWriter
+
+
+@wrapper(writer_class=DiskAttachmentWriter, type_class=DiskAttachment, service_class=DiskAttachmentService, other_attributes=['active', 'disk'],
+         name_type_mapping={'disk_interface': DiskInterface, 'disk': Disk})
+class DiskAttachmentWrapper(ObjectWrapper):
+    pass
+
+
+@wrapper(service_class=DiskAttachmentsService)
+class DiskAttachmentsWrapper(ListObjectWrapper):
+    pass
 
 
 @wrapper(writer_class=DiskWriter, type_class=Disk, service_class=DiskService, other_attributes=['comment', 'bootable', 'format', 'storage_type', 'qcow_version', 'sparse', 'actual_size', 'provisioned_size'])
