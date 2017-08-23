@@ -40,6 +40,8 @@ class Context(object):
         'kerberos': None,
         'debug': False,
         'log': None,
+        'pipeline': 2,
+        'connections': 4,
     }
 
     def __init__(self, config_file=None, **kwargs):
