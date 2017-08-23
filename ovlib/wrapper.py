@@ -288,7 +288,13 @@ class ObjectWrapper(object):
         elif isinstance(v, ObjectWrapper):
             t = v.type
         elif isinstance(v, str) and isinstance(name_type, EnumMeta):
-            t = name_type[v]
+            try:
+                t = name_type(v)
+            except ValueError:
+                try:
+                    t = name_type[v]
+                except KeyError:
+                    raise OVLibError("invalid name %s for %s" % (v, name_type.__name__))
         elif isinstance(v, str) and hasattr(name_type, 'name'):
             t = name_type(name=v)
         elif isinstance(v, dict) and name_type_wrapper is not None:
