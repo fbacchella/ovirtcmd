@@ -222,6 +222,8 @@ class ObjectWrapper(object):
                         setattr(self, service_name, getattr(self.service, method)())
             elif method == 'add':
                 self.add = self._add
+            elif method == 'update':
+                self.update = self._update
 
     def export(self, path=[]):
         buf = None
@@ -317,7 +319,7 @@ class ObjectWrapper(object):
     def _add(self, *args, **kwargs):
         return self._wrap_call('add', *args, **kwargs)
 
-    def update(self, *args, **kwargs):
+    def _update(self, *args, **kwargs):
         return self._wrap_call('update', *args, **kwargs)
 
     def __str__(self):

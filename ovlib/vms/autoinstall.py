@@ -1,4 +1,4 @@
-from ovirtsdk4 import types
+from ovirtsdk4.types import VmStatus
 
 from ovlib.vms import VmDispatcher
 from ovlib.dispatcher import command
@@ -17,9 +17,9 @@ class Autoinstall(Verb):
         return True
 
     def execute(self, kernel=None, initrd=None, cmdline=None, *args, **kwargs):
-        if self.object.status != types.VmStatus.DOWN:
+        if self.object.status != VmStatus.DOWN:
             self.object.stop()
-            self.object.wait_for(types.VmStatus.DOWN)
+            self.object.wait_for(VmStatus.DOWN)
 
         old_os_params =  self.object.os
         old_kernel = old_os_params.kernel
@@ -33,27 +33,29 @@ class Autoinstall(Verb):
             old_cmdline = ''
 
         self.object.update(
-            types.Vm(
-                os=types.OperatingSystem(
-                    kernel=kernel.strip(),
-                    initrd = initrd.strip(),
-                    cmdline=cmdline.strip()
-            )
-        ))
+            vm = {
+                'os': {
+                    'kernel': kernel.strip(),
+                    'initrd': initrd.strip(),
+                    'cmdline': cmdline.strip()
+                }
+            }
+        )
 
         self.object.start()
-        self.object.wait_for(types.VmStatus.UP)
+        self.object.wait_for(VmStatus.UP)
         yield "booted, run installing\n"
-        self.object.wait_for(types.VmStatus.DOWN)
+        self.object.wait_for(VmStatus.DOWN)
 
         self.object.update(
-            types.Vm(
-                os=types.OperatingSystem(
-                    kernel=old_kernel,
-                    initrd=old_initrd,
-                    cmdline=old_cmdline
-                )
-            ))
+            vm = {
+                'os': {
+                    'kernel': old_kernel,
+                    'initrd': old_initrd,
+                    'cmdline': old_cmdline
+                }
+            }
+        )
 
         self.object.start()
         yield "done\n"
