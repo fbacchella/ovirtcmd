@@ -1,0 +1,3 @@
+  kernel: /data/ovirt/isolinux${osversion}/vmlinuz
+  initrd: /data/ovirt/isolinux${osversion}/initrd.img
+  cmdline: ks=http://installserver/KickStart/ks${osversion}.cfg os_version=${osversion} initrd=initrd.img ip=eth0:dhcp inst.sshd net.ifnames=0 product=oVirtNode install_type=automated console=tty0 poweroff hostname=${hostname} noipv6 sshd=1 ${options:}
