@@ -18,7 +18,7 @@ if sys.version_info < (3,):
 
 setup(
     name = "oVirtCmd",
-    version = "0.4",
+    version = "0.5",
     author = "Fabrice Bacchella",
     author_email = "fabrice.bacchella@3ds.com",
     description = "Command line tool to manage oVirt.",
