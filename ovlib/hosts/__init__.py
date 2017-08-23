@@ -245,57 +245,6 @@ def get_uptime(host):
     return uptime_stat.values.get_value()[0].get_datum()
 
 
-@command(HostDispatcher, verb='reinstall')
-class ReInstall(ovlib.verb.Verb):
-    """Broken, do not use"""
-
-    def fill_parser(self, parser):
-        parser.add_option("-i", "--dont_override_iptables", dest="override_iptables", help="Automatically configure host firewall", default=True, action="store_false")
-
-    def execute(self, *args, **kwargs):
-        if self.broker.status.state != "maintenance":
-            self.broker.deactivate()
-            self.wait_for("maintenance")
-        ssh_old_params = vars(self.broker.ssh)
-        ssh_new_params = {}
-        ssh_new_params['authentication_method'] = 'publickey'
-        for p in ('authentication_method', 'port', 'fingerprint', 'user'):
-            if p in ssh_old_params and ssh_old_params[p] is not None:
-                ssh_new_params[p] = ssh_old_params[p]
-
-        print(ssh_new_params)
-        action = params.Action(ssh=params.SSH(**ssh_new_params),
-                               host=params.Host(override_iptables=kwargs.pop('override_iptables', True)))
-        self.broker.install(action)
-
-
-@command(HostDispatcher, verb='reboot')
-class Reboot(ovlib.verb.Verb):
-    """Broken, do not use"""
-    verb = ""
-
-    def execute(self, *args, **kwargs):
-        last_boot = get_uptime(self.broker)
-
-        if self.object.status != HostStatus.MAINTENANCE:
-            self.object.deactivate(reason='For reboot', async=False)
-            self.object.wait_for(HostStatus.MAINTENANCE)
-        self.object.fence(params.Action(fence_type='restart'))
-        # needs to be activated before checking for up, otherwise it will return maintenance forever
-        doactivate=True
-        while doactivate:
-            try:
-                self.broker = self.contenaire.get(id=self.broker.id)
-                current_last_boot = get_uptime(self.broker)
-                print("%s %s" % (last_boot, current_last_boot))
-                #self.broker.activate()
-            except RequestError as e:
-                print(e.detail)
-                time.sleep(5)
-        self.wait_for("up")
-        return True
-
-
 @command(HostDispatcher, verb='upgrade')
 class Upgrade(ovlib.verb.Verb):
 
