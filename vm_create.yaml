@@ -1,12 +1,9 @@
-cpu:
-  architecture: 'X86_64'
-  topology:
-    cores: ${cores}
-soundcard_enabled: False
-timezone: 'Etc/GMT'
+ostype: rhel_7x64
+cpu: ${cores}
 bios:
   boot_menu: True
 type: server
-template: Blank
-disk_interface: virtio_scsi
-cluster: st01
+disk_interface: VIRTIO_SCSI
+network_interface: VIRTIO
+cluster: ${cluster}
+storage_domain: ${cluster}

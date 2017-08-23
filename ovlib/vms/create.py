@@ -6,12 +6,18 @@ from ovlib.dispatcher import command
 from ovlib.vms import VmDispatcher
 from ovlib.verb import Create
 
+default_settings = {
+    'architecture': 'X86_64',
+    'soundcard_enabled': False,
+    'type': 'server',
+    'template': 'Blank',
+    'cpu': {'topology': {'cores': 1, 'threads': 1, 'sockets': 1}, 'architecture': 'X86_64'}
+}
+
 os_settings = {
     'rhel_7x64': {
         'time_zone': 'Etc/GMT',
-        'architecture': 'X86_64',
         'soundcard_enabled': False,
-        'type': 'server',
         'network_interface': types.NicInterface.VIRTIO,
         'network_name': 'eth%d',
         'disk_interface': types.DiskInterface.VIRTIO_SCSI,
@@ -26,97 +32,81 @@ class VmCreate(Create):
         parser.add_option("-m", "--memory", dest="memory", help="VM name", default=None)
         parser.add_option("-c", "--cluster", dest="cluster", help="VM name", default=None)
         parser.add_option("-t", dest="template", help="VM name", default='Blank')
-        parser.add_option("--pxe", dest="boot_pxe", help="Can boot pxe", default=True, action="store_false")
+        parser.add_option("--nopxe", dest="boot_pxe", help="Cant't boot pxe", default=True, action="store_false")
         parser.add_option("--cpu", dest="cpu", help="Number of cpu", default=None)
         parser.add_option("--ostype", dest="ostype", help="Server type", default=None)
         parser.add_option("--network", dest="networks", help="networks (network/vnicprofile?)", default=[], action='append')
+        parser.add_option("--storage_domain", dest="storage_domain", help="Default storage domain", default=None)
         parser.add_option("--disk", dest="disks", help="disk (size,suffix?,storage_domain?)", default=[], action='append')
         parser.add_option("--role", dest="roles", help="roles to create (role:[u|g]:name_or_id)", default=[], action='append')
 
     def uses_template(self):
         return True
 
-    def execute(self, **kwargs):
+    def execute(self, name, **kwargs):
         self.api.generate_services()
+
+        vm_settings = default_settings.copy()
+        ostype = kwargs.pop('ostype', None)
+        if ostype is not None and ostype in os_settings:
+            vm_settings.update(os_settings[ostype])
+            vm_settings.update(kwargs)
+        vm_settings['name'] = name
+
         waiting_events = [EventsCode.USER_ADD_VM]
-        cluster = None
-        if 'memory' in kwargs:
-            kwargs['memory'] = parse_size(kwargs['memory'])
-        if 'memory_policy' not in kwargs:
-            kwargs['memory_policy'] = types.MemoryPolicy(guaranteed=kwargs['memory'], ballooning=False)
-        if 'cluster' in kwargs:
-            cluster = self.api.clusters.get(name=kwargs.pop('cluster'))
-            kwargs['cluster'] = types.Cluster(id=cluster.id)
-        if 'template' in kwargs:
-            kwargs['template'] = types.Template(id=self.api.templates.get(name=kwargs.pop('template')).id)
-        if 'time_zone' in kwargs:
-            kwargs['time_zone'] = types.TimeZone(name=kwargs['time_zone'])
-        if 'bios' in kwargs:
+        if 'memory' in vm_settings:
+            vm_settings['memory'] = parse_size(vm_settings['memory'])
+        if 'memory_policy' not in vm_settings:
+            vm_settings['memory_policy'] = types.MemoryPolicy(guaranteed=vm_settings['memory'], ballooning=False)
+        if 'cluster' in vm_settings:
+            vm_settings['cluster'] = self.api.clusters.get(name=vm_settings.pop('cluster'))
+        if 'bios' in vm_settings:
             bios_params = {}
-            if 'boot_menu' in kwargs['bios']:
-                bios_params['boot_menu'] = types.BootMenu(enabled = kwargs['bios']['boot_menu'])
-            kwargs['bios'] = types.Bios(**bios_params)
+            if 'boot_menu' in vm_settings['bios']:
+                bios_params['boot_menu'] = types.BootMenu(enabled = vm_settings['bios']['boot_menu'])
+            vm_settings['bios'] = types.Bios(**bios_params)
         boot_devices = [types.BootDevice['HD']]
 
-        boot_pxe = kwargs.pop('boot_pxe', False)
+        boot_pxe = vm_settings.pop('boot_pxe', False)
         if boot_pxe:
             boot_devices.append(types.BootDevice['NETWORK'])
 
-        ostype = kwargs.pop('ostype')
-        if ostype in os_settings:
-            settings = os_settings[ostype]
-            if not 'time_zone' in kwargs:
-                kwargs['time_zone'] = settings['time_zone']
-
-            if not 'soundcard_enabled' in kwargs:
-                kwargs['soundcard_enabled'] = settings['soundcard_enabled']
-            if not 'type' in kwargs:
-                kwargs['type'] = settings['type']
-        if 'type' in kwargs:
-            kwargs['type'] = types.VmType(kwargs.pop('type'))
-
-        cpu = kwargs.pop('cpu', None)
-        if cpu is not None:
-            architecture = types.Architecture[cpu.pop('architecture', settings['architecture'])]
-        else:
-            architecture = types.Architecture[settings['architecture']]
-
-        if cpu is None:
-            cpu_topology = {'cores': 1, 'threads': 1, 'sockets': 1}
-        # if plain cpu argument was given, it's a number of socket, single core, single thread
-        elif isinstance(cpu, (int, str)):
+        # Try to resolve the cpu topology
+        cpu = vm_settings.pop('cpu')
+        architecture = vm_settings.pop('architecture')
+        if isinstance(cpu, (int, str)):
             cpu_topology = {}
             cpu_topology['cores'] = 1
             cpu_topology['threads'] = 1
             cpu_topology['sockets'] = int(cpu)
+            cpu = {'architecture': architecture, 'topology': cpu_topology}
         elif isinstance(cpu, dict):
-            if 'architecture' in cpu:
-                architecture = types.Architecture[cpu.pop('architecture')]
+            if 'architecture' not in cpu:
+                cpu['architecture'] = architecture
             if 'topology' in cpu:
-                cpu_topology ={k: int(v) for k, v in list(cpu.pop('topology').items())}
+                cpu['topology'] = {k: int(v) for k, v in cpu.pop('topology').items()}
             else:
-                cpu_topology = cpu
+                cpu['topology'] = {'cores': 1, 'threads': 1, 'sockets': 1}
+        vm_settings['cpu'] = cpu
 
-        kwargs['cpu'] = types.Cpu(architecture=architecture, topology=types.CpuTopology(**cpu_topology))
-
-        os_info = kwargs.pop('os', {})
+        os_info = vm_settings.pop('os', {})
         if len(boot_devices) > 0:
             os_info['boot'] = types.Boot(devices=boot_devices)
         os_info['type'] = ostype
-        kwargs['os'] = types.OperatingSystem(**os_info)
+        vm_settings['os'] = os_info
 
         osi = self.api.operatingsystems.get(name=ostype)
-        if  not 'large_icon' in kwargs:
-            kwargs['large_icon'] = osi.large_icon
-        if not 'small_icon' in kwargs:
-            kwargs['small_icon'] = osi.small_icon
+        if  not 'large_icon' in vm_settings:
+            vm_settings['large_icon'] = osi.large_icon
+        if not 'small_icon' in vm_settings:
+            vm_settings['small_icon'] = osi.small_icon
 
-        storage_domain_default = kwargs.pop('storage_domain', None)
-        disk_interface = kwargs.pop('disk_interface', settings.get('disk_interface', None))
+        storage_domain_default = vm_settings.pop('storage_domain', None)
+        disk_interface = vm_settings.pop('disk_interface', None)
 
         disks = []
         disks_event = []
-        for disk_information in kwargs.pop('disks', []):
+        for disk_information in vm_settings.pop('disks', []):
             disk_args = {
                 'provisioned_size': 0,
                 'interface': disk_interface,
@@ -160,7 +150,7 @@ class VmCreate(Create):
 
             disk_name_suffix = disk_args.pop('suffix', None)
             if disk_name_suffix is not None and not 'name' in disk_args:
-                disk_args['name'] = "%s_%s" % (kwargs['name'], disk_name_suffix)
+                disk_args['name'] = "%s_%s" % (vm_settings['name'], disk_name_suffix)
             interface = disk_args.pop('interface', None)
             bootable = disk_args.pop('bootable', None)
 
@@ -170,12 +160,12 @@ class VmCreate(Create):
             waiting_events += [EventsCode.USER_ADD_DISK_TO_VM_FINISHED_SUCCESS, EventsCode.USER_ADD_DISK_TO_VM]
 
         nics = []
-        if_name = kwargs.pop('network_name', settings['network_name'])
-        if_interface = kwargs.pop('network_interface', settings['network_interface'])
+        if_name = vm_settings.pop('network_name', None)
+        if_interface = vm_settings.pop('network_interface', None)
 
-        dc = self.api.wrap(self.api.datacenters.get(id=cluster.data_center.id))
+        dc = self.api.wrap(self.api.datacenters.get(id=vm_settings['cluster'].data_center.id))
 
-        for net_info in kwargs.pop('networks', []):
+        for net_info in vm_settings.pop('networks', []):
             net_args = {
                 'name': if_name % len(nics),
                 'interface': if_interface,
@@ -194,7 +184,6 @@ class VmCreate(Create):
                 else:
                     vnic_name = net_name
                     net_name = net_name
-                print(net_name,vnic_name)
                 network = dc.networks.get(name=net_name)
                 network = self.api.networks.get(network.id)
                 vnic = network.vnic_profiles.get(name=vnic_name)
@@ -207,7 +196,7 @@ class VmCreate(Create):
         # Role is either given as the string role:[u|g]:name_or_id
         # Or a dict: {'role': name_or_id, 'group': name_or_id, 'user: name_or_id} with 'group' and 'user' mutually exclusive
         roles = []
-        for role_info in kwargs.pop('roles', []):
+        for role_info in vm_settings.pop('roles', []):
             user = None
             group = None
             if isinstance(role_info, str):
@@ -238,7 +227,7 @@ class VmCreate(Create):
             roles.append(role_kwargs)
 
         events_returned = []
-        with event_waiter(self.api, "vm.name=%s" % kwargs['name'], events_returned,
+        with event_waiter(self.api, "vm.name=%s" % vm_settings['name'], events_returned,
                           wait_for=waiting_events,
                           break_on=[EventsCode.USER_ADD_VM_FINISHED_FAILURE,
                                     EventsCode.USER_FAILED_ADD_VM,
@@ -246,7 +235,7 @@ class VmCreate(Create):
                                     EventsCode.NETWORK_ACTIVATE_VM_INTERFACE_FAILURE],
                           verbose=True):
             # Create the VM
-            newvm = self.api.wrap(self.api.vms.add(vm=kwargs))
+            newvm = self.api.wrap(self.api.vms.add(vm=vm_settings))
             futurs = []
             for x in nics:
                 try:
