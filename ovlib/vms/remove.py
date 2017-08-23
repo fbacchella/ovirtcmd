@@ -14,7 +14,7 @@ class Remove(ovlib.verb.Remove):
     def execute(self, detach_only=False, *args, **kwargs):
         if self.object.status != VmStatus.DOWN:
             self.object.stop()
-            self.wait_for(VmStatus.DOWN)
+            self.object.wait_for(VmStatus.DOWN)
 
         self.object.remove(detach_only=detach_only)
 
