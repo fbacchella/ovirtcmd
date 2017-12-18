@@ -1,19 +1,18 @@
-import time
 import ovlib.verb
 from ovlib.storages import StorageDomainWrapper
 
 from ovirtsdk4 import List
 from ovirtsdk4.types import Host, HostStatus, \
-    HostNic, NetworkAttachment, IpAddressAssignment, MacPool, \
+    HostNic, Bonding, NetworkAttachment, IpAddressAssignment, MacPool, \
     VmSummary, VolumeGroup, LogicalUnit, PowerManagement, \
     HostStorage, StorageType, Ssh, \
-    PmProxy, PmProxyType, FenceType, FencingPolicy, Agent, HardwareInformation
+    PmProxy, PmProxyType, FencingPolicy, Agent, HardwareInformation
 from ovirtsdk4.services import HostService, HostsService, NetworkAttachmentService, NetworkAttachmentsService, HostNicsService, HostNicService, \
     HostStorageService, StorageService, AttachedStorageDomainService, AttachedStorageDomainsService, \
     FenceAgentService, FenceAgentsService
-from ovirtsdk4.writers import HostWriter, HostNicWriter, NetworkAttachmentWriter, IpAddressAssignmentWriter, VmSummaryWriter, VolumeGroupWriter, LogicalUnitWriter, \
+from ovirtsdk4.writers import HostWriter, HostNicWriter, BondingWriter, NetworkAttachmentWriter, IpAddressAssignmentWriter, VmSummaryWriter, VolumeGroupWriter, LogicalUnitWriter, \
     HostStorageWriter, \
-    PowerManagementWriter, FencingPolicyWriter, AgentWriter, HardwareInformationWriter
+    PowerManagementWriter, FencingPolicyWriter, AgentWriter
 
 from ovlib.eventslib import EventsCode, event_waiter
 from ovlib.dispatcher import dispatcher, command, Dispatcher
@@ -45,7 +44,9 @@ class PmProxyWrapper(ObjectWrapper):
     pass
 
 
-@wrapper(type_class=PowerManagement, writer_class=PowerManagementWriter, name_type_mapping={'pm_proxies': PmProxy})
+@wrapper(type_class=PowerManagement,
+         writer_class=PowerManagementWriter,
+         name_type_mapping={'pm_proxies': PmProxy})
 class PowerManagementWrapper(ObjectWrapper):
     pass
 
@@ -87,9 +88,16 @@ class IpAddressWrapper(ObjectWrapper):
     pass
 
 
+@wrapper(writer_class=Bonding,
+         type_class=Bonding)
+class BondingWrapper(ObjectWrapper):
+    pass
+
 @wrapper(writer_class=HostNicWriter,
          service_class=HostNicService,
-         type_class=HostNic)
+         type_class=HostNic,
+         other_attributes=['bonding']
+         )
 class HostNicWrapper(ObjectWrapper):
     pass
 
@@ -258,6 +266,8 @@ class Upgrade(ovlib.verb.Verb):
         parser.add_option("-r", "--refresh", dest="refresh_update", help="Refresh the upgrade status", default=False, action='store_true')
 
     def execute(self, async=False, refresh_update=False):
+        self.api.generate_services()
+
         if refresh_update:
             events = self.object.upgrade_check(async=False)
             if isinstance(events, (List, list)):

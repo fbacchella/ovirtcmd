@@ -354,9 +354,9 @@ class ListObjectWrapper(ObjectWrapper):
             return self.get(**kwargs)
         res = self._do_query(**kwargs)
         if len(res) == 0:
-            raise OVLibErrorNotFound("no object found matching the search")
+            raise OVLibErrorNotFound("no object found matching the search %s" % (kwargs))
         elif len(res) > 1:
-            raise OVLibError("Too many objects found matching the search")
+            raise OVLibError("Too many objects found matching the search %s" % (kwargs))
         else:
             return self.api.wrap(res[0])
 

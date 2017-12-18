@@ -64,6 +64,7 @@ def do_eval(script, context_options={}, variables={}, environments=[]):
     context.generate_services()
     new_locals['context'] = context
     new_locals['parse_size'] = ovlib.parse_size
+    new_locals['OVLibErrorNotFound'] = ovlib.OVLibErrorNotFound
     try:
         exec(compile(open(script).read(), script, 'exec'), new_locals)
     finally:
