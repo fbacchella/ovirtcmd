@@ -9,7 +9,7 @@ from ovlib.wrapper import ObjectWrapper, ListObjectWrapper, wrapper
 
 from ovirtsdk4.types import Vm, VmStatus, Nic, OperatingSystem, Display, TimeZone, \
     CpuType, Cpu, Cdrom, ReportedDevice, HostDevice, Bios, BootMenu, \
-    Ticket, GraphicsConsole, GraphicsType, Architecture, VmType, Template, CpuTopology
+    Ticket, GraphicsConsole, GraphicsType, Architecture, VmType, Template, CpuTopology, Mac
 from ovirtsdk4.services import VmsService, VmService, \
     VmNicsService, VmNicService, \
     OperatingSystemService, VmGraphicsConsoleService, VmGraphicsConsolesService, \
@@ -19,7 +19,7 @@ from ovirtsdk4.services import VmsService, VmService, \
 from ovirtsdk4.writers import VmWriter, NicWriter, OperatingSystemWriter, DisplayWriter, \
     TimeZoneWriter, \
     CpuTypeWriter, CpuWriter, CdromWriter, ReportedDeviceWriter, HostDeviceWriter, \
-    GraphicsConsoleWriter, TicketWriter, BiosWriter, BootMenuWriter, CpuTopologyWriter
+    GraphicsConsoleWriter, TicketWriter, BiosWriter, BootMenuWriter, CpuTopologyWriter, MacWriter
 
 
 @wrapper(writer_class=HostDeviceWriter, type_class=HostDevice, service_class=VmHostDeviceService)
@@ -79,6 +79,11 @@ class TicketWrapper(ObjectWrapper):
 
 @wrapper(writer_class=OperatingSystemWriter, type_class=OperatingSystem)
 class OperatingSystemWrapper(ObjectWrapper):
+    pass
+
+
+@wrapper(writer_class=MacWriter, type_class=Mac)
+class MacWrapper(ObjectWrapper):
     pass
 
 
