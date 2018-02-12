@@ -4,6 +4,8 @@ bios:
   boot_menu: True
 type: server
 disk_interface: VIRTIO_SCSI
+io:
+  threads: 1
 network_interface: VIRTIO
 cluster: ${cluster}
 storage_domain: ${cluster}

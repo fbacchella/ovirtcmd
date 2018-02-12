@@ -9,7 +9,7 @@ from ovlib.wrapper import ObjectWrapper, ListObjectWrapper, wrapper
 
 from ovirtsdk4.types import Vm, VmStatus, Nic, OperatingSystem, Display, TimeZone, \
     CpuType, Cpu, Cdrom, ReportedDevice, HostDevice, Bios, BootMenu, \
-    Ticket, GraphicsConsole, GraphicsType, Architecture, VmType, Template, CpuTopology, Mac
+    Ticket, GraphicsConsole, GraphicsType, Architecture, VmType, Template, CpuTopology, Mac, Io
 from ovirtsdk4.services import VmsService, VmService, \
     VmNicsService, VmNicService, \
     OperatingSystemService, VmGraphicsConsoleService, VmGraphicsConsolesService, \
@@ -19,7 +19,7 @@ from ovirtsdk4.services import VmsService, VmService, \
 from ovirtsdk4.writers import VmWriter, NicWriter, OperatingSystemWriter, DisplayWriter, \
     TimeZoneWriter, \
     CpuTypeWriter, CpuWriter, CdromWriter, ReportedDeviceWriter, HostDeviceWriter, \
-    GraphicsConsoleWriter, TicketWriter, BiosWriter, BootMenuWriter, CpuTopologyWriter, MacWriter
+    GraphicsConsoleWriter, TicketWriter, BiosWriter, BootMenuWriter, CpuTopologyWriter, MacWriter, IoWriter
 
 
 @wrapper(writer_class=HostDeviceWriter, type_class=HostDevice, service_class=VmHostDeviceService)
@@ -84,6 +84,11 @@ class OperatingSystemWrapper(ObjectWrapper):
 
 @wrapper(writer_class=MacWriter, type_class=Mac)
 class MacWrapper(ObjectWrapper):
+    pass
+
+
+@wrapper(writer_class=IoWriter, type_class=Io)
+class IoWrapper(ObjectWrapper):
     pass
 
 

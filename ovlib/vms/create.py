@@ -65,6 +65,9 @@ class VmCreate(Create):
             if 'boot_menu' in vm_settings['bios']:
                 bios_params['boot_menu'] = types.BootMenu(enabled = vm_settings['bios']['boot_menu'])
             vm_settings['bios'] = types.Bios(**bios_params)
+        if 'io' in vm_settings:
+            io_params = {}
+            vm_settings['io'] = types.Io(**vm_settings['io'])
         boot_devices = [types.BootDevice['HD']]
 
         boot_pxe = vm_settings.pop('boot_pxe', False)
