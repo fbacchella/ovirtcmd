@@ -264,8 +264,9 @@ class Upgrade(ovlib.verb.Verb):
     def fill_parser(self, parser):
         parser.add_option("-a", "--async", dest="async", help="Don't wait for completion state", default=False, action='store_true')
         parser.add_option("-r", "--refresh", dest="refresh_update", help="Refresh the upgrade status", default=False, action='store_true')
+        parser.add_option("-b", "--reboot", dest="reboot", help="Reboot the host after upgrade", default=False, action='store_true')
 
-    def execute(self, async=False, refresh_update=False):
+    def execute(self, async=False, refresh_update=False, reboot=False):
         self.api.generate_services()
 
         if refresh_update:
@@ -289,7 +290,7 @@ class Upgrade(ovlib.verb.Verb):
             with event_waiter(self.api, "host.name=%s" % self.object.name, events_returned,
                               break_on=break_on):
                 self._status = 2
-                self.object.upgrade(async=async)
+                self.object.upgrade(async=async, reboot=reboot)
             if len(events_returned) == 0:
                 raise ovlib.OVLibError("upgrade interrupted")
             if events_returned[0].code_enum == EventsCode.HOST_UPGRADE_FINISHED:
