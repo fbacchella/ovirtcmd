@@ -1,8 +1,12 @@
-import time
 
-import ovlib.verb
+from ovlib.verb import Create
+from ovlib.hosts import HostDispatcher
+from ovlib.dispatcher import command
 
-class Create(ovlib.verb.Create):
+from ovirtsdk4.types import SshAuthenticationMethod, PowerManagement, Agent
+
+@command(HostDispatcher, verb='create')
+class Create(Create):
 
     def uses_template(self):
         return True
@@ -10,10 +14,11 @@ class Create(ovlib.verb.Create):
     def fill_parser(self, parser):
         parser.add_option("-c", "--cluster", dest="cluster", help="VM name", default=None)
 
-    def execute(self, *args, **kwargs):
-        kwargs['cluster'] = self.get('clusters', kwargs.pop('cluster', None))
+    def execute(self, cluster, *args, **kwargs):
+        self.api.generate_services()
 
-        kwargs['ssh'] = params.SSH(authentication_method='publickey')
+        kwargs['cluster'] = self.api.clusters.get(name=cluster)
+        kwargs['ssh'] = SshAuthenticationMethod.PUBLICKEY
 
         power_management_info = kwargs.pop('power_management', None)
         if power_management_info is not None:
@@ -25,8 +30,9 @@ class Create(ovlib.verb.Create):
                 type = agent_info.pop('type')
                 power_management_info['type_'] = type
                 agent_info['type_'] = type
+            power_management = PowerManagement(**power_management_info)
             power_management_info['agents'] = params.Agents()
-            power_management_info['agents'].add_agent(params.Agent(**agent_info))
-            kwargs['power_management'] = params.PowerManagement(**power_management_info)
+            power_management_info['agents'].add_agent(PowerManagement(**agent_info))
+            kwargs['power_management'] = power_management
         return self.contenaire.add(params.Host(**kwargs))
 
