@@ -9,17 +9,28 @@ from ovlib.wrapper import ObjectWrapper, ListObjectWrapper, wrapper
 
 from ovirtsdk4.types import Vm, VmStatus, Nic, OperatingSystem, Display, TimeZone, \
     CpuType, Cpu, Cdrom, ReportedDevice, HostDevice, Bios, BootMenu, \
-    Ticket, GraphicsConsole, GraphicsType, Architecture, VmType, Template, CpuTopology, Mac, Io
+    Ticket, GraphicsConsole, GraphicsType, Architecture, VmType, Template, CpuTopology, Mac, Io, \
+    Snapshot
 from ovirtsdk4.services import VmsService, VmService, \
     VmNicsService, VmNicService, \
     OperatingSystemService, VmGraphicsConsoleService, VmGraphicsConsolesService, \
     VmCdromService, VmCdromsService, \
     VmReportedDeviceService, VmReportedDevicesService, \
-    VmHostDeviceService, VmHostDevicesService
+    VmHostDeviceService, VmHostDevicesService, SnapshotService, SnapshotsService
 from ovirtsdk4.writers import VmWriter, NicWriter, OperatingSystemWriter, DisplayWriter, \
-    TimeZoneWriter, \
+    TimeZoneWriter, SnapshotWriter, \
     CpuTypeWriter, CpuWriter, CdromWriter, ReportedDeviceWriter, HostDeviceWriter, \
     GraphicsConsoleWriter, TicketWriter, BiosWriter, BootMenuWriter, CpuTopologyWriter, MacWriter, IoWriter
+
+
+@wrapper(type_class=Snapshot, writer_class=SnapshotWriter, service_class=SnapshotService)
+class SnapshotWrapper(ObjectWrapper):
+    pass
+
+
+@wrapper(service_class=SnapshotsService)
+class SnapshotsWrapper(ListObjectWrapper):
+    pass
 
 
 @wrapper(writer_class=HostDeviceWriter, type_class=HostDevice, service_class=VmHostDeviceService)
