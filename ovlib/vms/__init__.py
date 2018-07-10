@@ -164,8 +164,8 @@ class BootMenuWrapper(ObjectWrapper):
 
 
 @wrapper(writer_class=VmWriter, type_class=Vm, service_class=VmService,
-         other_attributes=['os', 'memory', 'ip'], other_methods=['suspend'],
-         name_type_mapping={'vm': Vm, 'bios': Bios, 'cpu': Cpu, 'os': OperatingSystem, 'time_zone': TimeZone, 'type': VmType, 'template': Template})
+         other_attributes=['os', 'memory', 'ip'], other_methods=['suspend', 'shutdown'],
+         name_type_mapping={'vm': Vm, 'bios': Bios, 'cpu': Cpu, 'os': OperatingSystem, 'time_zone': TimeZone, 'type': VmType, 'template': Template, 'io': Io})
 class VmWrapper(ObjectWrapper):
 
     def get_graphic_console(self, protocol=GraphicsType.SPICE, console_protocol="spice"):
@@ -244,6 +244,13 @@ class VmStop(ovlib.verb.Verb):
 
     def execute(self, *args, **kwargs):
         self.object.stop()
+
+
+@command(VmDispatcher, verb='shutdown')
+class Vmshutdown(ovlib.verb.Verb):
+
+    def execute(self, *args, **kwargs):
+        self.object.shutdown()
 
 
 @command(VmDispatcher, verb='suspend')
