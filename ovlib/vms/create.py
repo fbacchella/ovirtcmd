@@ -6,6 +6,7 @@ from ovlib.dispatcher import command
 from ovlib.vms import VmDispatcher
 from ovlib.verb import Create
 
+
 default_settings = {
     'architecture': 'X86_64',
     'soundcard_enabled': False,
@@ -13,6 +14,7 @@ default_settings = {
     'template': 'Blank',
     'cpu': {'topology': {'cores': 1, 'threads': 1, 'sockets': 1}, 'architecture': 'X86_64'}
 }
+
 
 os_settings = {
     'rhel_7x64': {
@@ -23,6 +25,7 @@ os_settings = {
         'disk_interface': types.DiskInterface.VIRTIO_SCSI,
     }
 }
+
 
 @command(VmDispatcher, verb='create')
 class VmCreate(Create):
@@ -52,7 +55,6 @@ class VmCreate(Create):
             vm_settings.update(os_settings[ostype])
             vm_settings.update(kwargs)
         vm_settings['name'] = name
-
         waiting_events = [EventsCode.USER_ADD_VM]
         if 'memory' in vm_settings:
             vm_settings['memory'] = parse_size(vm_settings['memory'])
@@ -66,7 +68,6 @@ class VmCreate(Create):
                 bios_params['boot_menu'] = types.BootMenu(enabled = vm_settings['bios']['boot_menu'])
             vm_settings['bios'] = types.Bios(**bios_params)
         if 'io' in vm_settings:
-            io_params = {}
             vm_settings['io'] = types.Io(**vm_settings['io'])
         boot_devices = [types.BootDevice['HD']]
 
@@ -108,13 +109,12 @@ class VmCreate(Create):
         disk_interface = vm_settings.pop('disk_interface', None)
 
         disks = []
-        disks_event = []
         for disk_information in vm_settings.pop('disks', []):
             disk_args = {
                 'provisioned_size': 0,
                 'interface': disk_interface,
-                'format': types.DiskFormat.COW,
-                'sparse': True,
+                'format': types.DiskFormat.RAW,
+                'sparse': False,
                 'storage_domain': storage_domain_default,
                 # first disk is the boot and system disk
                 'suffix': 'sys' if len(disks) == 0 else len(disks),
@@ -148,17 +148,19 @@ class VmCreate(Create):
                 disk_args['interface'] = types.DiskInterface[disk_args['interface']]
 
             storage_domain = disk_args.pop('storage_domain', None)
+            pass_discard = True
             if storage_domain is not None and not 'storage_domain' in disk_args:
-                disk_args['storage_domains'] = [types.StorageDomain(name=storage_domain)]
-
+                # retreive the storage domain and ensure that it supports discard
+                sd = self.api.storagedomains.get(name=storage_domain)
+                disk_args['storage_domains'] = [sd.type]
+                pass_discard = sd.supports_discard
             disk_name_suffix = disk_args.pop('suffix', None)
             if disk_name_suffix is not None and not 'name' in disk_args:
                 disk_args['name'] = "%s_%s" % (vm_settings['name'], disk_name_suffix)
             interface = disk_args.pop('interface', None)
             bootable = disk_args.pop('bootable', None)
 
-            disks.append(types.DiskAttachment(disk=types.Disk(**disk_args), interface=interface, bootable=bootable, active=True))
-
+            disks.append(self.api.wrap(types.DiskAttachment(disk=types.Disk(**disk_args), interface=interface, bootable=bootable, active=True, pass_discard=pass_discard)))
             #Add events to wait for each disks
             waiting_events += [EventsCode.USER_ADD_DISK_TO_VM_FINISHED_SUCCESS, EventsCode.USER_ADD_DISK_TO_VM]
 
@@ -245,19 +247,19 @@ class VmCreate(Create):
                     futurs.append(newvm.nics.add(x, wait=False))
                 except Error as e:
                     raise OVLibError('Unable to add nic to new VM')
-            for x in disks:
-                try:
-                    futurs.append(newvm.disk_attachments.add(x, wait=False))
-                except Error as e:
-                    print(e)
-                    raise OVLibError('Unable to add disk to new VM', exception=e)
             for x in roles:
                 futurs.append(newvm.permissions.add(wait=False, permission=x))
+            newvm.refresh()
+            newvm.disk_attachments.refresh()
+            for x in disks:
+                try:
+                    newvm.disk_attachments.add(x.type, wait=True)
+                except Error as e:
+                    raise OVLibError('Unable to add disk to new VM', exception=e)
             for f in futurs:
                 try:
                     f.wait()
                 except Error as e:
-                    print(e)
                     raise OVLibError('Futur failure with new VM: ' % e, exception=e)
 
         return newvm
