@@ -139,7 +139,15 @@ def main():
                 status = print_run_phrase(dispatcher, verb, object_options, object_args)
                 sys.exit(status)
             except (ovlib.OVLibError) as e:
+                detail = None
+                subex = getattr(e, 'exception', None)
+                if subex is not None:
+                    fault = getattr(subex, 'fault', None)
+                    if fault is not None:
+                        detail = getattr(fault, 'detail', None)
                 print("The action \"%s %s\" failed with \n    %s" % (dispatcher.object_name, verb, e.error_message))
+                if detail is not None:
+                    print('    %s\n' % detail)
                 return 251
             except (ovirtsdk4.Error) as e:
                 if e.code == 404:
