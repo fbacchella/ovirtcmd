@@ -16,7 +16,7 @@ class LogicalUnitWrapper(ObjectWrapper):
 
 
 @wrapper(writer_class=StorageDomainWriter, type_class=StorageDomain, service_class=StorageDomainService,
-         other_methods=['refresh_luns'], other_attributes=['storage'],
+         other_methods=['refresh_luns'], other_attributes=['storage', 'supports_discard'],
          name_type_mapping={'storage_domain': StorageDomain, 'storage': HostStorage, 'type': StorageDomainType})
 class StorageDomainWrapper(ObjectWrapper):
     pass
