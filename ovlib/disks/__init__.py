@@ -73,10 +73,15 @@ class DiskCreate(ovlib.verb.Create):
     def execute(self, name, disk_size, storage_domain, vm=None, description=None, format=DiskFormat.RAW, disk_size_ratio=10,
                 disk_interface = DiskInterface.VIRTIO_SCSI,
                 **kwargs):
+        self.api.generate_services()
+
         provisioned_size = parse_size(disk_size)
 
+        sparse = None
         if isinstance(format, str):
             format = DiskFormat[format.upper()]
+            if format == DiskFormat.RAW:
+                sparse = False
 
         events_returned = []
         waiting_events = [EventsCode.USER_ADD_DISK_FINISHED_SUCCESS]
@@ -91,10 +96,10 @@ class DiskCreate(ovlib.verb.Create):
                           verbose=True):
             newdisk = self.api.disks.add(Disk(
                 name = name, storage_domains=[StorageDomain(name=storage_domain)], description=description,
-                provisioned_size=provisioned_size, format=format))
+                provisioned_size=provisioned_size, format=format, sparse=sparse))
 
         if vm is not None:
-            da = DiskAttachment(disk=newdisk, interface=disk_interface, bootable=False, active=True)
+            da = DiskAttachment(disk=newdisk.type, interface=disk_interface, bootable=False, active=True)
             vm.disk_attachments.add(da)
 
         return newdisk
