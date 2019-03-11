@@ -229,6 +229,7 @@ class ObjectWrapper(object):
         buf = None
         writer = None
         if len(path) == 0 and self.writer_class is not None:
+            self.refresh()
             try:
                 buf = io.BytesIO()
                 writer = xml.XmlWriter(buf, indent=True)
@@ -245,6 +246,7 @@ class ObjectWrapper(object):
         else:
             next=path[0]
             if hasattr(self.type, next):
+                self.refresh()
                 next_type = getattr(self.type, next)
                 next_wrapper = self.api.wrap(next_type)
                 if next_wrapper is not None and hasattr(next_wrapper, 'export'):
