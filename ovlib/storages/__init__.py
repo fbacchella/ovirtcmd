@@ -6,8 +6,8 @@ from ovlib.wrapper import ObjectWrapper, ListObjectWrapper, wrapper
 
 from ovirtsdk4.types import StorageDomain, Qos, DiskProfile, HostStorage, StorageType, StorageDomainType, StorageFormat, LogicalUnit, \
     Host
-from ovirtsdk4.writers import StorageDomainWriter, LogicalUnitWriter
-from ovirtsdk4.services import StorageDomainsService, StorageDomainService
+from ovirtsdk4.writers import StorageDomainWriter, LogicalUnitWriter, DiskProfileWriter
+from ovirtsdk4.services import StorageDomainsService, StorageDomainService, DiskProfileService, DiskProfilesService, AssignedDiskProfileService, AssignedDiskProfilesService
 
 
 @wrapper(writer_class=LogicalUnitWriter, type_class=LogicalUnit, other_attributes=[])
@@ -17,14 +17,34 @@ class LogicalUnitWrapper(ObjectWrapper):
 
 @wrapper(writer_class=StorageDomainWriter, type_class=StorageDomain, service_class=StorageDomainService,
          other_methods=['refresh_luns'], other_attributes=['storage', 'supports_discard'],
-         name_type_mapping={'storage_domain': StorageDomain, 'storage': HostStorage, 'type': StorageDomainType})
+         name_type_mapping={'storage_domain': StorageDomain, 'storage': HostStorage, 'type': StorageDomainType, 'disk_profiles': AssignedDiskProfileService})
 class StorageDomainWrapper(ObjectWrapper):
     pass
 
 
 @wrapper(service_class=StorageDomainsService, service_root="storagedomains",
-         name_type_mapping={'type': StorageDomainType, 'storage': HostStorage, 'storage_format': 'StorageFormat', 'host': Host, 'storage_domain': StorageDomain, 'storage': HostStorage})
+         name_type_mapping={'type': StorageDomainType, 'storage': HostStorage, 'storage_format': StorageFormat, 'host': Host, 'storage_domain': StorageDomain, 'storage': HostStorage})
 class StorageDomainsWrapper(ListObjectWrapper):
+    pass
+
+
+@wrapper(writer_class=DiskProfileWriter, type_class=DiskProfile, service_class=DiskProfileService, other_attributes=[])
+class DiskProfileWrapper(ObjectWrapper):
+    pass
+
+
+@wrapper(service_class=DiskProfilesService, service_root="diskprofiles")
+class DiskProfilesWrapper(ObjectWrapper):
+    pass
+
+
+@wrapper(service_class=AssignedDiskProfileService)
+class AssignedDiskProfileWrapper(ObjectWrapper):
+    pass
+
+
+@wrapper(service_class=AssignedDiskProfilesService)
+class AssignedDiskProfilesWrapper(ListObjectWrapper):
     pass
 
 
@@ -112,6 +132,7 @@ def extract_storage_infos(host, source):
 
     return storage
 
+
 @command(StorageDomainDispatcher, verb="import")
 class StorageDomainImport(ovlib.verb.Verb):
     verb = "import"
@@ -158,6 +179,7 @@ class StorageDomainImport(ovlib.verb.Verb):
 
     def to_str(self, value):
         return self._export(value.storage_domains)
+
 
 @command(StorageDomainDispatcher)
 class StorageDomainCreate(ovlib.verb.Create):
