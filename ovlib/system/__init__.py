@@ -65,5 +65,5 @@ class ReloadSystem(ovlib.verb.Create):
     def fill_parser(self, parser):
         parser.add_option("-a", "--async", dest="async", help="Don't wait for completion state", default=False, action='store_true')
 
-    def execute(self, async=False):
-        return self.object.reload_configurations(async=async)
+    def execute(self, isasync=False):
+        return self.object.reload_configurations(async_=isasync)

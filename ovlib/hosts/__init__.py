@@ -140,8 +140,8 @@ class NetworkAttachmentWrapper(ObjectWrapper):
          name_type_mapping={'mac_pool': MacPool, 'power_management': PowerManagement, 'ssh': Ssh, 'pm_proxies': PmProxy})
 class HostWrapper(ObjectWrapper):
 
-    def upgrade_check(self, async=True):
-        if not async:
+    def upgrade_check(self, isasync=True):
+        if not isasync:
             events_returned = []
             with event_waiter(self.api, "host.name=%s" % self.name, events_returned,
                               break_on=[EventsCode.HOST_AVAILABLE_UPDATES_FINISHED,
@@ -199,10 +199,10 @@ class Maintenance(ovlib.verb.Verb):
         parser.add_option("-r", "--reason", dest="reason", help="Reason for maintenance", default=None)
         parser.add_option("-a", "--async", dest="async", help="Don't wait for maintenance state", default=False, action='store_true')
 
-    def execute(self, reason=None, async=False, *args, **kwargs):
+    def execute(self, reason=None, isasync=False, *args, **kwargs):
         if self.object.status != HostStatus.MAINTENANCE:
-            self.object.deactivate(reason=reason, async=async)
-            if not async:
+            self.object.deactivate(reason=reason, async_=isasync)
+            if not isasync:
                 self.object.wait_for(HostStatus.MAINTENANCE)
         return True
 
@@ -213,8 +213,8 @@ class UpgradeCheck(ovlib.verb.Verb):
     def fill_parser(self, parser):
         parser.add_option("-a", "--async", dest="async", help="Don't wait for maintenance state", default=False, action='store_true')
 
-    def execute(self, async=False, *args, **kwargs):
-        return self.object.upgrade_check(async)
+    def execute(self, isasync=False, *args, **kwargs):
+        return self.object.upgrade_check(isasync)
 
     def to_str(self, value):
         if isinstance(value, List):
@@ -266,11 +266,11 @@ class Upgrade(ovlib.verb.Verb):
         parser.add_option("-r", "--refresh", dest="refresh_update", help="Refresh the upgrade status", default=False, action='store_true')
         parser.add_option("-b", "--reboot", dest="reboot", help="Reboot the host after upgrade", default=False, action='store_true')
 
-    def execute(self, async=False, refresh_update=False, reboot=False):
+    def execute(self, isasync=False, refresh_update=False, reboot=False):
         self.api.generate_services()
 
         if refresh_update:
-            events = self.object.upgrade_check(async=False)
+            events = self.object.upgrade_check(async_=False)
             if isinstance(events, (List, list)):
                 if events[0].code_enum != EventsCode.HOST_AVAILABLE_UPDATES_FINISHED:
                     self._status = 5
@@ -278,11 +278,11 @@ class Upgrade(ovlib.verb.Verb):
 
         if self.object.update_available:
             if self.object.status != HostStatus.MAINTENANCE:
-                self.object.deactivate(reason='For upgrade', async=True)
+                self.object.deactivate(reason='For upgrade', async_=True)
                 self.object.wait_for(HostStatus.MAINTENANCE)
             events_returned = []
             break_on = [EventsCode.HOST_UPGRADE_FAILED]
-            if async:
+            if isasync:
                 break_on.append(EventsCode.HOST_UPGRADE_STARTED)
             else:
                 break_on.append(EventsCode.HOST_UPGRADE_FINISHED)
@@ -290,12 +290,12 @@ class Upgrade(ovlib.verb.Verb):
             with event_waiter(self.api, "host.name=%s" % self.object.name, events_returned,
                               break_on=break_on):
                 self._status = 2
-                self.object.upgrade(async=async, reboot=reboot)
+                self.object.upgrade(async_=isasync, reboot=reboot)
             if len(events_returned) == 0:
                 raise ovlib.OVLibError("upgrade interrupted")
             if events_returned[0].code_enum == EventsCode.HOST_UPGRADE_FINISHED:
                 self._status = 1
-            elif not async:
+            elif not isasync:
                 self._status = 4
                 raise ovlib.OVLibError(events_returned[0].description, value={'event': events_returned[0]})
         else:

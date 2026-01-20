@@ -259,9 +259,9 @@ class VmSuspend(ovlib.verb.Verb):
     def fill_parser(self, parser):
         parser.add_option("-a", "--async", dest="async", help="Don't wait for completion state", default=False, action='store_true')
 
-    def execute(self, async=False):
-        self.object.suspend(async=async)
-        if not async:
+    def execute(self, isasync=False):
+        self.object.suspend(async_=isasync)
+        if not isasync:
             self.object.wait_for(VmStatus.SUSPENDED)
 
 
