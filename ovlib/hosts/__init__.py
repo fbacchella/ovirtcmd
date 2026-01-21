@@ -197,7 +197,7 @@ class Maintenance(ovlib.verb.Verb):
 
     def fill_parser(self, parser):
         parser.add_option("-r", "--reason", dest="reason", help="Reason for maintenance", default=None)
-        parser.add_option("-a", "--async", dest="async", help="Don't wait for maintenance state", default=False, action='store_true')
+        parser.add_option("-a", "--async", dest="isasync", help="Don't wait for maintenance state", default=False, action='store_true')
 
     def execute(self, reason=None, isasync=False, *args, **kwargs):
         if self.object.status != HostStatus.MAINTENANCE:
@@ -211,7 +211,7 @@ class Maintenance(ovlib.verb.Verb):
 class UpgradeCheck(ovlib.verb.Verb):
 
     def fill_parser(self, parser):
-        parser.add_option("-a", "--async", dest="async", help="Don't wait for maintenance state", default=False, action='store_true')
+        parser.add_option("-a", "--async", dest="isasync", help="Don't wait for maintenance state", default=False, action='store_true')
 
     def execute(self, isasync=False, *args, **kwargs):
         return self.object.upgrade_check(isasync)
@@ -228,7 +228,7 @@ class UpgradeCheck(ovlib.verb.Verb):
 class Activate(ovlib.verb.Verb):
 
     def fill_parser(self, parser):
-        parser.add_option("-a", "--async", dest="async", help="Don't wait for maintenance state", default=False, action='store_true')
+        parser.add_option("-a", "--async", dest="isasync", help="Don't wait for maintenance state", default=False, action='store_true')
 
     def execute(self, *args, **kwargs):
         if self.object.status == HostStatus.MAINTENANCE:
@@ -262,7 +262,7 @@ class Upgrade(ovlib.verb.Verb):
         self._status = 0
 
     def fill_parser(self, parser):
-        parser.add_option("-a", "--async", dest="async", help="Don't wait for completion state", default=False, action='store_true')
+        parser.add_option("-a", "--async", dest="isasync", help="Don't wait for completion state", default=False, action='store_true')
         parser.add_option("-r", "--refresh", dest="refresh_update", help="Refresh the upgrade status", default=False, action='store_true')
         parser.add_option("-b", "--reboot", dest="reboot", help="Reboot the host after upgrade", default=False, action='store_true')
 

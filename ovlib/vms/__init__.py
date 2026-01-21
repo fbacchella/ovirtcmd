@@ -257,7 +257,7 @@ class Vmshutdown(ovlib.verb.Verb):
 class VmSuspend(ovlib.verb.Verb):
 
     def fill_parser(self, parser):
-        parser.add_option("-a", "--async", dest="async", help="Don't wait for completion state", default=False, action='store_true')
+        parser.add_option("-a", "--async", dest="isasync", help="Don't wait for completion state", default=False, action='store_true')
 
     def execute(self, isasync=False):
         self.object.suspend(async_=isasync)
